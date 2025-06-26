@@ -1,29 +1,28 @@
-import { JSX } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { Box, Card, CardContent, Typography } from '@mui/material';
+import { BackofficeLayout } from './components/BackofficeLayout';
 
-interface AppProps {
-  // Aquí puedes agregar props si las necesitas
-}
-
-function App(): JSX.Element {
+function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <BackofficeLayout>
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Card>
+          <CardContent>
+            <Typography variant="h5" component="h2" gutterBottom>
+              Bienvenido al Backoffice de Ticket Office
+            </Typography>
+            <Typography variant="body1">
+              Este será el panel de administración donde podrás gestionar:
+              <ul>
+                <li>Eventos</li>
+                <li>Boletos</li>
+                <li>Usuarios</li>
+                <li>Reportes</li>
+              </ul>
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+    </BackofficeLayout>
   );
 }
 
