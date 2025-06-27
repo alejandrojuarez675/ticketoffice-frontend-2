@@ -16,7 +16,7 @@ const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) => {
         <AppBar position="static">
           <Toolbar>
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                <a href="/">TicketOffice</a>
+              <a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>TicketOffice</a>
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <Button color="inherit" component={RouterLink} to="/admin/dashboard">

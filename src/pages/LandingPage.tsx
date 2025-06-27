@@ -11,22 +11,26 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { myTheme } from '../theme/my-theme';
 import { Link as RouterLink } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
 
 const Hero = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
-  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+  background: `linear-gradient(45deg, ${myTheme.palette.primary.main} 30%, ${myTheme.palette.primary.dark} 90%)`,
   color: 'white',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   padding: theme.spacing(4),
+  backgroundBlendMode: 'overlay',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
 }));
 
 const Features = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
-  background: 'white',
+  background: myTheme.palette.background.default,
 }));
 
 const FeatureCard = styled(Card)(({ theme }) => ({
@@ -40,6 +44,7 @@ const FeatureCard = styled(Card)(({ theme }) => ({
   '&:hover': {
     transform: 'translateY(-5px)',
   },
+  backgroundColor: myTheme.palette.background.paper,
 }));
 
 const Landing: React.FC = () => {
@@ -70,10 +75,10 @@ const Landing: React.FC = () => {
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Typography variant="h1" gutterBottom sx={{ fontSize: { xs: '2rem', md: '3rem' } }}>
+              <Typography variant="h1" gutterBottom sx={{ fontSize: { xs: '2rem', md: '3rem' }, color: 'white' }}>
                 Sistema de Gestión de Eventos
               </Typography>
-              <Typography variant="h5" paragraph sx={{ mb: 4 }}>
+              <Typography variant="h5" paragraph sx={{ mb: 4, color: 'white' }}>
                 La solución completa para la gestión de eventos y venta de boletos en línea
               </Typography>
               <Button
@@ -82,10 +87,10 @@ const Landing: React.FC = () => {
                 variant="contained"
                 size="large"
                 sx={{
-                  backgroundColor: 'white',
-                  color: 'primary.main',
+                  backgroundColor: myTheme.palette.primary.main,
+                  color: myTheme.palette.primary.contrastText,
                   '&:hover': {
-                    backgroundColor: 'grey.100',
+                    backgroundColor: myTheme.palette.primary.dark,
                   },
                 }}
               >
@@ -109,23 +114,23 @@ const Landing: React.FC = () => {
         </Container>
       </Hero>
 
-      <Features>
+      <Features sx={{ backgroundColor: myTheme.palette.background.default }}>
         <Container maxWidth="lg">
-          <Typography variant="h2" gutterBottom align="center">
+          <Typography variant="h2" gutterBottom align="center" sx={{ color: 'white' }}>
             Características Principales
           </Typography>
           <Grid container spacing={4} sx={{ mt: 4 }}>
             {features.map((feature, index) => (
               <Grid item xs={12} sm={4} key={index}>
-                <FeatureCard>
+                <FeatureCard sx={{ backgroundColor: myTheme.palette.background.paper }}>
                   <CardContent>
-                    <Typography component="h2" variant="h4" gutterBottom>
+                    <Typography component="h2" variant="h4" gutterBottom sx={{ color: 'white' }}>
                       {feature.icon}
                     </Typography>
-                    <Typography variant="h5" gutterBottom>
+                    <Typography variant="h5" gutterBottom sx={{ color: 'white' }}>
                       {feature.title}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" sx={{ color: 'white' }}>
                       {feature.description}
                     </Typography>
                   </CardContent>
