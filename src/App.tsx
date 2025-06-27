@@ -6,11 +6,12 @@ import TicketsPage from './pages/TicketsPage';
 import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import LandingPage from './pages/LandingPage';
+import { authService } from 'services/auth';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = localStorage.getItem('token');
-  console.log("isAuthenticated", isAuthenticated);
+  const isAuthenticated = authService.getCurrentUser();
   return isAuthenticated ? children : <Navigate to="/login" />;
 }
 
@@ -21,6 +22,7 @@ function App() {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/logout" element={<Navigate to="/login" replace />} />
 
         {/* Protected admin routes */}

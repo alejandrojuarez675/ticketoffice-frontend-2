@@ -23,7 +23,7 @@ const Login: React.FC = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      localStorage.removeItem('token');
+      authService.logout();
     }
   }, [navigate]);
 
