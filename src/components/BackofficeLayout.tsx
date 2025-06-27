@@ -19,30 +19,24 @@ const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) => {
                 <a href="/">TicketOffice</a>
             </Typography>
             <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button color="inherit" component={RouterLink} to="dashboard">
+              <Button color="inherit" component={RouterLink} to="/admin/dashboard">
                 Dashboard
               </Button>
-              <Button color="inherit" component={RouterLink} to="events">
+              <Button color="inherit" component={RouterLink} to="/admin/events">
                 Eventos
               </Button>
-              <Button color="inherit" component={RouterLink} to="tickets">
+              <Button color="inherit" component={RouterLink} to="/admin/tickets">
                 Boletos
               </Button>
-              <Button color="inherit" component={RouterLink} to="users">
+              <Button color="inherit" component={RouterLink} to="/admin/users">
                 Usuarios
               </Button>
-              <Button color="inherit" component={RouterLink} to="reports">
+              <Button color="inherit" component={RouterLink} to="/admin/reports">
                 Reportes
               </Button>
-              {localStorage.getItem('token') ? (
-                <Button color="inherit" component={RouterLink} to="/logout">
-                  Logout
-                </Button>
-              ) : (
-                <Button color="inherit" component={RouterLink} to="/login">
-                  Login
-                </Button>
-              )}
+              <Button color="inherit" component={RouterLink} to="/logout">
+                Logout
+              </Button>
             </Box>
           </Toolbar>
         </AppBar>

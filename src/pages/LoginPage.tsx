@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -20,10 +20,12 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogout = () => {
-    authService.logout();
-    navigate('/');
-  };
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      localStorage.removeItem('token');
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +44,8 @@ const Login: React.FC = () => {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Redirect to admin
-      navigate('/admin');
+      // Redirect to dashboard
+      navigate('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
     } finally {

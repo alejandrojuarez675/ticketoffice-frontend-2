@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import BackofficeLayout from './components/BackofficeLayout';
-import Dashboard from './pages/Dashboard';
-import Events from './pages/Events';
-import Tickets from './pages/Tickets';
-import Users from './pages/Users';
-import Reports from './pages/Reports';
-import Login from './pages/Login';
-import Landing from './pages/Landing';
+import DashboardPage from './pages/DashboardPage';
+import EventsPage from './pages/EventsPage';
+import TicketsPage from './pages/TicketsPage';
+import UsersPage from './pages/UsersPage';
+import ReportsPage from './pages/ReportsPage';
+import LoginPage from './pages/LoginPage';
+import LandingPage from './pages/LandingPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = localStorage.getItem('token');
@@ -18,27 +18,49 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/logout" element={<Navigate to="/login" replace />} />
-        <Route
-          path="/admin"
-          element={
-              <BackofficeLayout>
-                  <PrivateRoute>
-                  <Routes>
-                    {/* <Route path="/" element={<Navigate to="dashboard" replace />} /> */}
-                    <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="events" element={<Events />} />
-                    <Route path="tickets" element={<Tickets />} />
-                    <Route path="users" element={<Users />} />
-                    <Route path="reports" element={<Reports />} />
-                    {/* <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />   */}
-                </Routes>
-                </PrivateRoute>
-              </BackofficeLayout>
-          }
-        />
+
+        {/* Protected admin routes */}
+        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/dashboard" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <DashboardPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/events" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <EventsPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/tickets" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <TicketsPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/users" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <UsersPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/reports" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <ReportsPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/*" element={<Navigate to="/admin/dashboard" replace />} />
       </Routes>
     </Router>
   );
