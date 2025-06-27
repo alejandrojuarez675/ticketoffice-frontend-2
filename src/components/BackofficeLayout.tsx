@@ -7,7 +7,7 @@ interface BackofficeLayoutProps {
   children: React.ReactNode;
 }
 
-export const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) => {
+const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -27,3 +27,5 @@ export const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) 
     </ThemeProvider>
   );
 };
+
+export default BackofficeLayout;

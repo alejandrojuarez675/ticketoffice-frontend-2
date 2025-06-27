@@ -1,8 +1,12 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Box, Card, CardContent, Typography } from '@mui/material';
-import { BackofficeLayout } from './components/BackofficeLayout';
-import { Navigation } from './components/Navigation';
-import { Dashboard } from './pages/Dashboard';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Box } from '@mui/material';
+import BackofficeLayout from './components/BackofficeLayout';
+import Navigation from './components/Navigation';
+import Dashboard from './pages/Dashboard';
+import Events from './pages/Events';
+import Tickets from './pages/Tickets';
+import Users from './pages/Users';
+import Reports from './pages/Reports';
 
 function App() {
   return (
@@ -13,54 +17,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/events" element={
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" gutterBottom>
-                    Gestión de Eventos
-                  </Typography>
-                  <Typography variant="body1">
-                    Aquí podrás gestionar todos los eventos disponibles.
-                  </Typography>
-                </CardContent>
-              </Card>
-            } />
-            <Route path="/tickets" element={
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" gutterBottom>
-                    Gestión de Boletos
-                  </Typography>
-                  <Typography variant="body1">
-                    Aquí podrás gestionar los boletos y las ventas.
-                  </Typography>
-                </CardContent>
-              </Card>
-            } />
-            <Route path="/users" element={
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" gutterBottom>
-                    Gestión de Usuarios
-                  </Typography>
-                  <Typography variant="body1">
-                    Aquí podrás gestionar los usuarios del sistema.
-                  </Typography>
-                </CardContent>
-              </Card>
-            } />
-            <Route path="/reports" element={
-              <Card>
-                <CardContent>
-                  <Typography variant="h5" gutterBottom>
-                    Reportes
-                  </Typography>
-                  <Typography variant="body1">
-                    Aquí podrás generar y visualizar reportes.
-                  </Typography>
-                </CardContent>
-              </Card>
-            } />
+            <Route path="/events" element={<Events />} />
+            <Route path="/tickets" element={<Tickets />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/reports" element={<Reports />} />
           </Routes>
         </Box>
       </BackofficeLayout>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
 
-export const Navigation: React.FC = () => {
+const Navigation: React.FC = () => {
   return (
     <AppBar position="static">
       <Toolbar>
@@ -30,3 +30,5 @@ export const Navigation: React.FC = () => {
     </AppBar>
   );
 };
+
+export default Navigation;
