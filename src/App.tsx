@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import LandingPage from './pages/LandingPage';
 import { authService } from 'services/auth';
+import LightLayout from './components/LightLayout';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = authService.getCurrentUser();
@@ -21,8 +22,16 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={
+          <LightLayout>
+            <LoginPage />
+          </LightLayout>
+        } />
+        <Route path="/register" element={
+          <LightLayout>
+            <RegisterPage />
+          </LightLayout>
+        } />
         <Route path="/logout" element={<Navigate to="/login" replace />} />
 
         {/* Protected admin routes */}
