@@ -1,11 +1,48 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper, 
+  Button,
+  IconButton,
+  Menu,
+  MenuItem
+} from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { useNavigate } from 'react-router-dom';
 import { EventService } from '../services/EventService';
 import { Event } from '../types/Event';
 
 const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+
+  const handleClick = (event: React.MouseEvent<HTMLElement>, eventId: string) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedEvent(eventId);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+    setSelectedEvent(null);
+  };
+
+  const handleViewDetails = () => {
+    if (selectedEvent) {
+      navigate(`/admin/events/${selectedEvent}`);
+    }
+    handleClose();
+  };
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -52,6 +89,7 @@ const Events: React.FC = () => {
                 <TableCell>Ubicación</TableCell>
                 <TableCell>Precio</TableCell>
                 <TableCell>Estado</TableCell>
+                <TableCell>Más</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -74,6 +112,23 @@ const Events: React.FC = () => {
                     }}>
                       {event.status}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => handleClick(e, event.id)}
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+                    <Menu
+                      anchorEl={anchorEl}
+                      open={Boolean(anchorEl) && selectedEvent === event.id}
+                      onClose={handleClose}
+                    >
+                      <MenuItem onClick={handleViewDetails}>
+                        <Typography variant="inherit">Ver Detalles</Typography>
+                      </MenuItem>
+                    </Menu>
                   </TableCell>
                 </TableRow>
               ))}

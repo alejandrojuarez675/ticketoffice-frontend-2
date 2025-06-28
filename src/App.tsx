@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import BackofficeLayout from './components/BackofficeLayout';
 import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
+import EventDetailPage from './pages/EventDetailPage';
 import TicketsPage from './pages/TicketsPage';
 import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
@@ -47,6 +48,13 @@ function App() {
           <PrivateRoute>
             <BackofficeLayout>
               <EventsPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/events/:id" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <EventDetailPage />
             </BackofficeLayout>
           </PrivateRoute>
         } />
