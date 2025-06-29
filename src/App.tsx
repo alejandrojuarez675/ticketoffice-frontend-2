@@ -66,7 +66,7 @@ function App() {
             </BackofficeLayout>
           </PrivateRoute>
         } />
-        <Route path="/admin/events/create" element={
+        <Route path="/admin/events/new" element={
           <PrivateRoute>
             <BackofficeLayout>
               <CreateOrUpdateEventsPage />

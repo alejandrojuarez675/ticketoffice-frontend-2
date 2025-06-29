@@ -3,7 +3,6 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Box, 
   Button,
-  TextFieldProps, 
   Card, 
   CardContent, 
   TextField, 
@@ -18,10 +17,6 @@ import {
 } from '@mui/material';
 import { EventService } from '../services/EventService';
 import { EventDetail } from '../types/Event';
-// import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-// import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-// import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-// import { es } from 'date-fns/locale';
 
 interface Location {
   name: string;
@@ -45,7 +40,7 @@ interface Ticket {
 }
 
 const CreateOrUpdateEventsPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(false);
@@ -53,7 +48,7 @@ const CreateOrUpdateEventsPage: React.FC = () => {
   const [event, setEvent] = useState<EventDetail>({
     id: '',
     title: '',
-    date: '',
+    date: new Date().toISOString(), // Set default date to current time
     location: {
       name: '',
       address: '',
@@ -182,7 +177,7 @@ const CreateOrUpdateEventsPage: React.FC = () => {
         await EventService.createEvent(event);
       }
 
-      navigate('/events');
+      navigate('/admin/events');
     } catch (err) {
       setError('Error al guardar el evento');
       console.error('Error:', err);
@@ -206,7 +201,6 @@ const CreateOrUpdateEventsPage: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
               {/* Basic Info */}
               <Grid item xs={12} md={6}>
                 <TextField
@@ -220,16 +214,65 @@ const CreateOrUpdateEventsPage: React.FC = () => {
               </Grid>
 
               <Grid item xs={12} md={6}>
-                input de fecha
-                {/* <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                  <DateTimePicker
-                    label="Fecha y Hora"
-                    value={new Date(event.date)}
-                    onChange={(newValue: Date | null) => handleInputChange('date', newValue?.toISOString() || '')}
-                    renderInput={(params: TextFieldProps) => <TextField {...params} fullWidth margin="normal" required />}
-                  />
-                </LocalizationProvider> */}
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Fecha"
+                      type="date"
+                      value={event.date ? new Date(event.date).toISOString().split('T')[0] : ''}
+                      onChange={(e) => {
+                        const dateStr = e.target.value;
+                        if (dateStr) {
+                          const date = new Date(dateStr);
+                          if (!isNaN(date.getTime())) {
+                            // Get current time if no time exists yet
+                            const time = event.date ? new Date(event.date).toISOString().split('T')[1] : '12:00';
+                            date.setHours(Number(time.split(':')[0]), Number(time.split(':')[1]));
+                            handleInputChange('date', date.toISOString());
+                          }
+                        }
+                      }}
+                      margin="normal"
+                      required
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Hora"
+                      type="time"
+                      value={event.date ? new Date(event.date).toISOString().split('T')[1].slice(0, 5) : '12:00'}
+                      onChange={(e) => {
+                        const timeStr = e.target.value;
+                        if (event.date && timeStr) {
+                          const date = new Date(event.date);
+                          if (!isNaN(date.getTime())) {
+                            const [hours, minutes] = timeStr.split(':');
+                            date.setHours(Number(hours), Number(minutes));
+                            handleInputChange('date', date.toISOString());
+                          }
+                        }
+                      }}
+                      margin="normal"
+                      required
+                    />
+                  </Grid>
               </Grid>
+
+            {/* Description */}
+            <Grid item xs={12}>
+            <TextField
+                fullWidth
+                label="Descripción"
+                multiline
+                rows={4}
+                value={event.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                margin="normal"
+                required
+            />
+            </Grid>
 
               {/* Location */}
               <Grid item xs={12}>
@@ -288,20 +331,6 @@ const CreateOrUpdateEventsPage: React.FC = () => {
                   label="Texto alternativo"
                   value={event.image.alt}
                   onChange={(e) => handleImageChange('alt', e.target.value)}
-                  margin="normal"
-                  required
-                />
-              </Grid>
-
-              {/* Description */}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Descripción"
-                  multiline
-                  rows={4}
-                  value={event.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
                   margin="normal"
                   required
                 />
