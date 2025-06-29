@@ -1,4 +1,5 @@
 import { EventListResponse, EventDetail } from '../types/Event';
+import { SearchEventParams, SearchEventResponse } from '../types/SearchEvent';
 import { ConfigService } from './ConfigService';
 
 export class EventService {
@@ -21,6 +22,28 @@ export class EventService {
       return response.json();
     } catch (error) {
       console.error('Error fetching events:', error);
+      throw error;
+    }
+  }
+
+  static async searchEvents(params: SearchEventParams): Promise<SearchEventResponse> {
+    if (this.isMocked()) {
+      return this.getMockSearchEvents();
+    }
+
+    try {
+      const queryString = Object.entries(params)
+        .filter(([_, value]) => value !== undefined)
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&');
+
+      const response = await fetch(`${this.BASE_URL}/api/public/v1/event/search?${queryString}`);
+      if (!response.ok) {
+        throw new Error('Failed to search events');
+      }
+      return response.json();
+    } catch (error) {
+      console.error('Error searching events:', error);
       throw error;
     }
   }
@@ -149,17 +172,65 @@ export class EventService {
     return {
       events: [
         {
-          id: "dsdsf-1234-1234-1234",
-          name: "Concierto de Trueno",
-          date: "2022-01-01T20:00:00",
-          location: "Movistar Arena",
-          status: "ACTIVE"
+          id: 'dsdsf-1234-1234-1234',
+          name: 'Concierto de Trueno',
+          date: '2025-06-29T20:00:00',
+          location: 'Movistar Arena',
+          status: 'ACTIVE'
+        },
+        {
+          id: 'dsdsf-1234-1234-1234',
+          name: 'Concierto de Bad Bunny',
+          date: '2025-07-01T20:00:00',
+          location: 'Movistar Arena',
+          status: 'ACTIVE'
         }
       ]
     };
   }
 
-  static getMockCreateEvent(event: EventDetail): EventDetail {
+  private static getMockSearchEvents(): SearchEventResponse {
+    return {
+      events: [
+        {
+          id: 'dsdsf-1234-1234-1234',
+          name: 'Concierto de Trueno',
+          date: '2025-06-29T20:00:00',
+          location: 'Movistar Arena',
+          bannerUrl: 'https://movistararena.co/wp-content/uploads/2025/02/trueno-2025-4.jpg',
+          price: 100000,
+          currency: 'COP',
+          status: 'ACTIVE'
+        },
+        {
+          id: 'dsdsf-1234-1234-1234',
+          name: 'Concierto de Bad Bunny',
+          date: '2025-07-01T20:00:00',
+          location: 'Movistar Arena',
+          bannerUrl: 'https://www.billboard.com/wp-content/uploads/2022/12/Bad-Bunny-Mexico-concert-2022-billboard-espanol-1548.jpg',
+          price: 100000,
+          currency: 'COP',
+          status: 'ACTIVE'
+        },
+        {
+          id: 'dsdsf-1234-1234-1234',
+          name: 'Concierto de Maluma',
+          date: '2025-07-01T20:00:00',
+          location: 'Movistar Arena',
+          bannerUrl: 'https://cloudfront-us-east-1.images.arcpublishing.com/artear/CFONB2XX45DHZL32KQ265QH26I.jpg',
+          price: 100000,
+          currency: 'COP',
+          status: 'ACTIVE'
+        }
+      ],
+      hasEventsInYourCity: true,
+      totalPages: 1,
+      currentPage: 1,
+      pageSize: 2
+    };
+  }
+
+  private static getMockCreateEvent(event: EventDetail): EventDetail {
     return {
       ...event,
       id: 'mock-id-' + Math.random().toString(36).substr(2, 9)

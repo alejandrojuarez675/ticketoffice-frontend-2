@@ -14,6 +14,7 @@ import {
 import { myTheme } from '../theme/my-theme';
 import { Link as RouterLink } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
+import FeaturedEvents from '../components/FeaturedEvents';
 
 const Hero = styled(Box)(({ theme }) => ({
   minHeight: '100vh',
@@ -140,6 +141,7 @@ const Landing: React.FC = () => {
           </Grid>
         </Container>
       </Features>
+      <FeaturedEvents />
     </Box>
   );
 };

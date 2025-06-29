@@ -24,6 +24,7 @@ function App() {
     ConfigService.setMocked(true);
   }
 
+  ConfigService.setMocked(true);
   return (
     <Router>
       <Routes>

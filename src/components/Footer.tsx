@@ -3,7 +3,7 @@ import { Box, Container, Typography, Grid, Link } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const FooterWrapper = styled(Box)(({ theme }) => ({
-  backgroundColor: '#1e1e1e',
+  backgroundColor: '#121212',
   color: theme.palette.text.primary,
   padding: theme.spacing(4, 0),
   marginTop: 'auto',
