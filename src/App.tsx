@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import LandingPage from './pages/LandingPage';
 import { authService } from 'services/auth';
 import LightLayout from './components/LightLayout';
+import { ConfigService } from './services/ConfigService';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = authService.getCurrentUser();
@@ -18,6 +19,12 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  // Enable mock mode if URL has ?mock=true parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('mock') === 'true') {
+    ConfigService.setMocked(true);
+  }
+
   return (
     <Router>
       <Routes>

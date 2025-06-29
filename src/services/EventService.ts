@@ -1,5 +1,6 @@
 import { Event } from '../types/Event';
 import { EventDetail } from '../types/EventDetail';
+import { ConfigService } from './ConfigService';
 
 interface EventResponse {
   events: Event[];
@@ -8,7 +9,15 @@ interface EventResponse {
 export class EventService {
   private static BASE_URL = 'http://localhost:8080';
 
+  private static isMocked(): boolean {
+    return ConfigService.isMockedEnabled();
+  }
+
   static async getEvents(): Promise<EventResponse> {
+    if (this.isMocked()) {
+      return this.getMockEvents();
+    }
+
     try {
       const response = await fetch(`${this.BASE_URL}/api/v1/events`);
       if (!response.ok) {
@@ -22,6 +31,10 @@ export class EventService {
   }
 
   static async getEventById(id: string): Promise<EventDetail> {
+    if (this.isMocked()) {
+      return this.getMockEventById(id);
+    }
+
     try {
       const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`);
       if (!response.ok) {

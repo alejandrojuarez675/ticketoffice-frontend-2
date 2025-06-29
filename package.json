@@ -20,6 +20,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:mock": "webpack serve --config node_modules/react-scripts/config/webpack.config.js --entry src/scripts/start-mock.ts --hot",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
