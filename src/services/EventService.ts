@@ -72,6 +72,32 @@ export class EventService {
     }
   }
 
+  static async updateEventById(id: string, event: EventDetail): Promise<EventDetail> {
+    if (this.isMocked()) {
+      return this.getMockCreateEvent(event);
+    }
+
+    try {
+      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(event)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update event with id ${id}. Status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error updating event:', error);
+      throw error;
+    }
+  }
+
   static getMockEventById(id: string): EventDetail {
     if (id !== "dsdsf-1234-1234-1234") {
       throw new Error('Event not found');
@@ -93,8 +119,8 @@ export class EventService {
       tickets: [
         {
           id: "001b2f30-9a84-45e1-9345-518bea8a77c8",
-          value: 100000,
-          currency: "COP",
+          value: 100,
+          currency: "$",
           type: "General",
           isFree: false,
           stock: 100
