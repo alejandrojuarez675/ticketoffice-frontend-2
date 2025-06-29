@@ -48,6 +48,13 @@ const EventsPage: React.FC = () => {
     handleClose();
   };
 
+  const handleEditEvent = () => {
+    if (selectedEvent) {
+      navigate(`/admin/events/${selectedEvent}/edit`);
+    }
+    handleClose();
+  };
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -134,6 +141,9 @@ const EventsPage: React.FC = () => {
                     >
                       <MenuItem onClick={handleViewDetails}>
                         <Typography variant="inherit">Ver Detalles</Typography>
+                      </MenuItem>
+                      <MenuItem onClick={handleEditEvent}>
+                        <Typography variant="inherit">Modificar</Typography>
                       </MenuItem>
                     </Menu>
                   </TableCell>
