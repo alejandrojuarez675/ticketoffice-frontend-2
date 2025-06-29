@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '../services/auth';
+import { authService } from '../services/AuthService';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

@@ -10,7 +10,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import { authService } from '../services/auth';
+import { authService } from '../services/AuthService';
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({

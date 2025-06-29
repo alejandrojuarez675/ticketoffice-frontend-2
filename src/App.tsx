@@ -9,7 +9,7 @@ import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import LandingPage from './pages/LandingPage';
-import { authService } from 'services/auth';
+import { authService } from 'services/AuthService';
 import LightLayout from './components/LightLayout';
 import { ConfigService } from './services/ConfigService';
 
