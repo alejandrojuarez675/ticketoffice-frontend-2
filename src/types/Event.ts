@@ -39,7 +39,7 @@ export interface EventDetail {
   tickets: Ticket[];
   description: string;
   additionalInfo: string[];
-  organizer: Organizer;
+  organizer: Organizer | null;
   status: string;
   location: Location;
 }

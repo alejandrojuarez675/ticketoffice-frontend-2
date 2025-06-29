@@ -12,6 +12,7 @@ import LandingPage from './pages/LandingPage';
 import { authService } from 'services/AuthService';
 import LightLayout from './components/LightLayout';
 import { ConfigService } from './services/ConfigService';
+import CreateOrUpdateEventsPage from 'pages/CreateOrUpdateEventsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = authService.getCurrentUser();
@@ -62,6 +63,27 @@ function App() {
           <PrivateRoute>
             <BackofficeLayout>
               <EventDetailPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/events/create" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <CreateOrUpdateEventsPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/events/:id" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <EventDetailPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/events/:id/edit" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <CreateOrUpdateEventsPage />
             </BackofficeLayout>
           </PrivateRoute>
         } />

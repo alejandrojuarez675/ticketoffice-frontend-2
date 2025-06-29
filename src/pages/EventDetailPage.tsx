@@ -137,7 +137,7 @@ const EventDetailPage: React.FC = () => {
             </Grid>
 
             {/* Organizer */}
-            <Grid item xs={12}>
+            {event.organizer && <Grid item xs={12}>
               <Paper sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   Organizador
@@ -151,7 +151,7 @@ const EventDetailPage: React.FC = () => {
                   </a>
                 </Typography>
               </Paper>
-            </Grid>
+            </Grid> }
 
             {/* Tickets */}
             <Grid item xs={12}>
@@ -172,10 +172,7 @@ const EventDetailPage: React.FC = () => {
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="h6" align="right">
-                        {ticket.value.toLocaleString('es-CO', {
-                          style: 'currency',
-                          currency: ticket.currency
-                        })}
+                        { ticket.currency + ticket.value }
                       </Typography>
                     </Grid>
                   </Grid>

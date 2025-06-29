@@ -20,12 +20,16 @@ import { useNavigate } from 'react-router-dom';
 import { EventService } from '../services/EventService';
 import { EventForList } from '../types/Event';
 
-const Events: React.FC = () => {
+const EventsPage: React.FC = () => {
   const [events, setEvents] = useState<EventForList[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+
+  const handleCreateEvent = () => {
+    navigate('/admin/events/new');
+  };
 
   const handleClick = (event: React.MouseEvent<HTMLElement>, eventId: string) => {
     setAnchorEl(event.currentTarget);
@@ -74,12 +78,23 @@ const Events: React.FC = () => {
   return (
     <Card>
       <CardContent>
+        <Typography variant="h4" gutterBottom>
+          Eventos
+        </Typography>
         <Typography variant="h5" gutterBottom>
           Gestión de Eventos
         </Typography>
         <Typography variant="body1" gutterBottom>
           Aquí podrás gestionar los eventos del sistema.
         </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleCreateEvent}
+          style={{ marginBottom: '16px' }}
+        >
+          Crear Nuevo Evento
+        </Button>
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -132,4 +147,4 @@ const Events: React.FC = () => {
   );
 };
 
-export default Events;
+export default EventsPage;
