@@ -1,7 +1,9 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, AppBar, Toolbar, Typography, Container } from '@mui/material';
+import { CssBaseline, Box, AppBar, Toolbar, Typography, Button, Container, Link as MuiLink } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { theme } from '../theme';
+import Footer from './Footer';
 
 interface LightLayoutProps {
   children: React.ReactNode;
@@ -20,6 +22,9 @@ const LightLayout: React.FC<LightLayoutProps> = ({ children }) => {
           </Toolbar>
         </AppBar>
         {children}
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <Footer />
+        </Box>
       </Box>
     </ThemeProvider>
   );
