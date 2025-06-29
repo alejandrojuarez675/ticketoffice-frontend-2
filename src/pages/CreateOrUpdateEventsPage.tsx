@@ -274,6 +274,24 @@ const CreateOrUpdateEventsPage: React.FC = () => {
             />
             </Grid>
 
+
+
+              {/* Status */}
+              <Grid item xs={12}>
+                <FormControl fullWidth margin="normal">
+                  <InputLabel>Estado</InputLabel>
+                  <Select
+                    value={event.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    label="Estado"
+                  >
+                    <MenuItem value="ACTIVE">Activo</MenuItem>
+                    <MenuItem value="INACTIVE">Inactivo</MenuItem>
+                    <MenuItem value="SOLD_OUT">Agotado</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
               {/* Location */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>
@@ -371,12 +389,12 @@ const CreateOrUpdateEventsPage: React.FC = () => {
               {/* Tickets */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom>
-                  Boletas
+                  Tickets
                 </Typography>
                 {event.tickets.map((ticket, index) => (
                   <Box key={index} sx={{ mb: 2 }}>
                     <Typography variant="subtitle1" gutterBottom>
-                      Boleta {index + 1}
+                      Ticket {index + 1}
                     </Typography>
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6}>
@@ -455,22 +473,6 @@ const CreateOrUpdateEventsPage: React.FC = () => {
                 >
                   Agregar Boleta
                 </Button>
-              </Grid>
-
-              {/* Status */}
-              <Grid item xs={12}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Estado</InputLabel>
-                  <Select
-                    value={event.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    label="Estado"
-                  >
-                    <MenuItem value="ACTIVE">Activo</MenuItem>
-                    <MenuItem value="INACTIVE">Inactivo</MenuItem>
-                    <MenuItem value="SOLD_OUT">Agotado</MenuItem>
-                  </Select>
-                </FormControl>
               </Grid>
 
               {/* Submit Button */}
