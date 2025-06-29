@@ -19,9 +19,7 @@ const LightLayout: React.FC<LightLayoutProps> = ({ children }) => {
             </Typography>
           </Toolbar>
         </AppBar>
-        <Container component="main" sx={{ mt: 4, mb: 4, flexGrow: 1, maxWidth: 'sm' }}>
-          {children}
-        </Container>
+        {children}
       </Box>
     </ThemeProvider>
   );

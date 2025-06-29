@@ -25,12 +25,6 @@ const BackofficeLayout: React.FC<BackofficeLayoutProps> = ({ children }) => {
               <Button color="inherit" component={RouterLink} to="/admin/events">
                 Eventos
               </Button>
-              <Button color="inherit" component={RouterLink} to="/admin/tickets">
-                Tickets
-              </Button>
-              <Button color="inherit" component={RouterLink} to="/admin/users">
-                Usuarios
-              </Button>
               <Button color="inherit" component={RouterLink} to="/admin/reports">
                 Reportes
               </Button>

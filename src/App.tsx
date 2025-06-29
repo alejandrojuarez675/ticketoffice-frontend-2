@@ -3,8 +3,6 @@ import BackofficeLayout from './components/BackofficeLayout';
 import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
-import TicketsPage from './pages/TicketsPage';
-import UsersPage from './pages/UsersPage';
 import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -30,7 +28,11 @@ function App() {
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={
+          <LightLayout>
+            <LandingPage />
+          </LightLayout>
+        } />
         <Route path="/login" element={
           <LightLayout>
             <LoginPage />
@@ -42,6 +44,11 @@ function App() {
           </LightLayout>
         } />
         <Route path="/logout" element={<Navigate to="/login" replace />} />
+        <Route path="/events/:id" element={
+          <LightLayout>
+            <EventDetailPage />
+          </LightLayout>
+        } />
 
         {/* Protected admin routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -84,20 +91,6 @@ function App() {
           <PrivateRoute>
             <BackofficeLayout>
               <CreateOrUpdateEventsPage />
-            </BackofficeLayout>
-          </PrivateRoute>
-        } />
-        <Route path="/admin/tickets" element={
-          <PrivateRoute>
-            <BackofficeLayout>
-              <TicketsPage />
-            </BackofficeLayout>
-          </PrivateRoute>
-        } />
-        <Route path="/admin/users" element={
-          <PrivateRoute>
-            <BackofficeLayout>
-              <UsersPage />
             </BackofficeLayout>
           </PrivateRoute>
         } />
