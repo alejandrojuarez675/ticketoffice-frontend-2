@@ -15,7 +15,7 @@ import {
   Divider
 } from '@mui/material';
 import { EventService } from '../services/EventService';
-import { EventDetail } from '../types/EventDetail';
+import { EventDetail } from '../types/Event';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 
 const EventDetailPage: React.FC = () => {
@@ -75,7 +75,7 @@ const EventDetailPage: React.FC = () => {
                 {event.title}
               </Typography>
               <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                {event.date.toLocaleDateString('es-CO', { 
+                {new Date(event.date).toLocaleDateString('es-CO', { 
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',

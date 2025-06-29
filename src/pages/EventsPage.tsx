@@ -18,10 +18,10 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
 import { EventService } from '../services/EventService';
-import { Event } from '../types/Event';
+import { EventForList } from '../types/Event';
 
 const Events: React.FC = () => {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<EventForList[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -87,7 +87,6 @@ const Events: React.FC = () => {
                 <TableCell>Nombre</TableCell>
                 <TableCell>Fecha</TableCell>
                 <TableCell>Ubicación</TableCell>
-                <TableCell>Precio</TableCell>
                 <TableCell>Estado</TableCell>
                 <TableCell>Más</TableCell>
               </TableRow>
@@ -96,15 +95,8 @@ const Events: React.FC = () => {
               {events.map((event) => (
                 <TableRow key={event.id}>
                   <TableCell>{event.name}</TableCell>
-                  <TableCell>{event.date.toLocaleDateString('es-CO', { 
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</TableCell>
+                  <TableCell>{event.date}</TableCell>
                   <TableCell>{event.location}</TableCell>
-                  <TableCell>{event.price.toLocaleString('es-CO', { style: 'currency', currency: event.currency })}</TableCell>
                   <TableCell>
                     <span style={{ 
                       color: event.status === 'ACTIVE' ? 'green' : 

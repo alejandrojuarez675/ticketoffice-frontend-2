@@ -1,10 +1,5 @@
-import { Event } from '../types/Event';
-import { EventDetail } from '../types/EventDetail';
+import { EventListResponse, EventDetail } from '../types/Event';
 import { ConfigService } from './ConfigService';
-
-interface EventResponse {
-  events: Event[];
-}
 
 export class EventService {
   private static BASE_URL = 'http://localhost:8080';
@@ -13,7 +8,7 @@ export class EventService {
     return ConfigService.isMockedEnabled();
   }
 
-  static async getEvents(): Promise<EventResponse> {
+  static async getEvents(): Promise<EventListResponse> {
     if (this.isMocked()) {
       return this.getMockEvents();
     }
@@ -51,6 +46,32 @@ export class EventService {
     }
   }
 
+  static async createEvent(event: EventDetail): Promise<EventDetail> {
+    if (this.isMocked()) {
+      return this.getMockCreateEvent(event);
+    }
+
+    try {
+      const response = await fetch(`${this.BASE_URL}/api/v1/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': '*/*'
+        },
+        body: JSON.stringify(event)
+      });
+
+      if (response.status !== 201) {
+        throw new Error(`Failed to create event. Status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error creating event:', error);
+      throw error;
+    }
+  }
+
   static getMockEventById(id: string): EventDetail {
     if (id !== "dsdsf-1234-1234-1234") {
       throw new Error('Event not found');
@@ -58,7 +79,7 @@ export class EventService {
     return {
       id: "dsdsf-1234-1234-1234",
       title: "Concierto de Trueno",
-      date: new Date("2022-01-01T20:00:00"),
+      date: "2022-01-01T20:00:00",
       location: {
         name: "Movistar Arena",
         address: "Dg. 61c #26-36",
@@ -98,20 +119,24 @@ export class EventService {
     };
   }
 
-  static getMockEvents(): EventResponse {
+  static getMockEvents(): EventListResponse {
     return {
       events: [
         {
           id: "dsdsf-1234-1234-1234",
           name: "Concierto de Trueno",
-          date: new Date("2022-01-01T20:00:00"),
+          date: "2022-01-01T20:00:00",
           location: "Movistar Arena",
-          bannerUrl: "https://movistararena.co/wp-content/uploads/2025/02/trueno-2025-4.jpg",
-          price: 100000,
-          currency: "COP",
           status: "ACTIVE"
         }
       ]
+    };
+  }
+
+  static getMockCreateEvent(event: EventDetail): EventDetail {
+    return {
+      ...event,
+      id: 'mock-id-' + Math.random().toString(36).substr(2, 9)
     };
   }
 }
