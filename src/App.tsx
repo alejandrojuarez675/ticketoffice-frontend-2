@@ -18,13 +18,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  // Enable mock mode if URL has ?mock=true parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('mock') === 'true') {
-    ConfigService.setMocked(true);
-  }
-
   ConfigService.setMocked(true);
+  
   return (
     <Router>
       <Routes>

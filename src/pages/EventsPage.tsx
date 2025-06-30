@@ -48,6 +48,13 @@ const EventsPage: React.FC = () => {
     handleClose();
   };
 
+  const handleViewDetailsAsClient = () => {
+    if (selectedEvent) {
+      navigate(`/events/${selectedEvent}`);
+    }
+    handleClose();
+  };
+
   const handleEditEvent = () => {
     if (selectedEvent) {
       navigate(`/admin/events/${selectedEvent}/edit`);
@@ -58,7 +65,7 @@ const EventsPage: React.FC = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await EventService.getMockEvents();
+        const response = await EventService.getEvents();
         setEvents(response.events);
       } catch (error) {
         console.error('Error fetching events:', error);
@@ -141,6 +148,9 @@ const EventsPage: React.FC = () => {
                     >
                       <MenuItem onClick={handleViewDetails}>
                         <Typography variant="inherit">Ver Detalles</Typography>
+                      </MenuItem>
+                      <MenuItem onClick={handleViewDetailsAsClient}>
+                        <Typography variant="inherit">Ir a la pagina del evento</Typography>
                       </MenuItem>
                       <MenuItem onClick={handleEditEvent}>
                         <Typography variant="inherit">Modificar</Typography>

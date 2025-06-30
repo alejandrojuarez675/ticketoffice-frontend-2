@@ -29,7 +29,7 @@ const EventDetailPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const event = await EventService.getMockEventById(id!);
+        const event = await EventService.getEventById(id!);
         setEvent(event);
       } catch (err) {
         setError('Error al cargar los detalles del evento');
