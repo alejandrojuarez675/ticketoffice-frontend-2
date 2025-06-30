@@ -4,6 +4,7 @@ import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
 import AdminEventSalesPage from './pages/AdminEventSalesPage';
+import AdminEventTicketValidationPage from './pages/AdminEventTicketValidationPage';
 import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -53,6 +54,13 @@ function App() {
           <PrivateRoute>
             <BackofficeLayout>
               <AdminEventSalesPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
+        <Route path="/admin/events/:id/sales/validate" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <AdminEventTicketValidationPage />
             </BackofficeLayout>
           </PrivateRoute>
         } />

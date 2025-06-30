@@ -55,6 +55,13 @@ const EventsPage: React.FC = () => {
     handleClose();
   };
 
+  const handleViewTicketValidation = () => {
+    if (selectedEvent) {
+      navigate(`/admin/events/${selectedEvent}/sales/validate`);
+    }
+    handleClose();
+  };
+
   const handleViewSales = () => {
     if (selectedEvent) {
       navigate(`/admin/events/${selectedEvent}/sales`);
@@ -168,6 +175,9 @@ const EventsPage: React.FC = () => {
                       </MenuItem>
                       <MenuItem onClick={handleViewSales}>
                         <Typography variant="inherit">Ver ventas</Typography>
+                      </MenuItem>
+                      <MenuItem onClick={handleViewTicketValidation}>
+                        <Typography variant="inherit">Validar entrada</Typography>
                       </MenuItem>
                       <MenuItem onClick={handleEditEvent}>
                         <Typography variant="inherit">Modificar</Typography>
