@@ -55,9 +55,23 @@ const EventsPage: React.FC = () => {
     handleClose();
   };
 
+  const handleViewSales = () => {
+    if (selectedEvent) {
+      navigate(`/admin/events/${selectedEvent}/sales`);
+    }
+    handleClose();
+  };
+
   const handleEditEvent = () => {
     if (selectedEvent) {
       navigate(`/admin/events/${selectedEvent}/edit`);
+    }
+    handleClose();
+  };
+
+  const handleDeleteEvent = () => {
+    if (selectedEvent) {
+      EventService.deleteEventById(selectedEvent);
     }
     handleClose();
   };
@@ -152,8 +166,14 @@ const EventsPage: React.FC = () => {
                       <MenuItem onClick={handleViewDetailsAsClient}>
                         <Typography variant="inherit">Ir a la pagina del evento</Typography>
                       </MenuItem>
+                      <MenuItem onClick={handleViewSales}>
+                        <Typography variant="inherit">Ver ventas</Typography>
+                      </MenuItem>
                       <MenuItem onClick={handleEditEvent}>
                         <Typography variant="inherit">Modificar</Typography>
+                      </MenuItem>
+                      <MenuItem onClick={handleDeleteEvent}>
+                        <Typography variant="inherit">Desactivar</Typography>
                       </MenuItem>
                     </Menu>
                   </TableCell>

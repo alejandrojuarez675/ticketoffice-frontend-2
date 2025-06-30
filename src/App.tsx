@@ -3,6 +3,7 @@ import BackofficeLayout from './components/BackofficeLayout';
 import DashboardPage from './pages/DashboardPage';
 import EventsPage from './pages/EventsPage';
 import EventDetailPage from './pages/EventDetailPage';
+import AdminEventSalesPage from './pages/AdminEventSalesPage';
 import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -48,6 +49,13 @@ function App() {
 
         {/* Protected admin routes */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin/events/:id/sales" element={
+          <PrivateRoute>
+            <BackofficeLayout>
+              <AdminEventSalesPage />
+            </BackofficeLayout>
+          </PrivateRoute>
+        } />
         <Route path="/admin/dashboard" element={
           <PrivateRoute>
             <BackofficeLayout>

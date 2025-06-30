@@ -121,4 +121,23 @@ export class EventService {
       throw error;
     }
   }
+
+  static async deleteEventById(id: string): Promise<void> {
+    if (this.isMocked()) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
+        method: 'DELETE'
+      });
+
+      if (response.status !== 204) {
+        throw new Error(`Failed to delete event with id ${id}. Status: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      throw error;
+    }
+  }
 }
