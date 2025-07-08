@@ -12,11 +12,11 @@ import {
   DialogActions,
   CircularProgress
 } from '@mui/material';
-import { ValidatorService } from '../services/ValidatorService';
-import { SalesService } from '../services/SalesService';
-import { EventService } from '../services/EventService';
-import { EventDetail } from '../types/Event';
-import { Sale } from '../types/Sales';
+import { ValidatorService } from '../../services/ValidatorService';
+import { SalesService } from '../../services/SalesService';
+import { EventService } from '../../services/EventService';
+import { EventDetail } from '../../types/Event';
+import { Sale } from '../../types/Sales';
 
 const AdminTicketValidationPage: React.FC = () => {
   const { id: eventId, saleId } = useParams<{ id: string; saleId: string }>();

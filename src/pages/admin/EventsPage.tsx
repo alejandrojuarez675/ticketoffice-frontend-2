@@ -17,8 +17,8 @@ import {
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
-import { EventService } from '../services/EventService';
-import { EventForList } from '../types/Event';
+import { EventService } from '../../services/EventService';
+import { EventForList } from '../../types/Event';
 
 const EventsPage: React.FC = () => {
   const [events, setEvents] = useState<EventForList[]>([]);

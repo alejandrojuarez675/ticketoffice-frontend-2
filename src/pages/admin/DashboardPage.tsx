@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Card, CardContent, CardMedia } from '@mui/material';
+import { Box, Typography, Card, CardContent } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const Container = styled(Box)(({ theme }) => ({

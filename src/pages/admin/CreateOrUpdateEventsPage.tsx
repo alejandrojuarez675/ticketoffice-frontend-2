@@ -15,8 +15,8 @@ import {
   Alert, 
   CircularProgress
 } from '@mui/material';
-import { EventService } from '../services/EventService';
-import { EventDetail } from '../types/Event';
+import { EventService } from '../../services/EventService';
+import { EventDetail } from '../../types/Event';
 
 interface Location {
   name: string;

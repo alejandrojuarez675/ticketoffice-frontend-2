@@ -14,8 +14,8 @@ import {
   ListItemIcon,
   Divider
 } from '@mui/material';
-import { EventService } from '../services/EventService';
-import { EventDetail } from '../types/Event';
+import { EventService } from '../../services/EventService';
+import { EventDetail } from '../../types/Event';
 import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
 
 const EventDetailPage: React.FC = () => {

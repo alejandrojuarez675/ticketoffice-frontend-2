@@ -15,9 +15,9 @@ import {
   DialogContentText,
   Grid
 } from '@mui/material';
-import { ValidatorService } from '../services/ValidatorService';
-import { EventService } from '../services/EventService';
-import { EventDetail } from '../types/Event';
+import { ValidatorService } from '../../services/ValidatorService';
+import { EventService } from '../../services/EventService';
+import { EventDetail } from '../../types/Event';
 
 const AdminEventTicketValidationPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

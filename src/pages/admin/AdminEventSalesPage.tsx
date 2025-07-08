@@ -17,9 +17,9 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
-import { SalesService } from '../services/SalesService';
+import { SalesService } from '../../services/SalesService';
 import { useRef } from 'react';
-import { SalesResponse } from '../types/Sales';
+import { SalesResponse } from '../../types/Sales';
 
 const AdminEventSalesPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

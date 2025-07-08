@@ -1,19 +1,20 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import BackofficeLayout from './components/BackofficeLayout';
-import DashboardPage from './pages/DashboardPage';
-import EventsPage from './pages/EventsPage';
-import EventDetailPage from './pages/EventDetailPage';
-import AdminEventSalesPage from './pages/AdminEventSalesPage';
-import AdminEventTicketValidationPage from './pages/AdminEventTicketValidationPage';
-import AdminTicketValidationPage from './pages/AdminTicketValidationPage';
-import ReportsPage from './pages/ReportsPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import LandingPage from './pages/LandingPage';
+import DashboardPage from './pages/admin/DashboardPage';
+import EventsPage from './pages/admin/EventsPage';
+import AdminEventDetailPage from './pages/admin/AdminEventDetailPage';
+import AdminEventSalesPage from './pages/admin/AdminEventSalesPage';
+import AdminEventTicketValidationPage from './pages/admin/AdminEventTicketValidationPage';
+import AdminTicketValidationPage from './pages/admin/AdminTicketValidationPage';
+import ReportsPage from './pages/admin/ReportsPage';
+import LoginPage from './pages/admin/LoginPage';
+import RegisterPage from './pages/admin/RegisterPage';
+import LandingPage from './pages/public/LandingPage';
 import { authService } from 'services/AuthService';
 import LightLayout from './components/LightLayout';
 import { ConfigService } from './services/ConfigService';
-import CreateOrUpdateEventsPage from 'pages/CreateOrUpdateEventsPage';
+import CreateOrUpdateEventsPage from 'pages/admin/CreateOrUpdateEventsPage';
+import EventDetailPage from 'pages/public/EventDetailPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = authService.getCurrentUser();
@@ -89,7 +90,7 @@ function App() {
         <Route path="/admin/events/:id" element={
           <PrivateRoute>
             <BackofficeLayout>
-              <EventDetailPage />
+              <AdminEventDetailPage />
             </BackofficeLayout>
           </PrivateRoute>
         } />
