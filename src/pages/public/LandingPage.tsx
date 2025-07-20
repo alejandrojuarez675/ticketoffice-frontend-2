@@ -84,18 +84,18 @@ const Landing: React.FC = () => {
               </Typography>
               <Button
                 component={RouterLink}
-                to="/login"
+                to="/register"
                 variant="contained"
                 size="large"
                 sx={{
-                  backgroundColor: myTheme.palette.primary.main,
+                  backgroundColor: myTheme.palette.background.paper,
                   color: myTheme.palette.primary.contrastText,
                   '&:hover': {
                     backgroundColor: myTheme.palette.primary.dark,
                   },
                 }}
               >
-                Iniciar Sesión
+                Quiero ser vendedor
               </Button>
             </Grid>
             <Grid item xs={12} md={6}>
