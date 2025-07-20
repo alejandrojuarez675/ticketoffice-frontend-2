@@ -12,11 +12,21 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Divider
+  Divider,
+  Radio,
+  RadioGroup,
+  FormControl,
+  FormLabel,
+  IconButton,
+  TextField,
 } from '@mui/material';
 import { EventService } from '../../services/EventService';
-import { EventDetail } from '../../types/Event';
-import { ArrowForward as ArrowForwardIcon } from '@mui/icons-material';
+import { EventDetail, Ticket } from '../../types/Event';
+import { 
+  ArrowForward as ArrowForwardIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon 
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
 const EventDetailPage: React.FC = () => {
@@ -24,6 +34,9 @@ const EventDetailPage: React.FC = () => {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string>('');
+  const [quantity, setQuantity] = useState<number>(1);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,8 +60,25 @@ const EventDetailPage: React.FC = () => {
   }, [id]);
 
   const handleBuyTicket = () => {
-    // Navigate to purchase page with event ID
-    navigate(`/purchase/${id}`);
+    if (!selectedTicketId || !selectedTicket) return;
+    // Navigate to purchase page with event ID, selected ticket ID and quantity
+    navigate(`/purchase/${id}?ticketId=${selectedTicketId}&quantity=${quantity}`);
+  };
+
+  const handleTicketSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const ticketId = e.target.value;
+    setSelectedTicketId(ticketId);
+    if (event) {
+      const ticket = event.tickets.find((t: Ticket) => t.id === ticketId) || null;
+      setSelectedTicket(ticket);
+      // Reset quantity when changing ticket type
+      setQuantity(1);
+    }
+  };
+
+  const handleQuantityChange = (newQuantity: number) => {
+    if (newQuantity < 1 || (selectedTicket && newQuantity > (selectedTicket.stock < 5 ? selectedTicket.stock : 5))) return;
+    setQuantity(newQuantity);
   };
 
   if (loading) {
@@ -175,32 +205,114 @@ const EventDetailPage: React.FC = () => {
                 Comprar Entrada
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              {event.tickets.map((ticket) => (
-                <Paper key={ticket.id} sx={{ p: 2, mb: 2 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="subtitle1">
-                        {ticket.type}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Stock: {ticket.stock}
-                      </Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="h6" align="right">
-                        {ticket.currency + ticket.value}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </Paper>
-              ))}
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel component="legend" sx={{ mb: 2 }}>Selecciona tu entrada</FormLabel>
+                <RadioGroup 
+                  aria-label="ticket-type" 
+                  name="ticket-type"
+                  value={selectedTicketId}
+                  onChange={handleTicketSelect}
+                >
+                  {event.tickets.map((ticket) => (
+                    <Paper 
+                      key={ticket.id} 
+                      sx={{ 
+                        p: 2, 
+                        mb: 2,
+                        border: selectedTicketId === ticket.id ? '2px solid #1976d2' : '1px solid rgba(0, 0, 0, 0.12)',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          borderColor: 'rgba(25, 118, 210, 0.5)'
+                        }
+                      }}
+                      onClick={() => setSelectedTicketId(ticket.id)}
+                    >
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item>
+                          <Radio
+                            value={ticket.id}
+                            checked={selectedTicketId === ticket.id}
+                            onChange={handleTicketSelect}
+                          />
+                        </Grid>
+                        <Grid item xs>
+                          <Typography variant="subtitle1">
+                            {ticket.type}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Stock: {ticket.stock > 0 ? ticket.stock : 'Agotado'}
+                          </Typography>
+                        </Grid>
+                        <Grid item>
+                          <Typography variant="h6">
+                            {ticket.currency} {ticket.value.toLocaleString()}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+              {selectedTicket && (
+                <Box sx={{ mt: 3, mb: 3 }}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Cantidad de entradas
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <IconButton 
+                      onClick={() => handleQuantityChange(quantity - 1)}
+                      disabled={quantity <= 1}
+                      size="small"
+                    >
+                      <RemoveIcon />
+                    </IconButton>
+                    <TextField
+                      value={quantity}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (!isNaN(value)) {
+                          handleQuantityChange(value);
+                        }
+                      }}
+                      type="number"
+                      inputProps={{ 
+                        min: 1, 
+                        max: selectedTicket?.stock || 1,
+                        style: { textAlign: 'center', width: '60px' }
+                      }}
+                      variant="outlined"
+                      size="small"
+                      sx={{ mx: 1 }}
+                    />
+                    <IconButton 
+                      onClick={() => handleQuantityChange(quantity + 1)}
+                      disabled={!selectedTicket || quantity >= selectedTicket.stock}
+                      size="small"
+                    >
+                      <AddIcon />
+                    </IconButton>
+                    <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
+                      Máx. {(selectedTicket?.stock < 5 ? selectedTicket.stock : 5)} por compra
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography>Total:</Typography>
+                    <Typography variant="h6">
+                      {selectedTicket.currency} {(selectedTicket.value * quantity).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
               <Button 
                 variant="contained" 
                 color="primary" 
                 onClick={handleBuyTicket}
-                sx={{ mt: 2 }}
+                disabled={!selectedTicketId}
+                fullWidth
+                size="large"
+                sx={{ mt: 1 }}
               >
-                Comprar Ahora
+                {selectedTicket ? `Comprar ${quantity} entrada${quantity > 1 ? 's' : ''} ahora` : 'Selecciona un tipo de entrada'}
               </Button>
             </CardContent>
           </Card>
