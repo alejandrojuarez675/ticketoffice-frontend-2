@@ -5,11 +5,28 @@ export interface CheckoutSessionResponse {
   expiredIn: number;
 }
 
+export interface BuyerData {
+  name: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  nationality: string;
+  documentType: string;
+  document: string;
+}
+
+export interface SessionDataRequest {
+  mainEmail: string;
+  buyer: BuyerData[];
+}
+
 export interface SessionInfoResponse {
   sessionId: string;
   eventId: string;
   priceId: string;
   quantity: number;
+  mainEmail?: string;
+  buyer?: BuyerData[];
 }
 
 export class CheckoutService {
@@ -97,12 +114,57 @@ export class CheckoutService {
     });
   }
 
+  /**
+   * Adds or updates data for a specific session
+   * @param sessionId The ID of the session to update
+   * @param data The data to add to the session
+   * @returns Promise with the updated session details
+   */
+  static async addSessionData(sessionId: string, data: SessionDataRequest): Promise<SessionInfoResponse> {
+    if (this.isMocked()) {
+      return this.getMockSessionInfoWithData(sessionId, data);
+    }
+
+    try {
+      const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}/data`, {
+        method: 'PUT',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update session data: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error updating session data:', error);
+      throw error;
+    }
+  }
+
   private static getMockSessionInfo(sessionId: string): Promise<SessionInfoResponse> {
     return Promise.resolve({
       sessionId,
-      eventId: `mock-event-${Math.random().toString(36).substring(2, 10)}`,
-      priceId: `mock-price-${Math.random().toString(36).substring(2, 10)}`,
-      quantity: Math.floor(Math.random() * 5) + 1
+      eventId: `dsdsf-1234-1234-1234`,
+      priceId: `001b2f30-9a84-45e1-9345-518bea8a77c8`,
+      quantity: 2
+    });
+  }
+
+  private static getMockSessionInfoWithData(
+    sessionId: string, 
+    data: SessionDataRequest
+  ): Promise<SessionInfoResponse> {
+    return Promise.resolve({
+      sessionId,
+      eventId: `dsdsf-1234-1234-1234`,
+      priceId: `001b2f30-9a84-45e1-9345-518bea8a77c8`,
+      quantity: 2,
+      ...data
     });
   }
 }
