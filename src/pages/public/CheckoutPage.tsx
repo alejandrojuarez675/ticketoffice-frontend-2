@@ -129,7 +129,7 @@ const CheckoutPage: React.FC = () => {
       });
       
       // Navigate to payment page or next step
-      // navigate(`/payment/${sessionId}`);
+      navigate(`/congrats/${sessionId}`);
       
     } catch (error) {
       console.error('Error saving buyer information:', error);

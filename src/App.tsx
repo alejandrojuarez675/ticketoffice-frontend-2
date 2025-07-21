@@ -16,6 +16,7 @@ import { ConfigService } from './services/ConfigService';
 import CreateOrUpdateEventsPage from 'pages/admin/CreateOrUpdateEventsPage';
 import EventDetailPage from 'pages/public/EventDetailPage';
 import CheckoutPage from 'pages/public/CheckoutPage';
+import CongratsPage from 'pages/public/CongratsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = authService.getCurrentUser();
@@ -53,6 +54,11 @@ function App() {
         <Route path="/purchase/:sessionId" element={
           <LightLayout>
             <CheckoutPage />
+          </LightLayout>
+        } />
+        <Route path="/congrats/:sessionId" element={
+          <LightLayout>
+            <CongratsPage />
           </LightLayout>
         } />
 

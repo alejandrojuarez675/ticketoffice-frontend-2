@@ -151,7 +151,19 @@ export class CheckoutService {
       sessionId,
       eventId: `dsdsf-1234-1234-1234`,
       priceId: `001b2f30-9a84-45e1-9345-518bea8a77c8`,
-      quantity: 2
+      quantity: 1,
+      buyer: [
+        {
+          name: 'John Doe',
+          lastName: 'Doe',
+          email: 'john.doe@example.com',
+          phone: '123456789',
+          nationality: 'Spanish',
+          documentType: 'DNI',
+          document: '12345678'
+        }
+      ],
+      mainEmail: 'john.doe@example.com'
     });
   }
 
@@ -163,7 +175,7 @@ export class CheckoutService {
       sessionId,
       eventId: `dsdsf-1234-1234-1234`,
       priceId: `001b2f30-9a84-45e1-9345-518bea8a77c8`,
-      quantity: 2,
+      quantity: 1,
       ...data
     });
   }
