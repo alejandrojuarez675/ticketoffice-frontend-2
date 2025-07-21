@@ -20,6 +20,7 @@ import {
   IconButton,
   TextField,
 } from '@mui/material';
+import { CheckoutService } from '../../services/CheckoutService';
 import { EventService } from '../../services/EventService';
 import { EventDetail, Ticket } from '../../types/Event';
 import { 
@@ -61,8 +62,15 @@ const EventDetailPage: React.FC = () => {
 
   const handleBuyTicket = () => {
     if (!selectedTicketId || !selectedTicket) return;
-    // Navigate to purchase page with event ID, selected ticket ID and quantity
-    navigate(`/purchase/${id}?ticketId=${selectedTicketId}&quantity=${quantity}`);
+
+    CheckoutService.createSession(id!, selectedTicketId, quantity)
+    .then(session => {
+      navigate(`/purchase/${session.sessionId}`);
+    })
+    .catch(error => {
+      console.error('Error creating checkout session:', error);
+      setError('Error al crear la sesión de compra');
+    });
   };
 
   const handleTicketSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
