@@ -18,9 +18,9 @@ import EventDetailPage from 'pages/public/EventDetailPage';
 import CheckoutPage from 'pages/public/CheckoutPage';
 import CongratsPage from 'pages/public/CongratsPage';
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
+function PrivateRoute({ children }: { children: React.ReactNode }): JSX.Element {
   const isAuthenticated = authService.getCurrentUser();
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 }
 
 function App() {
