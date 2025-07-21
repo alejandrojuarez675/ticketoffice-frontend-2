@@ -32,8 +32,8 @@ jobs:
       
       - name: Build
         run: |
+          npm install -g gh-pages
           npm run predeploy
-#          touch build/.nojekyll
       
       - name: Setup Pages
         uses: actions/configure-pages@v4
