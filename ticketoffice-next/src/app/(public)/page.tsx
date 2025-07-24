@@ -8,7 +8,6 @@ import {
   Button,
   Grid,
   Card,
-  CardContent,
   useTheme,
   useMediaQuery,
   styled,
@@ -76,7 +75,7 @@ export default function Home() {
       <Hero>
         <Container maxWidth="lg">
           <Grid container spacing={4} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography 
                 variant="h1" 
                 gutterBottom 
@@ -119,7 +118,7 @@ export default function Home() {
               </Button>
             </Grid>
             {!isMobile && (
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Box
                   component="img"
                   src="/images/landing-hero.png"
@@ -154,7 +153,7 @@ export default function Home() {
           </Typography>
           <Grid container spacing={4}>
             {features.map((feature, index) => (
-              <Grid item xs={12} sm={4} key={index}>
+              <Grid size={{ xs: 12, sm: 4 }} key={index}>
                 <FeatureCard>
                   <Typography 
                     variant="h2" 

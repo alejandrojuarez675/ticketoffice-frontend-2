@@ -39,14 +39,14 @@ const COUNTRIES = [
 ];
 
 // Document types
-documentType: [
+const documentType = [
   { value: 'CC', label: 'Cédula de Ciudadanía' },
   { value: 'CE', label: 'Cédula de Extranjería' },
   { value: 'PA', label: 'Pasaporte' },
   { value: 'TI', label: 'Tarjeta de Identidad' },
   { value: 'NIT', label: 'NIT' },
   { value: 'OTRO', label: 'Otro' },
-],
+];
 
 export default function CheckoutPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -258,7 +258,7 @@ export default function CheckoutPage() {
       
       <Grid container spacing={4}>
         {/* Event Summary */}
-        <Grid item xs={12} md={5} lg={4}>
+        <Grid size={{ xs: 12, md: 5, lg: 4 }}>
           <Paper elevation={3} sx={{ p: 3, borderRadius: 2, mb: 3, position: 'sticky', top: 20 }}>
             <Typography variant="h6" gutterBottom>Resumen del pedido</Typography>
             
@@ -345,7 +345,7 @@ export default function CheckoutPage() {
         </Grid>
         
         {/* Checkout Form */}
-        <Grid item xs={12} md={7} lg={8}>
+        <Grid size={{ xs: 12, md: 7, lg: 8 }}>
           <Paper component="form" onSubmit={handleSubmit} elevation={3} sx={{ p: 4, borderRadius: 2 }}>
             <Typography variant="h5" gutterBottom>Información de contacto</Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
@@ -375,7 +375,7 @@ export default function CheckoutPage() {
                 <Typography variant="subtitle1" gutterBottom>Asistente {index + 1}</Typography>
                 
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Nombre"
@@ -388,7 +388,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Apellido"
@@ -401,7 +401,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Correo electrónico"
@@ -415,7 +415,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Teléfono"
@@ -429,7 +429,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControl fullWidth margin="normal" error={!!formErrors[`buyer-${index}-documentType`]}>
                       <InputLabel id={`document-type-${index}-label`}>Tipo de documento</InputLabel>
                       <Select
@@ -449,7 +449,7 @@ export default function CheckoutPage() {
                       )}
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                       fullWidth
                       label="Número de documento"
@@ -462,7 +462,7 @@ export default function CheckoutPage() {
                       required
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <FormControl fullWidth margin="normal" error={!!formErrors[`buyer-${index}-nationality`]}>
                       <InputLabel id={`nationality-${index}-label`}>Nacionalidad</InputLabel>
                       <Select
