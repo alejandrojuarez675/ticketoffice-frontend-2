@@ -3,42 +3,25 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Grid, 
-  Paper, 
-  Box, 
-  Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
-  IconButton,
-  Chip
+  Box, Button, Card, CardContent, Chip, CircularProgress, 
+  Divider, Grid, IconButton, List, ListItem, ListItemIcon, 
+  ListItemText, Typography, useMediaQuery, useTheme 
 } from '@mui/material';
-import { EventService } from '@/services/EventService';
-import { EventDetail } from '@/types/event';
 import { 
-  ArrowBack as ArrowBackIcon, 
-  Edit as EditIcon, 
-  CalendarToday as CalendarIcon,
-  LocationOn as LocationIcon,
-  Description as DescriptionIcon,
-  AttachMoney as PriceIcon,
-  EventAvailable as EventAvailableIcon,
-  EventBusy as EventBusyIcon,
-  People as PeopleIcon
+  ArrowBack as ArrowBackIcon, CalendarToday as CalendarIcon, 
+  Edit as EditIcon, EventAvailable as EventAvailableIcon, 
+  EventBusy as EventBusyIcon, LocationOn as LocationIcon, 
+  People as PeopleIcon, AttachMoney as PriceIcon 
 } from '@mui/icons-material';
-import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const EventDetailPage = () => {
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+import { EventService } from '@/services/EventService';
+import { EventDetail } from '@/types/event';
+import { useAuth } from '@/hooks/useAuth';
+
+export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
@@ -50,7 +33,6 @@ const EventDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Redirect if not authenticated or not admin
     if (!isAuthenticated || !isAdmin) {
       router.push('/auth/login');
       return;
@@ -62,7 +44,7 @@ const EventDetailPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const eventData = await EventService.getEventById(id as string);
+        const eventData = await EventService.getEventById(id);
         setEvent(eventData);
       } catch (err) {
         console.error('Error fetching event:', err);
@@ -75,211 +57,194 @@ const EventDetailPage = () => {
     fetchEvent();
   }, [id, isAuthenticated, isAdmin, router]);
 
-  const handleBack = () => {
-    router.push('/admin/events');
-  };
-
-  const handleEdit = () => {
-    if (event) {
-      router.push(`/admin/events/${event.id}/edit`);
-    }
-  };
+  const handleBack = () => router.push('/admin/events');
+  const handleEdit = () => event && router.push(`/admin/events/${event.id}/edit`);
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
+      <BackofficeLayout title="Cargando...">
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <CircularProgress />
+        </Box>
+      </BackofficeLayout>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error" variant="h6">{error}</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={handleBack}
-          startIcon={<ArrowBackIcon />}
-          sx={{ mt: 2 }}
-        >
-          Volver a la lista de eventos
-        </Button>
-      </Box>
+      <BackofficeLayout title="Error">
+        <Box sx={{ p: 3 }}>
+          <Typography color="error" variant="h6">{error}</Typography>
+          <Button onClick={handleBack} sx={{ mt: 2 }} startIcon={<ArrowBackIcon />}>
+            Volver a la lista
+          </Button>
+        </Box>
+      </BackofficeLayout>
     );
   }
 
   if (!event) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h6">Evento no encontrado</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={handleBack}
-          startIcon={<ArrowBackIcon />}
-          sx={{ mt: 2 }}
-        >
-          Volver a la lista de eventos
-        </Button>
-      </Box>
+      <BackofficeLayout title="Evento no encontrado">
+        <Box textAlign="center" p={4}>
+          <Typography variant="h6">Evento no encontrado</Typography>
+          <Button onClick={handleBack} sx={{ mt: 2 }} startIcon={<ArrowBackIcon />}>
+            Volver a la lista
+          </Button>
+        </Box>
+      </BackofficeLayout>
     );
   }
 
-  // Format date and time
   const formattedDate = format(new Date(event.date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   const formattedTime = format(new Date(event.date), "HH:mm 'hs'", { locale: es });
 
   return (
-    <Box sx={{ p: isMobile ? 2 : 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-          <ArrowBackIcon />
-        </IconButton>
-        <Typography variant="h4" component="h1">
-          Detalles del Evento
-        </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleEdit}
-          startIcon={<EditIcon />}
-        >
-          Editar
-        </Button>
-      </Box>
+    <BackofficeLayout title={event.title || 'Detalles del Evento'}>
+      <Box sx={{ p: isMobile ? 2 : 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <IconButton onClick={handleBack} sx={{ mr: 1 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h4" component="h1">
+            {event.title || 'Detalles del Evento'}
+          </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button variant="contained" onClick={handleEdit} startIcon={<EditIcon />}>
+            Editar
+          </Button>
+        </Box>
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Card>
-            <Box
-              component="img"
-              src={event.image?.url || '/images/event-placeholder.jpg'}
-              alt={event.title}
-              sx={{
-                width: '100%',
-                height: 300,
-                objectFit: 'cover',
-                borderBottom: `1px solid ${theme.palette.divider}`
-              }}
-            />
-            <CardContent>
-              <Typography variant="h4" component="h2" gutterBottom>
-                {event.title}
-              </Typography>
-              
-              <Box sx={{ mb: 3 }}>
-                <Chip 
-                  label={event.status ? 'Activo' : 'Inactivo'} 
-                  color={event.status === 'ACTIVE' ? 'success' : 'error'} 
-                  size="small"
-                  sx={{ mb: 2 }}
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Card>
+              <CardContent>
+                <Box
+                  component="img"
+                  src={event.image?.url || '/images/event-placeholder.jpg'}
+                  alt={event.title}
+                  sx={{
+                    width: '100%',
+                    height: 300,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    mb: 2
+                  }}
                 />
-                <Typography variant="body1" paragraph>
-                  {event.description}
-                </Typography>
-              </Box>
-
-              <Divider sx={{ my: 2 }} />
-              
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <List dense>
-                    <ListItem>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <CalendarIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Fecha" 
-                        secondary={`${formattedDate} a las ${formattedTime}`} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <LocationIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Ubicación" 
-                        secondary={event.location?.city || 'No especificada'} 
-                      />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <PriceIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Precio" 
-                        secondary={event.tickets[0].value ? `$${event.tickets[0].value.toFixed(2)}` : 'Gratis'} 
-                      />
-                    </ListItem>
-                  </List>
+                
+                <Typography variant="h6" gutterBottom>Descripción</Typography>
+                <Typography paragraph>{event.description || 'No hay descripción disponible para este evento.'}</Typography>
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <Typography variant="h6" gutterBottom>Información del evento</Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <List dense>
+                      <ListItem>
+                        <ListItemIcon><CalendarIcon color="primary" /></ListItemIcon>
+                        <ListItemText primary="Fecha y hora" secondary={`${formattedDate} a las ${formattedTime}`} />
+                      </ListItem>
+                      <ListItem>
+                        <ListItemIcon><LocationIcon color="primary" /></ListItemIcon>
+                        <ListItemText
+                          primary="Ubicación"
+                          secondary={event.location ? `${event.location.name}, ${event.location.city}` : 'Ubicación no especificada'}
+                        />
+                      </ListItem>
+                    </List>
+                  </Grid>
+                  
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <List dense>
+                      {event.tickets?.map((ticket, index) => (
+                        <ListItem key={index}>
+                          <ListItemIcon>
+                            {ticket.stock > 0 ? <EventAvailableIcon color="success" /> : <EventBusyIcon color="error" />}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={ticket.type || 'Entrada general'}
+                            secondary={
+                              <>
+                                <Box component="span" display="block">
+                                  {ticket.isFree ? 'Gratis' : `$${ticket.value.toFixed(2)} ${ticket.currency}`}
+                                </Box>
+                                <Box component="span" display="block">
+                                  {ticket.stock > 0 ? `${ticket.stock} entradas disponibles` : 'Agotado'}
+                                </Box>
+                              </>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
                 </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <List dense>
-                    <ListItem>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        <PeopleIcon color="primary" />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Capacidad" 
-                        secondary={event.tickets[0].stock ? `${event.tickets[0].stock} personas` : 'Ilimitada'} 
+                
+                {event.additionalInfo && event.additionalInfo.length > 0 && (
+                  <>
+                    <Divider sx={{ my: 2 }} />
+                    <Typography variant="h6" gutterBottom>Información adicional</Typography>
+                    <List dense>
+                      {event.additionalInfo.map((info, index) => (
+                        <ListItem key={index}>
+                          <ListItemText primary={info} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+          
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>Estado del evento</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <Chip 
+                    label={event.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
+                    color={event.status === 'ACTIVE' ? 'success' : 'default'}
+                    size="small"
+                  />
+                </Box>
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <Typography variant="h6" gutterBottom>Organizador</Typography>
+                {event.organizer ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                    {event.organizer.logoUrl && (
+                      <Box 
+                        component="img"
+                        src={event.organizer.logoUrl}
+                        alt={event.organizer.name}
+                        sx={{ width: 40, height: 40, borderRadius: '50%', mr: 1.5 }}
                       />
-                    </ListItem>
-                    <ListItem>
-                      <ListItemIcon sx={{ minWidth: 36 }}>
-                        {event.tickets[0].stock > 0 ? 
-                          <EventAvailableIcon color="success" /> : 
-                          <EventBusyIcon color="error" />
-                        }
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Entradas disponibles" 
-                        secondary={event.tickets[0].stock > 0 ? 
-                          `${event.tickets[0].stock} de ${event.tickets[0].stock || '∞'}` : 
-                          'Agotadas'
-                        } 
-                      />
-                    </ListItem>
-                  </List>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
+                    )}
+                    <Box>
+                      <Typography variant="subtitle1">{event.organizer.name}</Typography>
+                      {event.organizer.url && (
+                        <Typography variant="body2" color="text.secondary">
+                          <a href={event.organizer.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
+                            {new URL(event.organizer.url).hostname}
+                          </a>
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No especificado
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-        
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Información del sistema
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemText 
-                    primary="ID del evento" 
-                    secondary={event.id} 
-                    secondaryTypographyProps={{ fontFamily: 'monospace' }}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText 
-                    primary="Creado" 
-                    secondary={formattedDate} 
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText 
-                    primary="Última actualización" 
-                    secondary={formattedDate} 
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+      </Box>
+    </BackofficeLayout>
   );
-};
-
-export default EventDetailPage;
+}

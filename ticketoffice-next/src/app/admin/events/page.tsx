@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -27,7 +28,7 @@ import { EventService, EventListResponse } from '@/services/EventService';
 import { EventForList } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
 
-const EventsPage = () => {
+const EventsList = () => {
   const router = useRouter();
   const theme = useTheme();
   const { isAuthenticated, isAdmin } = useAuth();
@@ -332,4 +333,10 @@ const EventsPage = () => {
   );
 };
 
-export default EventsPage;
+export default function EventsPage() {
+  return (
+    <BackofficeLayout title="Eventos">
+      <EventsList />
+    </BackofficeLayout>
+  );
+}

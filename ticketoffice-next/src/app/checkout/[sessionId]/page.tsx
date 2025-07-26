@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import LightLayout from '@/components/layouts/LightLayout';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -48,7 +49,7 @@ const documentType = [
   { value: 'OTRO', label: 'Otro' },
 ];
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   
@@ -507,5 +508,13 @@ export default function CheckoutPage() {
         </Grid>
       </Grid>
     </Container>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <LightLayout title="Finalizar Compra - TicketOffice">
+      <CheckoutContent />
+    </LightLayout>
   );
 }

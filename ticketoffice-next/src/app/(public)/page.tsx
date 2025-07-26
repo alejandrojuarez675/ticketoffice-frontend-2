@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import LightLayout from '@/components/layouts/LightLayout';
 import {
   Box,
   Container,
@@ -48,7 +49,7 @@ const FeatureCard = styled(Card)(({ theme }) => ({
   backgroundColor: theme.palette.background.paper,
 }));
 
-export default function Home() {
+function HomeContent() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -187,5 +188,13 @@ export default function Home() {
 
       <FeaturedEvents />
     </Box>
+  );
+}
+
+export default function Home() {
+  return (
+    <LightLayout title="Inicio - TicketOffice">
+      <HomeContent />
+    </LightLayout>
   );
 }

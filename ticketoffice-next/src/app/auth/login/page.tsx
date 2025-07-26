@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import LightLayout from '@/components/layouts/LightLayout';
 import { useRouter } from 'next/navigation';
 import {
   Box,
@@ -16,7 +17,7 @@ import {
 import Link from 'next/link';
 import { AuthService } from '@/services/AuthService';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -161,5 +162,13 @@ export default function LoginPage() {
         </Paper>
       </Box>
     </Container>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <LightLayout title="Iniciar Sesión - TicketOffice">
+      <LoginForm />
+    </LightLayout>
   );
 }

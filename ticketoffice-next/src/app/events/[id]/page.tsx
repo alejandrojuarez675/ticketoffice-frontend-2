@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import LightLayout from '@/components/layouts/LightLayout';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -36,7 +37,7 @@ import { EventService } from '@/services/EventService';
 import { EventDetail, Ticket } from '@/types/event';
 import Image from 'next/image';
 
-export default function EventDetailPage() {
+function EventDetailContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   
@@ -345,5 +346,13 @@ export default function EventDetailPage() {
         </Grid>
       </Grid>
     </Container>
+  );
+}
+
+export default function EventDetailPage() {
+  return (
+    <LightLayout title="Detalles del Evento - TicketOffice">
+      <EventDetailContent />
+    </LightLayout>
   );
 }

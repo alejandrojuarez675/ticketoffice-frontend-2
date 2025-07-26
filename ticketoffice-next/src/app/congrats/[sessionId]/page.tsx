@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import LightLayout from '@/components/layouts/LightLayout';
 import { useParams, useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -23,7 +24,7 @@ import { EventDetail } from '@/types/event';
 import { SessionInfoResponse } from '@/types/checkout';
 import Link from 'next/link';
 
-export default function CongratsPage() {
+function CongratsContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
   
@@ -237,5 +238,13 @@ export default function CongratsPage() {
         </Button>
       </Box>
     </Box>
+  );
+}
+
+export default function CongratsPage() {
+  return (
+    <LightLayout title="¡Compra Exitosa! - TicketOffice">
+      <CongratsContent />
+    </LightLayout>
   );
 }

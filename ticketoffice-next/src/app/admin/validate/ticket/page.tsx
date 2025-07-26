@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { 
   Card, 
   CardContent, 
@@ -9,12 +9,10 @@ import {
   TextField, 
   Button, 
   Box, 
-  CardHeader, 
   CardMedia, 
   Dialog, 
   DialogTitle, 
   DialogContent, 
-  DialogContentText,
   DialogActions,
   Grid,
   Paper,
@@ -23,11 +21,10 @@ import {
   useTheme,
   useMediaQuery,
   IconButton,
-  Avatar,
-  Chip,
-  Snackbar,
-  Alert
+  Alert,
+  Snackbar
 } from '@mui/material';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { 
   QrCodeScanner as QrCodeScannerIcon,
   Event as EventIcon,
@@ -45,8 +42,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const EventTicketValidationPage = () => {
-  const { id: eventId } = useParams<{ id: string }>();
+function TicketValidationContent() {
+  const params = useParams();
+  const eventId = params?.id as string;
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -486,4 +484,10 @@ const EventTicketValidationPage = () => {
   );
 };
 
-export default EventTicketValidationPage;
+export default function EventTicketValidationPage() {
+  return (
+    <BackofficeLayout title="Validar Entradas">
+      <TicketValidationContent />
+    </BackofficeLayout>
+  );
+}

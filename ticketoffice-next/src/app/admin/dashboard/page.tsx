@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { useRouter } from 'next/navigation';
 import { 
   Box, 
@@ -72,7 +73,7 @@ const fetchDashboardStats = async () => {
   });
 };
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -274,5 +275,13 @@ export default function DashboardPage() {
         </Box>
       </Box>
     </DashboardContainer>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <BackofficeLayout title="Panel de Control">
+      <DashboardContent />
+    </BackofficeLayout>
   );
 }

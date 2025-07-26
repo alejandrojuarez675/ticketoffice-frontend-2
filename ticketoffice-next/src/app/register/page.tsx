@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import LightLayout from '@/components/layouts/LightLayout';
 import {
   Box,
   Container,
@@ -19,7 +20,7 @@ import {
 import Link from 'next/link';
 import { AuthService } from '@/services/AuthService';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
@@ -266,5 +267,13 @@ export default function RegisterPage() {
         </Grid>
       </Grid>
     </Container>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <LightLayout title="Registro - TicketOffice">
+      <RegisterForm />
+    </LightLayout>
   );
 }
