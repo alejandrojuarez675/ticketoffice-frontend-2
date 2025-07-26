@@ -6,169 +6,138 @@ import {
   Card, 
   CardContent, 
   Typography, 
+  TextField, 
   Button, 
-  Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Box, 
+  CardHeader, 
+  CardMedia, 
+  Dialog, 
+  DialogTitle, 
+  DialogContent, 
+  DialogContentText,
   DialogActions,
+  Grid,
+  Paper,
+  Divider,
   CircularProgress,
   useTheme,
   useMediaQuery,
-  Paper,
-  Divider,
-  Grid,
-  Chip,
   IconButton,
-  Avatar
+  Avatar,
+  Chip,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
-  CheckCircle as CheckCircleIcon, 
-  Error as ErrorIcon, 
-  ArrowBack as ArrowBackIcon,
   QrCodeScanner as QrCodeScannerIcon,
-  EventSeat as EventSeatIcon,
-  Person as PersonIcon,
-  Email as EmailIcon,
   Event as EventIcon,
   LocationOn as LocationIcon,
   CalendarToday as CalendarIcon,
-  ConfirmationNumber as TicketIcon
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  ArrowBack as ArrowBackIcon,
+  ContentCopy as ContentCopyIcon
 } from '@mui/icons-material';
 import { ValidatorService } from '@/services/ValidatorService';
-import { SalesService } from '@/services/SalesService';
 import { EventService } from '@/services/EventService';
 import { EventDetail } from '@/types/event';
-import { Sale } from '@/types/sales';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-interface TicketValidationPageProps {
-  params: {
-    id: string;
-    saleId: string;
-  };
-}
-
-const TicketValidationPage = ({ params }: TicketValidationPageProps) => {
-  const { id: eventId, saleId } = params;
+const EventTicketValidationPage = () => {
+  const { id: eventId } = useParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isAuthenticated, isAdmin } = useAuth();
   
+  const [ticketId, setTicketId] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [event, setEvent] = useState<EventDetail | null>(null);
-  const [sale, setSale] = useState<Sale | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [validating, setValidating] = useState(false);
-  const [validationError, setValidationError] = useState('');
-  const [validationResult, setValidationResult] = useState<{
-    isValid: boolean;
-    message: string;
-    timestamp?: Date;
-  } | null>(null);
-  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [eventLoading, setEventLoading] = useState(true);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({ open: false, message: '', severity: 'info' });
 
-  // Check authentication and fetch data
+  // Check authentication and fetch event data
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) {
       router.push('/auth/login');
       return;
     }
 
-    const fetchData = async () => {
-      if (!eventId || !saleId) return;
+    const fetchEvent = async () => {
+      if (!eventId) return;
       
       try {
-        setLoading(true);
-        setValidationError('');
-        
-        const [eventResponse, saleResponse] = await Promise.all([
-          EventService.getEventById(eventId),
-          SalesService.getInstance().getSaleById(eventId, saleId)
-        ]);
-        
-        setEvent(eventResponse);
-        setSale(saleResponse);
+        setEventLoading(true);
+        const eventData = await EventService.getEventById(eventId as string);
+        setEvent(eventData);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setValidationError('Error al cargar los datos de la entrada.');
+        console.error('Error fetching event:', error);
+        setSnackbar({
+          open: true,
+          message: 'Error al cargar los datos del evento',
+          severity: 'error'
+        });
       } finally {
-        setLoading(false);
+        setEventLoading(false);
       }
     };
 
-    fetchData();
-  }, [eventId, saleId, isAuthenticated, isAdmin, router]);
+    fetchEvent();
+  }, [eventId, isAuthenticated, isAdmin, router]);
 
-  const handleBack = () => {
-    router.push('/admin/events');
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setTicketId('');
   };
 
-  const handleOpenScanner = () => {
-    setScannerOpen(true);
-  };
-
-  const handleCloseScanner = () => {
-    setScannerOpen(false);
-  };
-
-  const handleScanSuccess = (ticketId: string) => {
-    console.log('Scanned ticket ID:', ticketId);
-    // Here you would typically validate the scanned ticket ID
-    handleCloseScanner();
-    handleValidateTicket();
-  };
-
-  const handleValidateTicket = async () => {
-    if (!eventId || !saleId) return;
+  const handleValidateTicket = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!ticketId.trim() || !eventId) return;
     
     try {
-      setValidating(true);
-      setValidationError('');
-      
-      // Call the validation service
-      const result = await ValidatorService.getInstance().validateTicket(eventId, saleId);
-      
-      setValidationResult({
-        isValid: result.isValid,
-        message: result.message || 'Entrada validada correctamente',
-        timestamp: new Date()
-      });
-      
-      // Refresh sale data after validation
-      const updatedSale = await SalesService.getInstance().getSaleById(eventId, saleId);
-      setSale(updatedSale);
-      
+      setIsLoading(true);
+      await ValidatorService.validateTicket(eventId as string, ticketId);
+      setOpenDialog(true);
     } catch (error) {
       console.error('Error validating ticket:', error);
-      setValidationError('Error al validar la entrada. Intente nuevamente.');
-      setValidationResult({
-        isValid: false,
-        message: 'Error al validar la entrada',
-        timestamp: new Date()
+      setSnackbar({
+        open: true,
+        message: 'Error al validar el ticket',
+        severity: 'error'
       });
     } finally {
-      setValidating(false);
-      setOpenConfirmDialog(false);
+      setIsLoading(false);
     }
   };
 
-  const handleOpenConfirmDialog = () => {
-    setOpenConfirmDialog(true);
+  const handleScanSuccess = (scannedTicketId: string) => {
+    setTicketId(scannedTicketId);
+    setScannerOpen(false);
+    handleValidateTicket();
   };
 
-  const handleCloseConfirmDialog = () => {
-    setOpenConfirmDialog(false);
+  const handleCopyToClipboard = () => {
+    navigator.clipboard.writeText(ticketId);
+    setSnackbar({
+      open: true,
+      message: 'ID copiado al portapapeles',
+      severity: 'info'
+    });
   };
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), "EEEE d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es });
   };
 
-  if (loading) {
+  if (eventLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress />
@@ -176,21 +145,18 @@ const TicketValidationPage = ({ params }: TicketValidationPageProps) => {
     );
   }
 
-  if (!event || !sale) {
+  if (!event) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
         <ErrorIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
         <Typography variant="h5" gutterBottom>
-          No se pudo cargar la información del ticket
-        </Typography>
-        <Typography color="textSecondary" paragraph>
-          {validationError || 'La entrada solicitada no existe o no está disponible.'}
+          Evento no encontrado
         </Typography>
         <Button 
           variant="contained" 
-          color="primary" 
-          onClick={handleBack}
+          onClick={() => router.push('/admin/events')}
           startIcon={<ArrowBackIcon />}
+          sx={{ mt: 2 }}
         >
           Volver a la lista de eventos
         </Button>
@@ -201,230 +167,165 @@ const TicketValidationPage = ({ params }: TicketValidationPageProps) => {
   return (
     <Box sx={{ p: isMobile ? 2 : 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <IconButton onClick={handleBack} sx={{ mr: 1 }}>
+        <IconButton onClick={() => router.push(`/admin/events/${eventId}`)} sx={{ mr: 1 }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" component="h1">
-          Validar Entrada
+          Validar Entradas - {event.title}
         </Typography>
-        <Box sx={{ flexGrow: 1 }} />
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={<QrCodeScannerIcon />}
-          onClick={handleOpenScanner}
-          sx={{ mr: 1 }}
-        >
-          Escanear QR
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={validating ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
-          onClick={handleOpenConfirmDialog}
-          disabled={validating}
-        >
-          {validating ? 'Validando...' : 'Validar Entrada'}
-        </Button>
       </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
+            <CardMedia
+              component="img"
+              height="200"
+              image={event.image?.url || '/placeholder-event.jpg'}
+              alt={event.title}
+            />
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Avatar sx={{ bgcolor: 'primary.main', mr: 2 }}>
-                  <TicketIcon />
-                </Avatar>
-                <div>
-                  <Typography variant="h5" component="div">
-                    Entrada para {event.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    ID: {sale.id}
-                  </Typography>
-                </div>
+              <Typography variant="h6" gutterBottom>
+                {event.title}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <LocationIcon color="action" sx={{ mr: 1, fontSize: 20 }} />
+                <Typography variant="body2" color="text.secondary">
+                  {event.location?.city || 'Ubicación no especificada'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <CalendarIcon color="action" sx={{ mr: 1, fontSize: 20 }} />
+                <Typography variant="body2" color="text.secondary">
+                  {formatDate(event.date.toString())}
+                </Typography>
               </Box>
               
               <Divider sx={{ my: 2 }} />
               
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <EventIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1">
-                      <strong>Evento:</strong> {event.name}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <LocationIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1">
-                      <strong>Lugar:</strong> {event.location || 'No especificado'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <CalendarIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1">
-                      <strong>Fecha:</strong> {formatDate(event.date.toString())}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <PersonIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1">
-                      <strong>Comprador:</strong> {sale.customerName || 'Anónimo'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                    <EmailIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1" noWrap>
-                      <strong>Email:</strong> {sale.customerEmail}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <EventSeatIcon color="action" sx={{ mr: 1 }} />
-                    <Typography variant="body1">
-                      <strong>Entradas:</strong> {sale.ticketCount} (${sale.totalAmount.toFixed(2)})
-                    </Typography>
-                  </Box>
-                </Grid>
-              </Grid>
-              
-              {validationResult && (
-                <Box 
-                  sx={{
-                    mt: 3,
-                    p: 2,
-                    borderRadius: 1,
-                    bgcolor: validationResult.isValid ? 'success.light' : 'error.light',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  {validationResult.isValid ? (
-                    <CheckCircleIcon sx={{ mr: 1 }} />
-                  ) : (
-                    <ErrorIcon sx={{ mr: 1 }} />
-                  )}
-                  <Typography variant="body1">
-                    {validationResult.message} - {format(validationResult.timestamp || new Date(), 'HH:mm:ss')}
-                  </Typography>
-                </Box>
-              )}
-              
-              {validationError && (
-                <Box 
-                  sx={{
-                    mt: 2,
-                    p: 2,
-                    borderRadius: 1,
-                    bgcolor: 'error.light',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  <ErrorIcon sx={{ mr: 1 }} />
-                  <Typography variant="body1">{validationError}</Typography>
-                </Box>
-              )}
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                Instrucciones:
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                1. Ingrese el ID del ticket o escanee el código QR
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                2. Presione "Validar" o presione Enter
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                3. Revise los resultados de la validación
+              </Typography>
             </CardContent>
           </Card>
           
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Detalles de la Compra
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Estado del Pago
-                </Typography>
-                <Chip 
-                  label={sale.paymentStatus === 'completed' ? 'Pagado' : 'Pendiente'}
-                  color={sale.paymentStatus === 'completed' ? 'success' : 'warning'}
-                  size="small"
-                  sx={{ mt: 0.5 }}
-                />
-              </Box>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Estado de la Entrada
-                </Typography>
-                <Chip 
-                  label={sale.validated ? 'Validada' : 'No validada'}
-                  color={sale.validated ? 'success' : 'default'}
-                  size="small"
-                  sx={{ mt: 0.5 }}
-                />
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Fecha de Compra
-                </Typography>
-                <Typography variant="body1">
-                  {formatDate(sale.createdAt.toString())}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<QrCodeScannerIcon />}
+              onClick={() => setScannerOpen(true)}
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              Escanear Código QR
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => router.push(`/admin/events/${eventId}`)}
+              fullWidth
+            >
+              Volver al Detalle del Evento
+            </Button>
+          </Box>
         </Grid>
         
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Código QR
+                Validar Entrada
               </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ textAlign: 'center', p: 2 }}>
-                <Box 
-                  sx={{
-                    p: 2,
-                    border: '1px dashed',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    display: 'inline-block',
-                    mb: 2
-                  }}
-                >
-                  <QrCodeScannerIcon sx={{ fontSize: 100, color: 'text.secondary' }} />
-                </Box>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  Escanee este código QR para validar la entrada
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  ID: {sale.id.substring(0, 8)}...
-                </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box component="form" onSubmit={handleValidateTicket} sx={{ mb: 3 }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid size={{ xs: 12, md: 8 }}>
+                    <TextField
+                      fullWidth
+                      variant="outlined"
+                      label="ID del Ticket"
+                      value={ticketId}
+                      onChange={(e) => setTicketId(e.target.value)}
+                      placeholder="Ingrese el ID del ticket o escanee el código QR"
+                      InputProps={{
+                        endAdornment: ticketId && (
+                          <IconButton 
+                            onClick={handleCopyToClipboard}
+                            size="small"
+                            edge="end"
+                            title="Copiar ID"
+                          >
+                            <ContentCopyIcon fontSize="small" />
+                          </IconButton>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      color="primary"
+                      disabled={!ticketId.trim() || isLoading}
+                      sx={{ height: '56px' }}
+                    >
+                      {isLoading ? <CircularProgress size={24} /> : 'Validar'}
+                    </Button>
+                  </Grid>
+                </Grid>
               </Box>
+              
+              <Paper 
+                variant="outlined" 
+                sx={{ 
+                  p: 3, 
+                  textAlign: 'center',
+                  borderStyle: 'dashed',
+                  borderColor: 'divider',
+                  backgroundColor: 'action.hover',
+                  cursor: 'pointer',
+                  '&:hover': {
+                    backgroundColor: 'action.selected',
+                  },
+                }}
+                onClick={() => setScannerOpen(true)}
+              >
+                <QrCodeScannerIcon color="action" sx={{ fontSize: 48, mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  Escanear Código QR
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Haga clic aquí o presione el botón para abrir el escáner QR
+                </Typography>
+              </Paper>
             </CardContent>
           </Card>
           
           <Card sx={{ mt: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Información de Validación
+                Historial de Validaciones
               </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Última Validación
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <EventIcon color="action" sx={{ fontSize: 60, mb: 2, opacity: 0.5 }} />
+                <Typography variant="body1" color="text.secondary">
+                  El historial de validaciones aparecerá aquí
                 </Typography>
-                <Typography variant="body1">
-                  {sale.validatedAt 
-                    ? formatDate(sale.validatedAt.toString())
-                    : 'No validada aún'}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Validada por
-                </Typography>
-                <Typography variant="body1">
-                  {sale.validatedBy || 'No aplicable'}
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  (Función en desarrollo)
                 </Typography>
               </Box>
             </CardContent>
@@ -432,56 +333,85 @@ const TicketValidationPage = ({ params }: TicketValidationPageProps) => {
         </Grid>
       </Grid>
 
-      {/* Confirmation Dialog */}
+      {/* Validation Result Dialog */}
       <Dialog
-        open={openConfirmDialog}
-        onClose={handleCloseConfirmDialog}
+        open={openDialog}
+        onClose={handleCloseDialog}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Confirmar Validación</DialogTitle>
+        <DialogTitle>
+          {'Entrada Válida'}
+        </DialogTitle>
         <DialogContent>
-          <Typography variant="body1">
-            ¿Está seguro de que desea validar esta entrada? Esta acción no se puede deshacer.
-          </Typography>
-          {sale.validated && (
-            <Box 
-              sx={{
-                mt: 2,
-                p: 1.5,
-                bgcolor: 'warning.light',
-                borderRadius: 1,
-                display: 'flex',
-                alignItems: 'center'
-              }}
-            >
-              <ErrorIcon color="warning" sx={{ mr: 1 }} />
-              <Typography variant="body2">
-                Esta entrada ya fue validada anteriormente.
-              </Typography>
-            </Box>
-          )}
+          <Box sx={{ textAlign: 'center', py: 2 }}>
+            <CheckCircleIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
+            
+            <Typography variant="h6" gutterBottom>
+              Entrada Válida
+            </Typography>
+            
+            <Box sx={{ mt: 3, textAlign: 'left', p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Detalles del Ticket
+                </Typography>
+                <Divider sx={{ my: 1 }} />
+                
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+                  <Grid size={{ xs: 12, md: 8 }}>
+                    <Typography variant="body2">
+                      <strong>ID del Ticket:</strong>
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                      <Typography variant="body2" noWrap sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {ticketId}
+                      </Typography>
+                      <IconButton size="small" onClick={handleCopyToClipboard}>
+                        <ContentCopyIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid size={{ xs: 12, md: 8 }}>
+                    <Typography variant="body2">
+                      <strong>Evento:</strong>
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {event.title || 'N/A'}
+                    </Typography>
+                  </Grid>                  
+                  <Grid size={{ xs: 12, md: 8 }}>
+                    <Typography variant="body2">
+                      <strong>Validado el:</strong>
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(new Date().toString())}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+            )
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseConfirmDialog} color="inherit">
-            Cancelar
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseDialog} color="inherit">
+            Cerrar
           </Button>
-          <Button 
-            onClick={handleValidateTicket} 
-            color="primary" 
-            variant="contained"
-            disabled={validating}
-            startIcon={validating ? <CircularProgress size={20} color="inherit" /> : null}
-          >
-            {validating ? 'Validando...' : 'Confirmar Validación'}
-          </Button>
+            <Button 
+              variant="contained" 
+              color="primary" 
+              onClick={handleCloseDialog}
+              autoFocus
+            >
+              Validar Otra Entrada
+            </Button>
         </DialogActions>
       </Dialog>
 
-      {/* QR Scanner Dialog - Implementation would go here */}
+      {/* QR Scanner Dialog */}
       <Dialog
         open={scannerOpen}
-        onClose={handleCloseScanner}
+        onClose={() => setScannerOpen(false)}
         maxWidth="sm"
         fullWidth
       >
@@ -523,7 +453,7 @@ const TicketValidationPage = ({ params }: TicketValidationPageProps) => {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseScanner} color="inherit">
+          <Button onClick={() => setScannerOpen(false)} color="inherit">
             Cancelar
           </Button>
           <Button 
@@ -535,8 +465,25 @@ const TicketValidationPage = ({ params }: TicketValidationPageProps) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
 
-export default TicketValidationPage;
+export default EventTicketValidationPage;

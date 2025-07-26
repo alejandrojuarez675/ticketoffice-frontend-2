@@ -21,7 +21,11 @@ import {
   Button,
   useTheme,
   useMediaQuery,
-  Chip
+  Chip,
+  Grid,
+  List,
+  ListItem,
+  ListItemText
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -58,7 +62,7 @@ const EventSalesPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const sales = await SalesService.getEventSales(id as string);
+        const sales = await SalesService.getInstance().getEventSales(id as string);
         setSalesData(sales);
       } catch (err) {
         console.error('Error fetching sales:', err);
@@ -172,63 +176,41 @@ const EventSalesPage = () => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6">Lista de Ventas</Typography>
-                <Typography variant="subtitle1">
-                  Total: {salesData.total} venta{salesData.total !== 1 ? 's' : ''}
-                </Typography>
-              </Box>
-              
+            <CardContent>              
               <TableContainer component={Paper} sx={{ maxHeight: '70vh', overflow: 'auto' }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
-                      <TableCell>ID</TableCell>
                       <TableCell>Comprador</TableCell>
-                      <TableCell align="right">Cantidad</TableCell>
-                      <TableCell align="right">Total</TableCell>
+                      <TableCell>Tipo de entrada</TableCell>
+                      <TableCell align="right">Precio</TableCell>
                       <TableCell>Estado</TableCell>
-                      <TableCell>Fecha</TableCell>
                       <TableCell align="center">Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {salesData.data.map((sale) => (
+                    {salesData.sales.map((sale) => (
                       <TableRow key={sale.id} hover>
                         <TableCell>
-                          <Typography variant="body2" noWrap>
-                            {sale.id.substring(0, 8)}...
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
                           <Typography variant="body2">
-                            {sale.customerName || 'Anónimo'}
+                            {sale.firstName + ' ' + sale.lastName}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {sale.customerEmail}
+                            {sale.email}
                           </Typography>
                         </TableCell>
-                        <TableCell align="right">{sale.ticketCount}</TableCell>
+                        <TableCell align="right">{sale.ticketType}</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(sale.totalAmount)}
+                          {formatCurrency(sale.price)}
                         </TableCell>
                         <TableCell>
                           <Chip 
-                            label={sale.status} 
-                            color={getStatusColor(sale.status) as any}
+                            label={sale.validated ? 'Validada' : 'No validada'} 
+                            color={sale.validated ? 'success' : 'error'}
                             size="small"
                           />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {format(new Date(sale.createdAt), 'dd/MM/yyyy')}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {format(new Date(sale.createdAt), 'HH:mm')}
-                          </Typography>
                         </TableCell>
                         <TableCell align="center">
                           <IconButton
@@ -250,38 +232,7 @@ const EventSalesPage = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} md={4}>
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Resumen de Ventas
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemText 
-                    primary="Total Recaudado" 
-                    secondary={formatCurrency(salesData.totalAmount || 0)}
-                    secondaryTypographyProps={{ variant: 'h6', color: 'primary' }}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText 
-                    primary="Ventas Totales" 
-                    secondary={salesData.total || 0}
-                    secondaryTypographyProps={{ variant: 'h6' }}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText 
-                    primary="Entradas Vendidas" 
-                    secondary={salesData.totalTickets || 0}
-                    secondaryTypographyProps={{ variant: 'h6' }}
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-          
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>

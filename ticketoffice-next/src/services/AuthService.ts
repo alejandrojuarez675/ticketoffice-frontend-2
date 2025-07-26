@@ -187,7 +187,7 @@ class AuthService {
           password: credentials.password,
           email: credentials.email,
           role: 'user',
-          name: credentials.name || credentials.username,
+          name: credentials.firstName || credentials.username,
         };
 
         mockUsers.push(newUser);

@@ -128,8 +128,6 @@ const EventDetailPage = () => {
   // Format date and time
   const formattedDate = format(new Date(event.date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   const formattedTime = format(new Date(event.date), "HH:mm 'hs'", { locale: es });
-  const formattedCreatedAt = format(new Date(event.createdAt), "dd/MM/yyyy HH:mm");
-  const formattedUpdatedAt = event.updatedAt ? format(new Date(event.updatedAt), "dd/MM/yyyy HH:mm") : 'Nunca';
 
   return (
     <Box sx={{ p: isMobile ? 2 : 3 }}>
@@ -152,12 +150,12 @@ const EventDetailPage = () => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <Box
               component="img"
-              src={event.imageUrl || '/images/event-placeholder.jpg'}
-              alt={event.name}
+              src={event.image?.url || '/images/event-placeholder.jpg'}
+              alt={event.title}
               sx={{
                 width: '100%',
                 height: 300,
@@ -167,13 +165,13 @@ const EventDetailPage = () => {
             />
             <CardContent>
               <Typography variant="h4" component="h2" gutterBottom>
-                {event.name}
+                {event.title}
               </Typography>
               
               <Box sx={{ mb: 3 }}>
                 <Chip 
-                  label={event.isActive ? 'Activo' : 'Inactivo'} 
-                  color={event.isActive ? 'success' : 'error'} 
+                  label={event.status ? 'Activo' : 'Inactivo'} 
+                  color={event.status === 'ACTIVE' ? 'success' : 'error'} 
                   size="small"
                   sx={{ mb: 2 }}
                 />
@@ -185,7 +183,7 @@ const EventDetailPage = () => {
               <Divider sx={{ my: 2 }} />
               
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <List dense>
                     <ListItem>
                       <ListItemIcon sx={{ minWidth: 36 }}>
@@ -202,7 +200,7 @@ const EventDetailPage = () => {
                       </ListItemIcon>
                       <ListItemText 
                         primary="Ubicación" 
-                        secondary={event.location || 'No especificada'} 
+                        secondary={event.location?.city || 'No especificada'} 
                       />
                     </ListItem>
                     <ListItem>
@@ -211,12 +209,12 @@ const EventDetailPage = () => {
                       </ListItemIcon>
                       <ListItemText 
                         primary="Precio" 
-                        secondary={event.price ? `$${event.price.toFixed(2)}` : 'Gratis'} 
+                        secondary={event.tickets[0].value ? `$${event.tickets[0].value.toFixed(2)}` : 'Gratis'} 
                       />
                     </ListItem>
                   </List>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <List dense>
                     <ListItem>
                       <ListItemIcon sx={{ minWidth: 36 }}>
@@ -224,20 +222,20 @@ const EventDetailPage = () => {
                       </ListItemIcon>
                       <ListItemText 
                         primary="Capacidad" 
-                        secondary={event.capacity ? `${event.capacity} personas` : 'Ilimitada'} 
+                        secondary={event.tickets[0].stock ? `${event.tickets[0].stock} personas` : 'Ilimitada'} 
                       />
                     </ListItem>
                     <ListItem>
                       <ListItemIcon sx={{ minWidth: 36 }}>
-                        {event.availableTickets > 0 ? 
+                        {event.tickets[0].stock > 0 ? 
                           <EventAvailableIcon color="success" /> : 
                           <EventBusyIcon color="error" />
                         }
                       </ListItemIcon>
                       <ListItemText 
                         primary="Entradas disponibles" 
-                        secondary={event.availableTickets > 0 ? 
-                          `${event.availableTickets} de ${event.capacity || '∞'}` : 
+                        secondary={event.tickets[0].stock > 0 ? 
+                          `${event.tickets[0].stock} de ${event.tickets[0].stock || '∞'}` : 
                           'Agotadas'
                         } 
                       />
@@ -249,29 +247,7 @@ const EventDetailPage = () => {
           </Card>
         </Grid>
         
-        <Grid item xs={12} md={4}>
-          <Card sx={{ mb: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Estadísticas
-              </Typography>
-              <List dense>
-                <ListItem>
-                  <ListItemText 
-                    primary="Entradas vendidas" 
-                    secondary={event.ticketsSold || 0} 
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText 
-                    primary="Ingresos" 
-                    secondary={`$${(event.ticketsSold * (event.price || 0)).toFixed(2)}`} 
-                  />
-                </ListItem>
-              </List>
-            </CardContent>
-          </Card>
-          
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -288,13 +264,13 @@ const EventDetailPage = () => {
                 <ListItem>
                   <ListItemText 
                     primary="Creado" 
-                    secondary={formattedCreatedAt} 
+                    secondary={formattedDate} 
                   />
                 </ListItem>
                 <ListItem>
                   <ListItemText 
                     primary="Última actualización" 
-                    secondary={formattedUpdatedAt} 
+                    secondary={formattedDate} 
                   />
                 </ListItem>
               </List>

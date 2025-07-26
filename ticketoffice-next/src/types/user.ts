@@ -21,10 +21,12 @@ export interface LoginResponse {
 
 export interface RegisterCredentials {
   username: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
-  name?: string; // Optional field for registration
+  acceptTerms: boolean;
 }
 
 export interface AuthState {

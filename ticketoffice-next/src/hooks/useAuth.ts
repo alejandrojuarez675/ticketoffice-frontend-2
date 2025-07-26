@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthService } from '@/services/AuthService';
+import { RegisterCredentials } from '@/types/user';
 
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  name: string;
-  role: 'ADMIN' | 'USER';
-}
+import { User } from '@/types/user';
+
+export type { User };
 
 export const useAuth = () => {
   const router = useRouter();
@@ -38,7 +35,7 @@ export const useAuth = () => {
         if (currentUser) {
           setUser(currentUser);
           setIsAuthenticated(true);
-          setIsAdmin(currentUser.role === 'ADMIN');
+          setIsAdmin(currentUser.role === 'admin');
         } else {
           // If token exists but user data is not available, clear the token
           AuthService.logout();
@@ -64,9 +61,9 @@ export const useAuth = () => {
     try {
       setIsLoading(true);
       const userData = await AuthService.login(credentials);
-      setUser(userData);
+      setUser(userData.user);
       setIsAuthenticated(true);
-      setIsAdmin(userData.role === 'ADMIN');
+      setIsAdmin(userData.user.role.toUpperCase() === 'ADMIN');
       return userData;
     } catch (error) {
       console.error('Login failed:', error);
@@ -84,12 +81,7 @@ export const useAuth = () => {
     router.push('/auth/login');
   }, [router]);
 
-  const register = useCallback(async (userData: {
-    username: string;
-    email: string;
-    password: string;
-    name: string;
-  }) => {
+  const register = useCallback(async (userData: RegisterCredentials) => {
     try {
       setIsLoading(true);
       const newUser = await AuthService.register(userData);

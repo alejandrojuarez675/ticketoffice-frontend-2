@@ -1,9 +1,13 @@
-export interface Sale {
+export interface SalesResponse {
+    sales: Sale[];
+  }
+  
+  export interface Sale {
     id: string;
-    event: string;
-    ticket: string;
-    quantity: number;
-    total: number;
-    createdAt: string;
-    updatedAt: string;
-}
+    firstName: string;
+    lastName: string;
+    email: string;
+    ticketType: string;
+    price: number;
+    validated: boolean;
+  }

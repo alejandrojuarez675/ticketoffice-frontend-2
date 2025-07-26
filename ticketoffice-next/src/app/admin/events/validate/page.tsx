@@ -45,15 +45,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-type ValidationResult = {
-  valid: boolean;
-  message: string;
-  ticketId?: string;
-  eventName?: string;
-  customerName?: string;
-  validatedAt?: string;
-};
-
 const EventTicketValidationPage = () => {
   const { id: eventId } = useParams<{ id: string }>();
   const router = useRouter();
@@ -63,7 +54,6 @@ const EventTicketValidationPage = () => {
   
   const [ticketId, setTicketId] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [eventLoading, setEventLoading] = useState(true);
@@ -105,7 +95,6 @@ const EventTicketValidationPage = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
-    setValidationResult(null);
     setTicketId('');
   };
 
@@ -115,8 +104,7 @@ const EventTicketValidationPage = () => {
     
     try {
       setIsLoading(true);
-      const result = await ValidatorService.validateTicket(eventId as string, ticketId);
-      setValidationResult(result);
+      await ValidatorService.validateTicket(eventId as string, ticketId);
       setOpenDialog(true);
     } catch (error) {
       console.error('Error validating ticket:', error);
@@ -183,27 +171,27 @@ const EventTicketValidationPage = () => {
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h4" component="h1">
-          Validar Entradas - {event.name}
+          Validar Entradas - {event.title}
         </Typography>
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardMedia
               component="img"
               height="200"
-              image={event.imageUrl || '/placeholder-event.jpg'}
-              alt={event.name}
+              image={event.image?.url || '/placeholder-event.jpg'}
+              alt={event.title}
             />
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                {event.name}
+                {event.title}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 <LocationIcon color="action" sx={{ mr: 1, fontSize: 20 }} />
                 <Typography variant="body2" color="text.secondary">
-                  {event.location || 'Ubicación no especificada'}
+                  {event.location?.city || 'Ubicación no especificada'}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -252,7 +240,7 @@ const EventTicketValidationPage = () => {
           </Box>
         </Grid>
         
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -262,7 +250,7 @@ const EventTicketValidationPage = () => {
               
               <Box component="form" onSubmit={handleValidateTicket} sx={{ mb: 3 }}>
                 <Grid container spacing={2} alignItems="center">
-                  <Grid item xs>
+                  <Grid size={{ xs: 12, md: 8 }}>
                     <TextField
                       fullWidth
                       variant="outlined"
@@ -284,7 +272,7 @@ const EventTicketValidationPage = () => {
                       }}
                     />
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Button
                       type="submit"
                       variant="contained"
@@ -353,35 +341,30 @@ const EventTicketValidationPage = () => {
         fullWidth
       >
         <DialogTitle>
-          {validationResult?.valid ? 'Entrada Válida' : 'Error de Validación'}
+          {'Entrada Válida'}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ textAlign: 'center', py: 2 }}>
-            {validationResult?.valid ? (
-              <CheckCircleIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
-            ) : (
-              <ErrorIcon color="error" sx={{ fontSize: 60, mb: 2 }} />
-            )}
+            <CheckCircleIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
             
             <Typography variant="h6" gutterBottom>
-              {validationResult?.message}
+              Entrada Válida
             </Typography>
             
-            {validationResult?.valid && (
-              <Box sx={{ mt: 3, textAlign: 'left', p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+            <Box sx={{ mt: 3, textAlign: 'left', p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
                 <Typography variant="subtitle2" color="text.secondary">
                   Detalles del Ticket
                 </Typography>
                 <Divider sx={{ my: 1 }} />
                 
                 <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, md: 8 }}>
                     <Typography variant="body2">
                       <strong>ID del Ticket:</strong>
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
                       <Typography variant="body2" noWrap sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {validationResult.ticketId}
+                        {ticketId}
                       </Typography>
                       <IconButton size="small" onClick={handleCopyToClipboard}>
                         <ContentCopyIcon fontSize="small" />
@@ -389,44 +372,31 @@ const EventTicketValidationPage = () => {
                     </Box>
                   </Grid>
                   
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, md: 8 }}>
                     <Typography variant="body2">
                       <strong>Evento:</strong>
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {validationResult.eventName || 'N/A'}
+                      {event.title || 'N/A'}
                     </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2">
-                      <strong>Cliente:</strong>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {validationResult.customerName || 'N/A'}
-                    </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
+                  </Grid>                  
+                  <Grid size={{ xs: 12, md: 8 }}>
                     <Typography variant="body2">
                       <strong>Validado el:</strong>
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {validationResult.validatedAt 
-                        ? formatDate(validationResult.validatedAt)
-                        : 'N/A'}
+                      {formatDate(new Date().toString())}
                     </Typography>
                   </Grid>
                 </Grid>
               </Box>
-            )}
+            )
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={handleCloseDialog} color="inherit">
             Cerrar
           </Button>
-          {validationResult?.valid && (
             <Button 
               variant="contained" 
               color="primary" 
@@ -435,7 +405,6 @@ const EventTicketValidationPage = () => {
             >
               Validar Otra Entrada
             </Button>
-          )}
         </DialogActions>
       </Dialog>
 

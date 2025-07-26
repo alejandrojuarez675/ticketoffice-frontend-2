@@ -1,4 +1,4 @@
-import { Sale } from '@/types/sales';
+import { Sale, SalesResponse } from '@/types/sales';
 
 export class SalesService {
   private static instance: SalesService;
@@ -37,7 +37,7 @@ export class SalesService {
     }
   }
 
-  public async getEventSales(eventId: string): Promise<Sale[]> {
+  public async getEventSales(eventId: string): Promise<SalesResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/event/${eventId}`, {
         method: 'GET',

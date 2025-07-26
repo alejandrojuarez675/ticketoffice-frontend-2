@@ -22,6 +22,7 @@ import { AuthService } from '@/services/AuthService';
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    username: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -51,6 +52,7 @@ export default function RegisterPage() {
     try {
       setLoading(true);
       await AuthService.register({
+        username: formData.username,
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -124,7 +126,20 @@ export default function RegisterPage() {
               }}
             >
               <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    id="username"
+                    name="username"
+                    label="Nombre de usuario"
+                    value={formData.username}
+                    onChange={handleChange}
+                    disabled={loading}
+                    autoFocus
+                    margin="normal"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }} component="div">
                   <TextField
                     fullWidth
                     id="firstName"
@@ -133,7 +148,6 @@ export default function RegisterPage() {
                     value={formData.firstName}
                     onChange={handleChange}
                     disabled={loading}
-                    autoFocus
                     margin="normal"
                   />
                 </Grid>
@@ -233,7 +247,7 @@ export default function RegisterPage() {
                       ¿Ya tienes una cuenta?{' '}
                       <MuiLink 
                         component={Link} 
-                        href="/login" 
+                        href="/auth/login" 
                         sx={{ 
                           textDecoration: 'none',
                           '&:hover': {

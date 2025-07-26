@@ -129,7 +129,7 @@ export default function EventDetailPage() {
       </Typography>
       
       <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Box mb={4}>
             <Box 
               position="relative" 
@@ -197,7 +197,7 @@ export default function EventDetailPage() {
           </Box>
         </Grid>
         
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper elevation={3} sx={{ p: 3, borderRadius: 2, position: 'sticky', top: 20 }}>
             <Typography variant="h5" gutterBottom>Selecciona tu entrada</Typography>
             
