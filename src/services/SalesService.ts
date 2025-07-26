@@ -1,61 +1,60 @@
-import { SalesServiceMock } from 'mocks/SalesServiceMock';
-import { SalesResponse, Sale } from '../types/Sales';
-import { ConfigService } from './ConfigService';
+import { Sale, SalesResponse } from '@/types/sales';
 
 export class SalesService {
-  private static BASE_URL = 'http://localhost:8080';
+  private static instance: SalesService;
+  private baseUrl: string;
 
-  static async getSalesByEventId(eventId: string): Promise<SalesResponse> {
-    if (this.isMocked()) {
-      return SalesServiceMock.getMockSales();
+  private constructor() {
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    this.baseUrl = `${BASE_URL}/api/sales`;
+  }
+
+  public static getInstance(): SalesService {
+    if (!SalesService.instance) {
+      SalesService.instance = new SalesService();
     }
+    return SalesService.instance;
+  }
 
+  public async getSaleById(eventId: string, saleId: string): Promise<Sale> {
     try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${eventId}/sales`, {
+      const response = await fetch(`${this.baseUrl}/${eventId}/${saleId}`, {
+        method: 'GET',
         headers: {
-          'accept': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch sales for event ${eventId}`);
+        throw new Error('Error fetching sale');
       }
 
-      return response.json();
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching sales:', error);
+      console.error('Error in getSaleById:', error);
       throw error;
     }
   }
 
-  static async getSaleById(eventId: string, saleId: string): Promise<Sale> {
-    if (this.isMocked()) {
-      const mockSales = SalesServiceMock.getMockSales();
-      return mockSales.sales.find(sale => sale.id === saleId) || {
-        id: saleId,
-        firstName: 'Mock Sale',
-        lastName: '',
-        email: '',
-        ticketType: '',
-        price: 0,
-        validated: false
-      };
-    }
+  public async getEventSales(eventId: string): Promise<SalesResponse> {
     try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${eventId}/sales/${saleId}`, {
-        headers: { 'accept': 'application/json' }
+      const response = await fetch(`${this.baseUrl}/event/${eventId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch sale ${saleId} for event ${eventId}`);
+        throw new Error('Error fetching event sales');
       }
-      return response.json();
+
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching sale:', error);
+      console.error('Error in getEventSales:', error);
       throw error;
     }
-  }
-
-  private static isMocked(): boolean {
-    return ConfigService.isMockedEnabled();
   }
 }

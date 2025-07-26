@@ -1,25 +1,141 @@
-import { EventListResponse, EventDetail } from '../types/Event';
-import { SearchEventParams, SearchEventResponse } from '../types/SearchEvent';
+import { SearchEventParams, SearchEventResponse } from '@/types/search-event';
+import { EventDetail, EventForList } from '@/types/event';
 import { ConfigService } from './ConfigService';
-import { EventServiceMock } from '../mocks/EventServiceMock';
+
+// Mock data for development
+const mockEventDetail: EventDetail = {
+  id: '1',
+  title: 'Concierto en Vivo',
+  date: '2025-12-31T22:00:00',
+  image: {
+    url: 'https://via.placeholder.com/800x400?text=Concierto+en+Vivo',
+    alt: 'Concierto en Vivo',
+  },
+  description: 'Un increíble concierto con los mejores artistas del momento. ¡No te lo pierdas!',
+  additionalInfo: [
+    'Entrada general',
+    'Mayores de 18 años',
+    'Se permiten cámaras sin flash',
+  ],
+  organizer: {
+    id: 'org1',
+    name: 'Productora de Eventos',
+    url: 'https://example.com/organizer',
+    logoUrl: 'https://via.placeholder.com/100x50?text=Organizer',
+  },
+  status: 'ACTIVE',
+  location: {
+    name: 'Estadio Monumental',
+    address: 'Av. Pres. Figueroa Alcorta 7597',
+    city: 'Buenos Aires',
+    country: 'Argentina',
+  },
+  tickets: [
+    {
+      id: 'ticket1',
+      type: 'General',
+      value: 5000,
+      currency: 'ARS',
+      isFree: false,
+      stock: 100,
+    },
+    {
+      id: 'ticket2',
+      type: 'VIP',
+      value: 10000,
+      currency: 'ARS',
+      isFree: false,
+      stock: 50,
+    },
+  ],
+};
+
+// Mock data for development
+const mockEvents: EventForList[] = [
+  {
+    id: '1',
+    name: 'Concierto en Vivo',
+    date: '2025-12-31T22:00:00',
+    location: 'Estadio Monumental, Buenos Aires',
+    status: 'ACTIVE',
+  },
+  {
+    id: '2',
+    name: 'Festival de Música',
+    date: '2025-11-15T18:00:00',
+    location: 'Parque Sarmiento, Córdoba',
+    status: 'ACTIVE',
+  },
+  {
+    id: '3',
+    name: 'Obra de Teatro',
+    date: '2025-10-20T20:30:00',
+    location: 'Teatro Colón, Buenos Aires',
+    status: 'INACTIVE',
+  },
+];
+
+const mockSearchEvents: SearchEventResponse = {
+  events: mockEvents.map(event => ({
+    ...event,
+    bannerUrl: 'https://via.placeholder.com/800x400?text=' + encodeURIComponent(event.name),
+    price: Math.floor(Math.random() * 5000) + 1000,
+    currency: 'ARS',
+  })),
+  hasEventsInYourCity: true,
+  totalPages: 1,
+  currentPage: 1,
+  pageSize: 10,
+};
+
+export interface EventListResponse {
+  events: EventForList[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
 
 export class EventService {
-  private static BASE_URL = 'http://localhost:8080';
+  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   private static isMocked(): boolean {
     return ConfigService.isMockedEnabled();
   }
 
-  static async getEvents(): Promise<EventListResponse> {
+  static async getEvents(page: number = 1, pageSize: number = 10): Promise<EventListResponse> {
     if (this.isMocked()) {
-      return EventServiceMock.getMockEvents();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const paginatedEvents = mockEvents.slice(start, end);
+      
+      return {
+        events: paginatedEvents,
+        total: mockEvents.length,
+        page,
+        pageSize,
+        totalPages: Math.ceil(mockEvents.length / pageSize),
+      };
     }
 
     try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events`);
+      const response = await fetch(
+        `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
+
       return response.json();
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -29,19 +145,30 @@ export class EventService {
 
   static async searchEvents(params: SearchEventParams): Promise<SearchEventResponse> {
     if (this.isMocked()) {
-      return EventServiceMock.getMockSearchEvents();
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return mockSearchEvents;
     }
 
     try {
       const queryString = Object.entries(params)
         .filter(([_, value]) => value !== undefined)
-        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
         .join('&');
 
-      const response = await fetch(`${this.BASE_URL}/api/public/v1/event/search?${queryString}`);
+      const response = await fetch(
+        `${this.BASE_URL}/api/public/v1/event/search?${queryString}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error('Failed to search events');
       }
+
       return response.json();
     } catch (error) {
       console.error('Error searching events:', error);
@@ -51,28 +178,46 @@ export class EventService {
 
   static async getEventById(id: string): Promise<EventDetail> {
     if (this.isMocked()) {
-      return EventServiceMock.getMockEventById(id);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { ...mockEventDetail, id };
     }
 
     try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`);
+      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch event with id ${id}`);
+        throw new Error('Failed to fetch event details');
       }
-      const data = await response.json();
-      return {
-        ...data,
-        date: new Date(data.date)
-      };
+
+      return response.json();
     } catch (error) {
-      console.error('Error fetching event:', error);
+      console.error('Error fetching event details:', error);
       throw error;
     }
   }
 
   static async createEvent(event: EventDetail): Promise<EventDetail> {
     if (this.isMocked()) {
-      return EventServiceMock.getMockCreateEvent(event);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const newEvent = {
+        ...event,
+        id: Math.random().toString(36).substr(2, 9),
+      };
+      mockEvents.push({
+        id: newEvent.id,
+        name: newEvent.title,
+        date: newEvent.date,
+        location: newEvent.location?.name || 'Sin ubicación',
+        status: 'ACTIVE',
+      });
+      return newEvent;
     }
 
     try {
@@ -80,13 +225,13 @@ export class EventService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': '*/*'
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(event)
+        body: JSON.stringify(event),
       });
 
-      if (response.status !== 201) {
-        throw new Error(`Failed to create event. Status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error('Failed to create event');
       }
 
       return response.json();
@@ -96,9 +241,31 @@ export class EventService {
     }
   }
 
-  static async updateEventById(id: string, event: EventDetail): Promise<EventDetail> {
+  static async updateEvent(id: string, event: Partial<EventDetail>): Promise<EventDetail> {
     if (this.isMocked()) {
-      return EventServiceMock.getMockCreateEvent(event);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const index = mockEvents.findIndex(e => e.id === id);
+      if (index === -1) {
+        throw new Error('Event not found');
+      }
+      
+      const updatedEvent = {
+        ...mockEventDetail,
+        ...event,
+        id,
+      };
+      
+      // Update the mock data
+      mockEvents[index] = {
+        id,
+        name: event.title || mockEvents[index].name,
+        date: event.date || mockEvents[index].date,
+        location: event.location?.name || mockEvents[index].location,
+        status: (event.status as 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT') || mockEvents[index].status,
+      };
+      
+      return updatedEvent;
     }
 
     try {
@@ -106,13 +273,13 @@ export class EventService {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify(event)
+        body: JSON.stringify(event),
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to update event with id ${id}. Status: ${response.status}`);
+        throw new Error('Failed to update event');
       }
 
       return response.json();
@@ -122,18 +289,27 @@ export class EventService {
     }
   }
 
-  static async deleteEventById(id: string): Promise<void> {
+  static async deleteEvent(id: string): Promise<void> {
     if (this.isMocked()) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const index = mockEvents.findIndex(e => e.id === id);
+      if (index !== -1) {
+        mockEvents.splice(index, 1);
+      }
       return;
     }
 
     try {
       const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
-      if (response.status !== 204) {
-        throw new Error(`Failed to delete event with id ${id}. Status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error('Failed to delete event');
       }
     } catch (error) {
       console.error('Error deleting event:', error);

@@ -1,3 +1,4 @@
+// Location and Image interfaces are used in multiple places
 export interface Location {
   name: string;
   address: string;
@@ -19,16 +20,11 @@ export interface Ticket {
   stock: number;
 }
 
-export interface EventListResponse {
-  events: EventForList[];
-}
-
-export interface EventForList {
+export interface Organizer {
   id: string;
   name: string;
-  date: string;
-  location: string;
-  status: "ACTIVE" | "INACTIVE" | "SOLD_OUT";
+  url: string;
+  logoUrl?: string;
 }
 
 export interface EventDetail {
@@ -44,9 +40,15 @@ export interface EventDetail {
   location: Location;
 }
 
-export interface Organizer {
+// For event lists (used in other components)
+export interface EventForList {
   id: string;
   name: string;
-  url: string;
-  logo: Image;
+  date: string;
+  location: string;
+  status: "ACTIVE" | "INACTIVE" | "SOLD_OUT";
+}
+
+export interface EventListResponse {
+  events: EventForList[];
 }
