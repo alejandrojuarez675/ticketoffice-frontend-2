@@ -1,4 +1,21 @@
 import { createTheme, ThemeOptions } from '@mui/material/styles';
+import { Components } from '@mui/material/styles/components';
+
+const components: Components = {
+  MuiBox: {
+    styleOverrides: {
+      root: {
+        '&.MuiBox-root': {
+          // This will target the main content box that has the margin-left
+          '&[style*="margin-left: 240px"]': {
+            marginLeft: '0 !important',
+            width: '100% !important',
+          },
+        },
+      },
+    },
+  },
+};
 
 const themeOptions: ThemeOptions = {
   palette: {
@@ -25,6 +42,7 @@ const themeOptions: ThemeOptions = {
     },
     divider: 'rgba(255, 255, 255, 0.12)',
   },
+  components,
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
     h1: {

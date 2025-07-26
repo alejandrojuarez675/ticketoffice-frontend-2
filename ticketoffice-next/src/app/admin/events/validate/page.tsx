@@ -40,20 +40,33 @@ import {
 } from '@mui/icons-material';
 import { ValidatorService } from '@/services/ValidatorService';
 import { EventService } from '@/services/EventService';
+import { SalesService } from '@/services/SalesService';
 import { EventDetail } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AuthService } from '@/services/AuthService';
 
+type Sale = {
+  id: string;
+  ticketType: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  price: number;
+  validated: boolean;
+  validatedAt?: string;
+};
+
 const EventTicketValidationPage = () => {
-  const { id: eventId } = useParams<{ id: string }>();
+  const { id: eventId, saleId } = useParams<{ id: string; saleId?: string }>();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isAuthenticated, isAdmin } = useAuth();
   
   const [ticketId, setTicketId] = useState('');
+  const [sale, setSale] = useState<Sale | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [event, setEvent] = useState<EventDetail | null>(null);
@@ -65,6 +78,7 @@ const EventTicketValidationPage = () => {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'info' });
 
+  // Check authentication and redirect if needed
   useEffect(() => {
     if (!AuthService.isAuthenticated()) {
       router.push('/auth/login');
@@ -76,6 +90,34 @@ const EventTicketValidationPage = () => {
       return;
     }
   }, [router]);
+  
+  // Auto-validate ticket if saleId is provided in URL
+  useEffect(() => {
+    if (eventId && saleId && !sale) {
+      const validateTicket = async () => {
+        try {
+          setIsLoading(true);
+          const salesService = SalesService.getInstance();
+          await ValidatorService.validateTicket(eventId, saleId);
+          // Fetch sale details after validation
+          const saleData = await salesService.getSaleById(eventId, saleId);
+          setSale(saleData);
+          setOpenDialog(true);
+        } catch (error) {
+          console.error('Error validating ticket:', error);
+          setSnackbar({
+            open: true,
+            message: 'Error al validar el ticket',
+            severity: 'error'
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      validateTicket();
+    }
+  }, [eventId, saleId, sale]);
 
   // Check authentication and fetch event data
   useEffect(() => {
@@ -108,17 +150,29 @@ const EventTicketValidationPage = () => {
 
   const handleValidateTicket = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!ticketId.trim() || !eventId) return;
+    const idToValidate = ticketId.trim();
+    if (!idToValidate || !eventId) return;
     
     try {
       setIsLoading(true);
-      await ValidatorService.validateTicket(eventId as string, ticketId);
+      const salesService = SalesService.getInstance();
+      await ValidatorService.validateTicket(eventId, idToValidate);
+      
+      // Fetch sale details after successful validation
+      const saleData = await salesService.getSaleById(eventId, idToValidate);
+      setSale(saleData);
       setOpenDialog(true);
+      
+      setSnackbar({
+        open: true,
+        message: 'Entrada validada correctamente',
+        severity: 'success'
+      });
     } catch (error) {
       console.error('Error validating ticket:', error);
       setSnackbar({
         open: true,
-        message: 'Error al validar el ticket',
+        message: 'Error al validar el ticket. Verifique el ID e intente nuevamente.',
         severity: 'error'
       });
     } finally {
@@ -349,70 +403,75 @@ const EventTicketValidationPage = () => {
         fullWidth
       >
         <DialogTitle>
-          {'Entrada Válida'}
+          {sale?.validated ? 'Entrada Validada' : 'Confirmar Validación'}
         </DialogTitle>
         <DialogContent>
-          <Box sx={{ textAlign: 'center', py: 2 }}>
-            <CheckCircleIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
-            
-            <Typography variant="h6" gutterBottom>
-              Entrada Válida
-            </Typography>
-            
-            <Box sx={{ mt: 3, textAlign: 'left', p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Detalles del Ticket
-                </Typography>
-                <Divider sx={{ my: 1 }} />
-                
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid size={{ xs: 12, md: 8 }}>
-                    <Typography variant="body2">
-                      <strong>ID del Ticket:</strong>
+          {sale ? (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Detalles de la Entrada
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                <Box>
+                  <Typography variant="subtitle2">ID de la Entrada</Typography>
+                  <Typography variant="body1" gutterBottom>{sale.id}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2">Tipo</Typography>
+                  <Typography variant="body1" gutterBottom>{sale.ticketType}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2">Comprador</Typography>
+                  <Typography variant="body1" gutterBottom>{`${sale.firstName} ${sale.lastName}`}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2">Email</Typography>
+                  <Typography variant="body1" gutterBottom>{sale.email}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2">Precio</Typography>
+                  <Typography variant="body1" gutterBottom>${sale.price.toFixed(2)}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2">Estado</Typography>
+                  <Chip 
+                    label={sale.validated ? 'Validada' : 'No validada'} 
+                    color={sale.validated ? 'success' : 'default'}
+                    icon={sale.validated ? <CheckCircleIcon /> : undefined}
+                    sx={{ mt: 0.5 }}
+                  />
+                </Box>
+                {sale.validatedAt && (
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <Typography variant="subtitle2">Fecha de Validación</Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {new Date(sale.validatedAt).toLocaleString()}
                     </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {ticketId}
-                      </Typography>
-                      <IconButton size="small" onClick={handleCopyToClipboard}>
-                        <ContentCopyIcon fontSize="small" />
-                      </IconButton>
-                    </Box>
-                  </Grid>
-                  
-                  <Grid size={{ xs: 12, md: 8 }}>
-                    <Typography variant="body2">
-                      <strong>Evento:</strong>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {event.title || 'N/A'}
-                    </Typography>
-                  </Grid>                  
-                  <Grid size={{ xs: 12, md: 8 }}>
-                    <Typography variant="body2">
-                      <strong>Validado el:</strong>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {formatDate(new Date().toString())}
-                    </Typography>
-                  </Grid>
-                </Grid>
+                  </Box>
+                )}
               </Box>
-            )
-          </Box>
+            </Box>
+          ) : (
+            <Typography>¿Está seguro que desea validar esta entrada?</Typography>
+          )}
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseDialog} color="inherit">
+        <DialogActions>
+          <Button onClick={handleCloseDialog} color="primary">
             Cerrar
           </Button>
-            <Button 
-              variant="contained" 
-              color="primary" 
-              onClick={handleCloseDialog}
-              autoFocus
+          {!sale?.validated && (
+            <Button
+              onClick={handleValidateTicket}
+              color="primary"
+              variant="contained"
+              disabled={isLoading}
+              startIcon={isLoading ? <CircularProgress size={20} /> : null}
             >
-              Validar Otra Entrada
+              {isLoading ? 'Validando...' : 'Validar Entrada'}
             </Button>
+          )}
         </DialogActions>
       </Dialog>
 
