@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -43,6 +43,8 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
+import { useRouter } from 'next/navigation';
+import { AuthService } from '@/services/AuthService';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -78,6 +80,20 @@ function a11yProps(index: number) {
 }
 
 const ReportsPage = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!AuthService.isAuthenticated()) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    if (!AuthService.isAdmin()) {
+      router.push('/');
+      return;
+    }
+  }, [router]);
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [tabValue, setTabValue] = useState(0);

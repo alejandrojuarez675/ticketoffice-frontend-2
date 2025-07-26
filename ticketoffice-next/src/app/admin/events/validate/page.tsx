@@ -44,6 +44,7 @@ import { EventDetail } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { AuthService } from '@/services/AuthService';
 
 const EventTicketValidationPage = () => {
   const { id: eventId } = useParams<{ id: string }>();
@@ -64,13 +65,20 @@ const EventTicketValidationPage = () => {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'info' });
 
-  // Check authentication and fetch event data
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!AuthService.isAuthenticated()) {
       router.push('/auth/login');
       return;
     }
+    
+    if (!AuthService.isAdmin()) {
+      router.push('/');
+      return;
+    }
+  }, [router]);
 
+  // Check authentication and fetch event data
+  useEffect(() => {
     const fetchEvent = async () => {
       if (!eventId) return;
       
@@ -91,7 +99,7 @@ const EventTicketValidationPage = () => {
     };
 
     fetchEvent();
-  }, [eventId, isAuthenticated, isAdmin, router]);
+  }, [eventId, router]);
 
   const handleCloseDialog = () => {
     setOpenDialog(false);

@@ -5,13 +5,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Box, Button, Card, CardContent, Chip, CircularProgress, 
   Divider, Grid, IconButton, List, ListItem, ListItemIcon, 
-  ListItemText, Typography, useMediaQuery, useTheme 
+  ListItemText, Typography, useMediaQuery, useTheme, Paper
 } from '@mui/material';
 import { 
   ArrowBack as ArrowBackIcon, CalendarToday as CalendarIcon, 
   Edit as EditIcon, EventAvailable as EventAvailableIcon, 
-  EventBusy as EventBusyIcon, LocationOn as LocationIcon, 
-  People as PeopleIcon, AttachMoney as PriceIcon 
+  EventBusy as EventBusyIcon, LocationOn as LocationIcon,
+  ArrowForward as ArrowForwardIcon, AttachMoney as PriceIcon 
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,6 +20,7 @@ import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { EventService } from '@/services/EventService';
 import { EventDetail } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthService } from '@/services/AuthService';
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,11 +34,18 @@ export default function EventDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!AuthService.isAuthenticated()) {
       router.push('/auth/login');
       return;
     }
+    
+    if (!AuthService.isAdmin()) {
+      router.push('/');
+      return;
+    }
+  }, [router]);
 
+  useEffect(() => {
     const fetchEvent = async () => {
       if (!id) return;
       
@@ -102,16 +110,22 @@ export default function EventDetailPage() {
   return (
     <BackofficeLayout title={event.title || 'Detalles del Evento'}>
       <Box sx={{ p: isMobile ? 2 : 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="h4" component="h1">
-            {event.title || 'Detalles del Evento'}
-          </Typography>
-          <Box sx={{ flexGrow: 1 }} />
-          <Button variant="contained" onClick={handleEdit} startIcon={<EditIcon />}>
-            Editar
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 200 }}>
+            <IconButton onClick={handleBack} sx={{ mr: 1 }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography variant="h4" component="h1" noWrap>
+              {event.title || 'Detalles del Evento'}
+            </Typography>
+          </Box>
+          <Button 
+            variant="contained" 
+            onClick={handleEdit} 
+            startIcon={<EditIcon />}
+            size={isMobile ? 'medium' : 'large'}
+          >
+            Editar Evento
           </Button>
         </Box>
 

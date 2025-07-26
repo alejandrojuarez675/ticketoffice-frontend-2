@@ -202,7 +202,7 @@ export class EventService {
     }
   }
 
-  static async createEvent(event: Omit<EventDetail, 'id'>): Promise<EventDetail> {
+  static async createEvent(event: EventDetail): Promise<EventDetail> {
     if (this.isMocked()) {
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));

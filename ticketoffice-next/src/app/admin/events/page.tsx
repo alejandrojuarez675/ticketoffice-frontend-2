@@ -27,6 +27,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { EventService, EventListResponse } from '@/services/EventService';
 import { EventForList } from '@/types/event';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthService } from '@/services/AuthService';
 
 const EventsList = () => {
   const router = useRouter();
@@ -44,12 +45,17 @@ const EventsList = () => {
     totalPages: 1,
   });
 
-  // Check authentication and admin status
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!AuthService.isAuthenticated()) {
       router.push('/auth/login');
+      return;
     }
-  }, [isAuthenticated, isAdmin, router]);
+    
+    if (!AuthService.isAdmin()) {
+      router.push('/');
+      return;
+    }
+  }, [router]);
 
   // Fetch events
   useEffect(() => {
