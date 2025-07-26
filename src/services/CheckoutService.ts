@@ -1,36 +1,12 @@
 import { ConfigService } from './ConfigService';
-
-export interface CheckoutSessionResponse {
-  sessionId: string;
-  expiredIn: number;
-}
-
-export interface BuyerData {
-  name: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  nationality: string;
-  documentType: string;
-  document: string;
-}
-
-export interface SessionDataRequest {
-  mainEmail: string;
-  buyer: BuyerData[];
-}
-
-export interface SessionInfoResponse {
-  sessionId: string;
-  eventId: string;
-  priceId: string;
-  quantity: number;
-  mainEmail?: string;
-  buyer?: BuyerData[];
-}
+import { 
+  CheckoutSessionResponse, 
+  SessionDataRequest, 
+  SessionInfoResponse 
+} from '@/types/checkout';
 
 export class CheckoutService {
-  private static BASE_URL = 'http://localhost:8080';
+  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
   /**
    * Creates a new checkout session for ticket purchase
@@ -120,7 +96,10 @@ export class CheckoutService {
    * @param data The data to add to the session
    * @returns Promise with the updated session details
    */
-  static async addSessionData(sessionId: string, data: SessionDataRequest): Promise<SessionInfoResponse> {
+  static async addSessionData(
+    sessionId: string, 
+    data: SessionDataRequest
+  ): Promise<SessionInfoResponse> {
     if (this.isMocked()) {
       return this.getMockSessionInfoWithData(sessionId, data);
     }
@@ -146,24 +125,59 @@ export class CheckoutService {
     }
   }
 
+  /**
+   * Processes the payment for a session
+   * @param sessionId The ID of the session to process payment for
+   * @returns Promise with the payment processing result
+   */
+  static async processPayment(sessionId: string): Promise<{ success: boolean; redirectUrl?: string }> {
+    if (this.isMocked()) {
+      return Promise.resolve({
+        success: true,
+        redirectUrl: `/congrats?sessionId=${sessionId}`
+      });
+    }
+
+    try {
+      const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/process-payment`, {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to process payment: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      throw error;
+    }
+  }
+
+  // Mock data generators
   private static getMockSessionInfo(sessionId: string): Promise<SessionInfoResponse> {
     return Promise.resolve({
       sessionId,
-      eventId: `dsdsf-1234-1234-1234`,
-      priceId: `001b2f30-9a84-45e1-9345-518bea8a77c8`,
+      eventId: `event-${Math.random().toString(36).substring(2, 10)}`,
+      priceId: `ticket-${Math.random().toString(36).substring(2, 10)}`,
       quantity: 1,
+      mainEmail: 'test@example.com',
       buyer: [
         {
-          name: 'John Doe',
+          name: 'John',
           lastName: 'Doe',
           email: 'john.doe@example.com',
-          phone: '123456789',
-          nationality: 'Spanish',
+          phone: '1234567890',
+          nationality: 'Argentina',
           documentType: 'DNI',
           document: '12345678'
         }
-      ],
-      mainEmail: 'john.doe@example.com'
+      ]
     });
   }
 
@@ -173,8 +187,8 @@ export class CheckoutService {
   ): Promise<SessionInfoResponse> {
     return Promise.resolve({
       sessionId,
-      eventId: `dsdsf-1234-1234-1234`,
-      priceId: `001b2f30-9a84-45e1-9345-518bea8a77c8`,
+      eventId: `event-${Math.random().toString(36).substring(2, 10)}`,
+      priceId: `ticket-${Math.random().toString(36).substring(2, 10)}`,
       quantity: 1,
       ...data
     });
