@@ -29,6 +29,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { SalesService } from '@/services/SalesService';
 import { SalesResponse } from '@/types/Sales';
 import { AuthService } from '@/services/AuthService';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 
 const EventSalesPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -262,4 +263,12 @@ const EventSalesPage = () => {
   );
 };
 
-export default EventSalesPage;
+export default function EventSalesPageWrapper() {
+  const { id } = useParams<{ id: string }>();
+  
+  return (
+    <BackofficeLayout title="Ventas del Evento">
+      <EventSalesPage />
+    </BackofficeLayout>
+  );
+}

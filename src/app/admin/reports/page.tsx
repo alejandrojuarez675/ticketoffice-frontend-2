@@ -79,7 +79,9 @@ function a11yProps(index: number) {
   };
 }
 
-const ReportsPage = () => {
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+
+const ReportsContent = () => {
   const router = useRouter();
 
   useEffect(() => {
@@ -417,6 +419,14 @@ const ReportsPage = () => {
         </TabPanel>
       </Card>
     </Box>
+  );
+};
+
+const ReportsPage = () => {
+  return (
+    <BackofficeLayout title="Reportes">
+      <ReportsContent />
+    </BackofficeLayout>
   );
 };
 

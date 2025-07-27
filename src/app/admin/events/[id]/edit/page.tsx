@@ -7,9 +7,9 @@ import { EventDetail } from '@/types/Event';
 import { Box, Button, Container, Typography, CircularProgress, Alert, TextField } from '@mui/material';
 import Link from 'next/link';
 import { AuthService } from '@/services/AuthService';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 
-export default function EditEventPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+function EditEventContent({ id }: { id: string }) {
   const router = useRouter();
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -156,5 +156,13 @@ export default function EditEventPage({ params }: { params: { id: string } }) {
         </Box>
       </Box>
     </Container>
+  );
+}
+
+export default function EditEventPage({ params }: { params: { id: string } }) {
+  return (
+    <BackofficeLayout title="Editar Evento">
+      <EditEventContent id={params.id} />
+    </BackofficeLayout>
   );
 }

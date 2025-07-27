@@ -28,6 +28,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { 
   QrCodeScanner as QrCodeScannerIcon,
   Event as EventIcon,
@@ -57,7 +58,7 @@ type Sale = {
   validatedAt?: string;
 };
 
-const EventTicketValidationPage = () => {
+const SalesValidationContent = () => {
   const { id: eventId, saleId } = useParams<{ id: string; saleId?: string }>();
   const router = useRouter();
   const theme = useTheme();
@@ -551,4 +552,12 @@ const EventTicketValidationPage = () => {
   );
 };
 
-export default EventTicketValidationPage;
+const SalesValidationPage = () => {
+  return (
+    <BackofficeLayout title="Validar Venta">
+      <SalesValidationContent />
+    </BackofficeLayout>
+  );
+};
+
+export default SalesValidationPage;
