@@ -1,5 +1,5 @@
 import { SearchEventParams, SearchEventResponse } from '@/types/search-event';
-import { EventDetail, EventForList } from '@/types/event';
+import { EventDetail, EventForList } from '@/types/Event';
 import { ConfigService } from './ConfigService';
 
 // Mock data for development
@@ -8,7 +8,7 @@ const mockEventDetail: EventDetail = {
   title: 'Concierto en Vivo',
   date: '2025-12-31T22:00:00',
   image: {
-    url: 'https://via.placeholder.com/800x400?text=Concierto+en+Vivo',
+    url: 'https://sanangel.edu.mx/wp-content/uploads/2024/06/obra-de-teatro.webp',
     alt: 'Concierto en Vivo',
   },
   description: 'Un increíble concierto con los mejores artistas del momento. ¡No te lo pierdas!',
@@ -78,7 +78,7 @@ const mockEvents: EventForList[] = [
 const mockSearchEvents: SearchEventResponse = {
   events: mockEvents.map(event => ({
     ...event,
-    bannerUrl: 'https://via.placeholder.com/800x400?text=' + encodeURIComponent(event.name),
+    bannerUrl: 'https://sanangel.edu.mx/wp-content/uploads/2024/06/obra-de-teatro.webp',
     price: Math.floor(Math.random() * 5000) + 1000,
     currency: 'ARS',
   })),

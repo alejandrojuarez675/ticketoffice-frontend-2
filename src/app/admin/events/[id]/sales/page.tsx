@@ -23,24 +23,18 @@ import {
   useMediaQuery,
   Chip,
   Grid,
-  List,
-  ListItem,
-  ListItemText
 } from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { SalesService } from '@/services/SalesService';
-import { SalesResponse, Sale } from '@/types/sales';
-import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { SalesResponse } from '@/types/Sales';
+import { AuthService } from '@/services/AuthService';
 
 const EventSalesPage = () => {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin } = useAuth();
   
   const [salesData, setSalesData] = useState<SalesResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,8 +45,13 @@ const EventSalesPage = () => {
 
   // Check authentication and admin status
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!AuthService.isAuthenticated()) {
       router.push('/auth/login');
+      return;
+    }
+    
+    if (!AuthService.isAdmin()) {
+      router.push('/');
       return;
     }
 
@@ -73,7 +72,7 @@ const EventSalesPage = () => {
     };
 
     fetchSales();
-  }, [id, isAuthenticated, isAdmin, router]);
+  }, [id, router]);
 
   const handleBack = () => {
     router.push(`/admin/events/${id}`);
@@ -90,14 +89,7 @@ const EventSalesPage = () => {
 
   const handleValidate = () => {
     if (selectedSaleId.current && id) {
-      router.push(`/admin/events/${id}/sales/${selectedSaleId.current}/validate`);
-    }
-    handleClose();
-  };
-
-  const handleViewDetails = () => {
-    if (selectedSaleId.current && id) {
-      router.push(`/admin/sales/${selectedSaleId.current}`);
+      router.push(`/admin/validate/${selectedSaleId.current}`);
     }
     handleClose();
   };
@@ -264,9 +256,7 @@ const EventSalesPage = () => {
           horizontal: 'right',
         }}
       >
-        <MenuItem onClick={handleViewDetails}>Ver Detalles</MenuItem>
         <MenuItem onClick={handleValidate}>Validar Entrada</MenuItem>
-        <MenuItem onClick={handleClose}>Descargar Comprobante</MenuItem>
       </Menu>
     </Box>
   );

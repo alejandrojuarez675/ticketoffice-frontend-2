@@ -41,8 +41,7 @@ import {
 import { ValidatorService } from '@/services/ValidatorService';
 import { EventService } from '@/services/EventService';
 import { SalesService } from '@/services/SalesService';
-import { EventDetail } from '@/types/event';
-import { useAuth } from '@/hooks/useAuth';
+import { EventDetail } from '@/types/Event';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AuthService } from '@/services/AuthService';
@@ -63,7 +62,6 @@ const EventTicketValidationPage = () => {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin } = useAuth();
   
   const [ticketId, setTicketId] = useState('');
   const [sale, setSale] = useState<Sale | null>(null);

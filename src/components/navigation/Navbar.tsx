@@ -28,7 +28,7 @@ export default function Navbar() {
           
           {!isMobile && isAuthenticated && (
             <Box sx={{ display: 'flex', ml: 2 }}>
-              <Button component={Link} href="/events">Eventos</Button>
+              <Button component={Link} href="/admin/events">Eventos</Button>
               {isAdmin && (
                 <Button component={Link} href="/admin">Admin</Button>
               )}

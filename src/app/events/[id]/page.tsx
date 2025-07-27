@@ -34,7 +34,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { EventService } from '@/services/EventService';
-import { EventDetail, Ticket } from '@/types/event';
+import { EventDetail, Ticket } from '@/types/Event';
 import Image from 'next/image';
 
 function EventDetailContent() {
@@ -142,13 +142,13 @@ function EventDetailContent() {
                 mb: 3
               }}
             >
-              <Image
+              {event.image && <Image
                 src={event.image.url}
                 alt={event.image.alt || event.title}
                 fill
                 style={{ objectFit: 'cover' }}
                 priority
-              />
+              />}
             </Box>
             
             <Typography variant="h5" gutterBottom>Descripción</Typography>

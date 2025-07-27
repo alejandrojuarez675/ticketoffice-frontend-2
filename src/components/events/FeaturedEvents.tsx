@@ -136,7 +136,7 @@ const FeaturedEvents: React.FC = () => {
         </Typography>
         <Grid container spacing={4}>
           {events.map((event) => (
-            <Grid item xs={12} sm={6} md={4} key={event.id}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={event.id}>
               <FeaturedEventCard event={event} />
             </Grid>
           ))}

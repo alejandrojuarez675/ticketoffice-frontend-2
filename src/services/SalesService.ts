@@ -1,4 +1,42 @@
-import { Sale, SalesResponse } from '@/types/sales';
+import { Sale, SalesResponse } from '@/types/Sales';
+import { ConfigService } from './ConfigService';
+
+// Mock data for development
+const mockSales: Sale[] = [
+  {
+    id: '1',
+    firstName: 'Juan',
+    lastName: 'Pérez',
+    email: 'juan@example.com',
+    ticketType: 'General',
+    price: 5000,
+    validated: true
+  },
+  {
+    id: '2',
+    firstName: 'María',
+    lastName: 'García',
+    email: 'maria@example.com',
+    ticketType: 'VIP',
+    price: 10000,
+    validated: false
+  },
+  {
+    id: '3',
+    firstName: 'Carlos',
+    lastName: 'López',
+    email: 'carlos@example.com',
+    ticketType: 'General',
+    price: 5000,
+    validated: true
+  }
+];
+
+const mockSalesResponse = (): SalesResponse => {
+  return {
+    sales: [...mockSales]
+  };
+};
 
 export class SalesService {
   private static instance: SalesService;
@@ -17,6 +55,17 @@ export class SalesService {
   }
 
   public async getSaleById(eventId: string, saleId: string): Promise<Sale> {
+    if (ConfigService.isMockedEnabled()) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const sale = mockSales.find(s => s.id === saleId);
+      if (!sale) {
+        throw new Error('Sale not found');
+      }
+      return sale;
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/${eventId}/${saleId}`, {
         method: 'GET',
@@ -38,6 +87,12 @@ export class SalesService {
   }
 
   public async getEventSales(eventId: string): Promise<SalesResponse> {
+    if (ConfigService.isMockedEnabled()) {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return mockSalesResponse();
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}/event/${eventId}`, {
         method: 'GET',

@@ -9,7 +9,10 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-  reactStrictMode: true
+  reactStrictMode: true,
+  images: {
+    domains: ['via.placeholder.com', 'sanangel.edu.mx'],
+  },
 };
 
 export default nextConfig;
