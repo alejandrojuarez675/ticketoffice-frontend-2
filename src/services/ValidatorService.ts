@@ -1,6 +1,6 @@
 import { ConfigService } from './ConfigService';
 
-export class ValidatorService {
+class ValidatorService {
   private static BASE_URL = 'http://localhost:8080';
 
   /**
@@ -41,3 +41,5 @@ export class ValidatorService {
     return ConfigService.isMockedEnabled();
   }
 }
+
+export { ValidatorService };

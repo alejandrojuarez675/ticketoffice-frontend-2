@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { EventService } from '@/services/EventService';
 import { EventDetail } from '@/types/Event';
 import { Box, Button, Container, Typography, CircularProgress, Alert, TextField } from '@mui/material';
@@ -159,10 +159,12 @@ function EditEventContent({ id }: { id: string }) {
   );
 }
 
-export default function EditEventPage({ params }: { params: { id: string } }) {
+export default function EditEventPage() {
+  const { id } = useParams<{ id: string }>();
+    
   return (
     <BackofficeLayout title="Editar Evento">
-      <EditEventContent id={params.id} />
+      <EditEventContent id={id} />
     </BackofficeLayout>
   );
 }

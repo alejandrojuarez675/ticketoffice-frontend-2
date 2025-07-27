@@ -113,18 +113,7 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, isMobile, onClose }) 
           <ListItemIcon>
             <PeopleIcon />
           </ListItemIcon>
-          <ListItemText primary="Usuarios" />
-        </ListItemButton>
-
-        <ListItemButton 
-          component={Link} 
-          href="/admin/orders"
-          selected={pathname === '/admin/orders'}
-        >
-          <ListItemIcon>
-            <ReceiptIcon />
-          </ListItemIcon>
-          <ListItemText primary="Órdenes" />
+          <ListItemText primary="Vendedores" />
         </ListItemButton>
       </List>
       
