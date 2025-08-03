@@ -40,7 +40,7 @@ export default function BackofficeLayout({ children, title = 'Admin - TicketOffi
             flexGrow: 1,
             p: 3,
             width: { sm: `calc(100% - ${theme.spacing(30)})` },
-            ml: { sm: theme.spacing(30) },
+            //ml: { sm: theme.spacing(30 },
             mt: 8, // Space for the top bar
           }}
         >
