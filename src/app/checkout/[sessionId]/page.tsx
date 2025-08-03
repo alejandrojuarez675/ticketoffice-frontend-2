@@ -27,7 +27,7 @@ import {
 import { Add as AddIcon, Remove as RemoveIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { CheckoutService } from '@/services/CheckoutService';
 import { EventService } from '@/services/EventService';
-import { EventDetail } from '@/types/event';
+import { EventDetail } from '@/types/Event';
 import { BuyerData, SessionInfoResponse } from '@/types/checkout';
 import Link from 'next/link';
 

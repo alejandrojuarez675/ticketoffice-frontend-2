@@ -18,7 +18,7 @@ import { es, id } from 'date-fns/locale';
 
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { EventService } from '@/services/EventService';
-import { EventDetail } from '@/types/event';
+import { EventDetail } from '@/types/Event';
 import { AuthService } from '@/services/AuthService';
 import { randomUUID } from 'crypto';
 
