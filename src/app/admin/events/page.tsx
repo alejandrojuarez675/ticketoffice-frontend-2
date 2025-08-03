@@ -25,7 +25,7 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
 import { EventService, EventListResponse } from '@/services/EventService';
-import { EventForList } from '@/types/event';
+import { EventForList } from '@/types/Event';
 import { useAuth } from '@/hooks/useAuth';
 import { AuthService } from '@/services/AuthService';
 
