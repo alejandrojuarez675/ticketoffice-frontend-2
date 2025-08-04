@@ -40,7 +40,7 @@ const TicketValidationPage = () => {
     try {
       const [eventId, ticketId] = ticketCode.split('_');
       if (!eventId || !ticketId) {
-        throw new Error('Formato inválido');
+        throw { message: 'Formato inválido' };
       }
       
       await ValidatorService.validateTicket(eventId, ticketId);
