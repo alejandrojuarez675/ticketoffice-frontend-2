@@ -1,18 +1,22 @@
-import type { NextConfig } from "next";
-import path from 'path';
+import type { NextConfig } from 'next';
+import { resolve } from 'node:path';
 
 const nextConfig: NextConfig = {
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': path.resolve(__dirname, 'src'),
-    };
-    return config;
-  },
   reactStrictMode: true,
   images: {
-    domains: ['via.placeholder.com', 'sanangel.edu.mx'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'via.placeholder.com' },
+      { protocol: 'https', hostname: 'sanangel.edu.mx' }
+    ]
   },
+  webpack: (config) => {
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      '@': resolve(process.cwd(), 'src')
+    };
+    return config;
+  }
 };
 
 export default nextConfig;

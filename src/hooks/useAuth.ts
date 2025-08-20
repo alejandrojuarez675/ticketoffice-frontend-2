@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthService } from '@/services/AuthService';
-import { RegisterCredentials } from '@/types/user';
-
-import { User } from '@/types/user';
+import { RegisterCredentials, User } from '@/types/user';
 
 export type { User };
 
@@ -19,8 +17,8 @@ export const useAuth = () => {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
-        const token = localStorage.getItem('token');
-        
+        const token = AuthService.getToken(); 
+
         if (!token) {
           setIsAuthenticated(false);
           setIsAdmin(false);
@@ -28,16 +26,12 @@ export const useAuth = () => {
           return;
         }
 
-        // In a real app, you might want to validate the token with the server
-        // For now, we'll just check if it exists
         const currentUser = AuthService.getCurrentUser();
-        
         if (currentUser) {
           setUser(currentUser);
           setIsAuthenticated(true);
-          setIsAdmin(currentUser.role === 'admin');
+          setIsAdmin(currentUser.role?.toLowerCase() === 'admin');
         } else {
-          // If token exists but user data is not available, clear the token
           AuthService.logout();
           setIsAuthenticated(false);
           setIsAdmin(false);
@@ -63,7 +57,7 @@ export const useAuth = () => {
       const userData = await AuthService.login(credentials);
       setUser(userData.user);
       setIsAuthenticated(true);
-      setIsAdmin(userData.user.role.toUpperCase() === 'ADMIN');
+      setIsAdmin(userData.user.role?.toLowerCase() === 'admin'); 
       return userData;
     } catch (error) {
       console.error('Login failed:', error);
@@ -84,8 +78,7 @@ export const useAuth = () => {
   const register = useCallback(async (userData: RegisterCredentials) => {
     try {
       setIsLoading(true);
-      const newUser = await AuthService.register(userData);
-      return newUser;
+      return await AuthService.register(userData);
     } catch (error) {
       console.error('Registration failed:', error);
       throw error;
@@ -94,15 +87,7 @@ export const useAuth = () => {
     }
   }, []);
 
-  return {
-    user,
-    isAuthenticated,
-    isAdmin,
-    isLoading,
-    login,
-    logout,
-    register,
-  };
+  return { user, isAuthenticated, isAdmin, isLoading, login, logout, register };
 };
 
 export default useAuth;

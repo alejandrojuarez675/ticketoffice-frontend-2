@@ -195,6 +195,12 @@ class AuthService {
       }, 500); // Simulate network delay
     });
   }
+
+  static getAuthHeader(): Record<string, string> {
+    const token = this.getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
 }
+
 
 export { AuthService };

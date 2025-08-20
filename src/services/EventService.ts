@@ -1,6 +1,7 @@
 import { SearchEventParams, SearchEventResponse } from '@/types/search-event';
 import { EventDetail, EventForList } from '@/types/Event';
 import { ConfigService } from './ConfigService';
+import { AuthService } from './AuthService';
 
 // Mock data for development
 const mockEventDetail: EventDetail = {
@@ -97,21 +98,18 @@ export interface EventListResponse {
 }
 
 export class EventService {
-  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  private static BASE_URL = ConfigService.getApiBase();
 
   private static isMocked(): boolean {
     return ConfigService.isMockedEnabled();
   }
 
-  static async getEvents(page: number = 1, pageSize: number = 10): Promise<EventListResponse> {
+  static async getEvents(page: number = 1, pageSize: number = 10) {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise(r => setTimeout(r, 500));
       const start = (page - 1) * pageSize;
       const end = start + pageSize;
       const paginatedEvents = mockEvents.slice(start, end);
-      
       return {
         events: paginatedEvents,
         total: mockEvents.length,
@@ -121,95 +119,63 @@ export class EventService {
       };
     }
 
-    try {
-      const response = await fetch(
-        `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch events');
+    const response = await fetch(
+      `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...AuthService.getAuthHeader(),
+        },
       }
+    );
 
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      throw error;
-    }
+    if (!response.ok) throw new Error('Failed to fetch events');
+    return response.json();
   }
 
   static async searchEvents(params: SearchEventParams): Promise<SearchEventResponse> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(r => setTimeout(r, 500));
       return mockSearchEvents;
     }
 
-    try {
-      const queryString = Object.entries(params)
-        .filter(([_, value]) => value !== undefined)
-        .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
-        .join('&');
+    const queryString = Object.entries(params)
+      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+      .join('&');
 
-      const response = await fetch(
-        `${this.BASE_URL}/api/public/v1/event/search?${queryString}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to search events');
+    const response = await fetch(
+      `${this.BASE_URL}/api/public/v1/event/search?${queryString}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
       }
+    );
 
-      return response.json();
-    } catch (error) {
-      console.error('Error searching events:', error);
-      throw error;
-    }
+    if (!response.ok) throw new Error('Failed to search events');
+    return response.json();
   }
 
   static async getEventById(id: string): Promise<EventDetail> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(r => setTimeout(r, 500));
       return { ...mockEventDetail, id };
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+    const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch event details');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching event details:', error);
-      throw error;
-    }
+    if (!response.ok) throw new Error('Failed to fetch event details');
+    return response.json();
   }
 
   static async createEvent(event: EventDetail): Promise<EventDetail> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const newEvent = {
-        ...event,
-        id: Math.random().toString(36).substr(2, 9),
-      };
+      await new Promise(r => setTimeout(r, 1000));
+      const newEvent = { ...event, id: Math.random().toString(36).substr(2, 9) };
       mockEvents.push({
         id: newEvent.id,
         name: newEvent.title,
@@ -220,43 +186,26 @@ export class EventService {
       return newEvent;
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(event),
-      });
+    const response = await fetch(`${this.BASE_URL}/api/v1/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
+      body: JSON.stringify(event),
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to create event');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error creating event:', error);
-      throw error;
-    }
+    if (!response.ok) throw new Error('Failed to create event');
+    return response.json();
   }
 
   static async updateEvent(id: string, event: Partial<EventDetail>): Promise<EventDetail> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(r => setTimeout(r, 1000));
       const index = mockEvents.findIndex(e => e.id === id);
-      if (index === -1) {
-        throw new Error('Event not found');
-      }
-      
-      const updatedEvent = {
-        ...mockEventDetail,
-        ...event,
-        id,
-      };
-      
-      // Update the mock data
+      if (index === -1) throw new Error('Event not found');
+
+      const updatedEvent = { ...mockEventDetail, ...event, id };
       mockEvents[index] = {
         id,
         name: event.title || mockEvents[index].name,
@@ -264,56 +213,37 @@ export class EventService {
         location: event.location?.name || mockEvents[index].location,
         status: (event.status as 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT') || mockEvents[index].status,
       };
-      
       return updatedEvent;
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(event),
-      });
+    const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...AuthService.getAuthHeader(),
+      },
+      body: JSON.stringify(event),
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to update event');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error updating event:', error);
-      throw error;
-    }
+    if (!response.ok) throw new Error('Failed to update event');
+    return response.json();
   }
 
   static async deleteEvent(id: string): Promise<void> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(r => setTimeout(r, 500));
       const index = mockEvents.findIndex(e => e.id === id);
-      if (index !== -1) {
-        mockEvents.splice(index, 1);
-      }
+      if (index !== -1) mockEvents.splice(index, 1);
       return;
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+    const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...AuthService.getAuthHeader(),
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete event');
-      }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      throw error;
-    }
+    if (!response.ok) throw new Error('Failed to delete event');
   }
-}
+} 
