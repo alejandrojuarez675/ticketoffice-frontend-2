@@ -1,4 +1,4 @@
-import { CheckoutSessionResponse, SessionDataRequest, SessionInfoResponse, ProcessPaymentResponse } from '@/types/checkout';
+import type { CheckoutSessionResponse, SessionDataRequest, SessionInfoResponse, ProcessPaymentResponse } from '@/types/checkout';
 
 export async function mockCreateSession(): Promise<CheckoutSessionResponse> {
   await new Promise((r) => setTimeout(r, 300));

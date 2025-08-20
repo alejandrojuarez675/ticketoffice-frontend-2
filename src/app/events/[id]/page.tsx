@@ -34,7 +34,7 @@ import {
   Info as InfoIcon,
 } from '@mui/icons-material';
 import { EventService } from '@/services/EventService';
-import { EventDetail, Ticket } from '@/types/Event';
+import type { EventDetail, Ticket } from '@/types/Event';
 import Image from 'next/image';
 
 function EventDetailContent() {

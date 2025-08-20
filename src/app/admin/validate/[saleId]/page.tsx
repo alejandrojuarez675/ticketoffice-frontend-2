@@ -42,7 +42,7 @@ import {
 import { ValidatorService } from '@/services/ValidatorService';
 import { EventService } from '@/services/EventService';
 import { SalesService } from '@/services/SalesService';
-import { EventDetail } from '@/types/Event';
+import type { EventDetail } from '@/types/Event';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AuthService } from '@/services/AuthService';

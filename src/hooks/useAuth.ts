@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthService } from '@/services/AuthService';
-import { RegisterCredentials, User } from '@/types/user';
+import type { RegisterCredentials, User } from '@/types/user';
 
 export type { User };
 

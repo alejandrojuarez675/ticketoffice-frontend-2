@@ -1,5 +1,5 @@
-import { SearchEventParams, SearchEventResponse } from '@/types/search-event';
-import { EventDetail, EventForList } from '@/types/Event';
+import type { SearchEventParams, SearchEventResponse } from '@/types/search-event';
+import type { EventDetail, EventForList } from '@/types/Event';
 import { ConfigService } from './ConfigService';
 import { AuthService } from './AuthService';
 import {

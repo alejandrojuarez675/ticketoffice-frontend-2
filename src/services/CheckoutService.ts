@@ -1,5 +1,5 @@
 import { ConfigService } from './ConfigService';
-import {
+import type {
   CheckoutSessionResponse,
   SessionDataRequest,
   SessionInfoResponse,

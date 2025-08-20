@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Box, CssBaseline, useMediaQuery, useTheme } from '@mui/material';
 import Head from 'next/head';
 import AdminSidebar from '@/components/navigation/AdminSidebar';

@@ -1,4 +1,4 @@
-import { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
+import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
 
 export const mockUsers: User[] = [
   {

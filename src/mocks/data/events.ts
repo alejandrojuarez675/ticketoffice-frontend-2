@@ -1,5 +1,5 @@
-import { EventDetail, EventForList } from '@/types/Event';
-import { SearchEventParams, SearchEventResponse } from '@/types/search-event';
+import type { EventDetail, EventForList } from '@/types/Event';
+import type { SearchEventParams, SearchEventResponse } from '@/types/search-event';
 
 const mockEventDetailBase: EventDetail = {
   id: '1',

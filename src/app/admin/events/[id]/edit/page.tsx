@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { EventService } from '@/services/EventService';
-import { EventDetail } from '@/types/Event';
+import type { EventDetail } from '@/types/Event';
 import { Box, Button, Container, Typography, CircularProgress, Alert, TextField } from '@mui/material';
 import Link from 'next/link';
 import { AuthService } from '@/services/AuthService';

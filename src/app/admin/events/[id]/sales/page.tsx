@@ -27,7 +27,7 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { SalesService } from '@/services/SalesService';
-import { SalesResponse } from '@/types/Sales';
+import type { SalesResponse } from '@/types/Sales';
 import { AuthService } from '@/services/AuthService';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 

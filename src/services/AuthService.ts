@@ -1,4 +1,4 @@
-import { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
+import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
 import { ConfigService } from './ConfigService';
 import { mockLogin, mockRegister } from '@/mocks';
 

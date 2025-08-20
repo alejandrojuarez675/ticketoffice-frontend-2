@@ -1,4 +1,4 @@
-import { Sale, SalesResponse } from '@/types/Sales';
+import type { Sale, SalesResponse } from '@/types/Sales';
 
 const sales: Sale[] = [
   { id: '1', firstName: 'Juan', lastName: 'Pérez', email: 'juan@example.com', ticketType: 'General', price: 5000, validated: true },

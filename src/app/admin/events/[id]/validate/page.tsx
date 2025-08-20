@@ -13,7 +13,7 @@ import { ValidatorService } from '@/services/ValidatorService';
 import { AuthService } from '@/services/AuthService';
 import { EventService } from '@/services/EventService';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
-import { EventDetail } from '@/types/Event';
+import type { EventDetail } from '@/types/Event';
 
 const EventTicketValidationPage = () => {
   const router = useRouter();

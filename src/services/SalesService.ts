@@ -1,4 +1,4 @@
-import { Sale, SalesResponse } from '@/types/Sales';
+import type { Sale, SalesResponse } from '@/types/Sales';
 import { ConfigService } from './ConfigService';
 import { AuthService } from './AuthService';
 import { mockGetSaleById, mockGetEventSales } from '@/mocks';

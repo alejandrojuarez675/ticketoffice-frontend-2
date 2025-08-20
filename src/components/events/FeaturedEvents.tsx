@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Box, Container, Grid, Card, CardContent, Typography, CardMedia } from '@mui/material';
-import { SearchEvent } from '@/types/search-event';
+import type { SearchEvent } from '@/types/search-event';
 import { EventService } from '@/services/EventService';
 import { useRouter } from 'next/navigation';
 

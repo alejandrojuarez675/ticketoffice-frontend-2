@@ -20,8 +20,8 @@ import {
 import { Check as CheckIcon, ArrowBack as ArrowBackIcon, Email as EmailIcon } from '@mui/icons-material';
 import { CheckoutService } from '@/services/CheckoutService';
 import { EventService } from '@/services/EventService';
-import { EventDetail } from '@/types/Event';
-import { SessionInfoResponse } from '@/types/checkout';
+import type { EventDetail } from '@/types/Event';
+import type { SessionInfoResponse } from '@/types/checkout';
 import Link from 'next/link';
 
 function CongratsContent() {

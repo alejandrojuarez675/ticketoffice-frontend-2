@@ -27,7 +27,7 @@ import {
   FormControl,
   InputLabel,
   Select,
-  SelectChangeEvent,
+  type SelectChangeEvent,
   TextField,
   InputAdornment
 } from '@mui/material';
