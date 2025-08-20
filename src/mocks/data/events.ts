@@ -14,8 +14,8 @@ const mockEventDetailBase: EventDetail = {
   organizer: {
     id: 'org1',
     name: 'Productora de Eventos',
-    url: 'https://example.com/organizer',
-    logoUrl: 'https://via.placeholder.com/100x50?text=Organizer',
+    url: '',
+    logoUrl: '',
   },
   status: 'ACTIVE',
   location: {

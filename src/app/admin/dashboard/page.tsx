@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+import SalesCharts from '@/components/layouts/SalesCharts';
 import { useRouter, usePathname } from 'next/navigation';
 import { Box, Typography, Card, CardContent, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useAuth } from '@/hooks/useAuth';
+import EmptyState from '@/components/layouts/EmptyState';
 
 const DashboardContainer = styled(Box)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -104,9 +106,17 @@ function DashboardContent() {
 
       <Box mt={6}>
         <Typography variant="h6" gutterBottom>Actividad Reciente</Typography>
-        <Box bgcolor="background.paper" p={3} borderRadius={2} boxShadow={1}>
-          <Typography color="text.secondary">Próximamente: Gráficos y actividad reciente</Typography>
-        </Box>
+
+        {stats.totalEvents === 0 && stats.ticketsSold === 0 ? (
+          <EmptyState
+            title="Aún no tienes datos"
+            description="Crea tu primer evento para empezar a ver ventas y actividad."
+            actionLabel="Crear primer evento"
+            onAction={() => location.assign('/admin/events/new')}
+          />
+        ) : (
+          <SalesCharts />
+        )}
       </Box>
     </DashboardContainer>
   );
