@@ -1,93 +1,55 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
 import { AuthService } from '@/services/AuthService';
 import type { RegisterCredentials, User } from '@/types/user';
 
-export type { User };
-
-export const useAuth = () => {
-  const router = useRouter();
+export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isUser, setIsUser] = useState(false);
+  const [isSeller, setIsSeller] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Check authentication status on initial load
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        setIsLoading(true);
-        const token = AuthService.getToken(); 
-
-        if (!token) {
-          setIsAuthenticated(false);
-          setIsAdmin(false);
-          setUser(null);
-          return;
-        }
-
-        const currentUser = AuthService.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          setIsAuthenticated(true);
-          setIsAdmin(currentUser.role?.toLowerCase() === 'admin');
-        } else {
-          AuthService.logout();
-          setIsAuthenticated(false);
-          setIsAdmin(false);
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error checking authentication status:', error);
-        AuthService.logout();
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-        setUser(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
+    const current = AuthService.getCurrentUser();
+    setUser(current);
+    const role = current?.role;
+    setIsAuthenticated(!!current);
+    setIsUser(role === 'user');
+    setIsSeller(role === 'seller');
+    setIsAdmin(role === 'admin');
+    setIsLoading(false);
   }, []);
 
-  const login = useCallback(async (credentials: { username: string; password: string }) => {
-    try {
-      setIsLoading(true);
-      const userData = await AuthService.login(credentials);
-      setUser(userData.user);
-      setIsAuthenticated(true);
-      setIsAdmin(userData.user.role?.toLowerCase() === 'admin'); 
-      return userData;
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+  const login = useCallback(async (credentials: { username: string; password: string; remember?: boolean }) => {
+    const res = await AuthService.login(credentials);
+    setUser(res.user);
+    const role = res.user.role;
+    setIsAuthenticated(true);
+    setIsUser(role === 'user');
+    setIsSeller(role === 'seller');
+    setIsAdmin(role === 'admin');
+    return res;
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     AuthService.logout();
     setUser(null);
     setIsAuthenticated(false);
+    setIsUser(false);
+    setIsSeller(false);
     setIsAdmin(false);
-    router.push('/auth/login');
-  }, [router]);
-
-  const register = useCallback(async (userData: RegisterCredentials) => {
-    try {
-      setIsLoading(true);
-      return await AuthService.register(userData);
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
   }, []);
 
-  return { user, isAuthenticated, isAdmin, isLoading, login, logout, register };
-};
+  const register = useCallback(async (data: RegisterCredentials) => {
+    await AuthService.register(data);
+  }, []);
+
+  const hasBackofficeAccess = !!user && (user.role === 'seller' || user.role === 'admin');
+
+  return { user, isAuthenticated, isUser, isSeller, isAdmin, hasBackofficeAccess, isLoading, login, logout, register };
+}
 
 export default useAuth;

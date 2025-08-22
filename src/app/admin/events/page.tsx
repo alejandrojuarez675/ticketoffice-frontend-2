@@ -1,3 +1,4 @@
+// src/app/admin/events/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -51,12 +52,26 @@ function EventActionsMenu({
 }) {
   return (
     <Menu id="event-actions-menu" anchorEl={anchorEl} keepMounted open={open} onClose={onClose}>
-      <MenuItem onClick={onViewDetails}><Typography variant="body2">Ver detalles</Typography></MenuItem>
-      <MenuItem onClick={onViewAsClient}><Typography variant="body2">Ver como cliente</Typography></MenuItem>
-      <MenuItem onClick={onViewSales}><Typography variant="body2">Ver ventas</Typography></MenuItem>
-      <MenuItem onClick={onValidate}><Typography variant="body2">Validar entradas</Typography></MenuItem>
-      <MenuItem onClick={onEdit}><Typography variant="body2">Editar</Typography></MenuItem>
-      <MenuItem onClick={onDelete}><Typography variant="body2" color="error">Eliminar</Typography></MenuItem>
+      <MenuItem onClick={onViewDetails}>
+        <Typography variant="body2">Ver detalles</Typography>
+      </MenuItem>
+      <MenuItem onClick={onViewAsClient}>
+        <Typography variant="body2">Ver como cliente</Typography>
+      </MenuItem>
+      <MenuItem onClick={onViewSales}>
+        <Typography variant="body2">Ver ventas</Typography>
+      </MenuItem>
+      <MenuItem onClick={onValidate}>
+        <Typography variant="body2">Validar entradas</Typography>
+      </MenuItem>
+      <MenuItem onClick={onEdit}>
+        <Typography variant="body2">Editar</Typography>
+      </MenuItem>
+      <MenuItem onClick={onDelete}>
+        <Typography variant="body2" color="error">
+          Eliminar
+        </Typography>
+      </MenuItem>
     </Menu>
   );
 }
@@ -64,7 +79,7 @@ function EventActionsMenu({
 const EventsList = () => {
   const router = useRouter();
   const theme = useTheme();
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, hasBackofficeAccess, isLoading } = useAuth();
 
   const [events, setEvents] = useState<EventForList[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,22 +88,22 @@ const EventsList = () => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0, totalPages: 1 });
 
-  // Guardas
+  // Guards
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
       router.replace('/auth/login?next=' + encodeURIComponent('/admin/events'));
       return;
     }
-    if (!isAdmin) {
+    if (!hasBackofficeAccess) {
       router.replace('/');
       return;
     }
-  }, [isAuthenticated, isAdmin, isLoading, router]);
+  }, [isAuthenticated, hasBackofficeAccess, isLoading, router]);
 
   // Fetch events
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) return;
+    if (!isAuthenticated || !hasBackofficeAccess) return;
     const fetchEvents = async () => {
       try {
         setLoading(true);
@@ -103,7 +118,7 @@ const EventsList = () => {
       }
     };
     fetchEvents();
-  }, [pagination.page, pagination.pageSize, isAuthenticated, isAdmin]);
+  }, [pagination.page, pagination.pageSize, isAuthenticated, hasBackofficeAccess]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, eventId: string) => {
     setAnchorEl(event.currentTarget);
@@ -166,7 +181,9 @@ const EventsList = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">Gestión de Eventos</Typography>
+        <Typography variant="h4" component="h1">
+          Gestión de Eventos
+        </Typography>
         <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleCreateEvent} disabled={loading}>
           Nuevo Evento
         </Button>

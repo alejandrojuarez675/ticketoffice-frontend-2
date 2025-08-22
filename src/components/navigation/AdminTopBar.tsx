@@ -1,6 +1,21 @@
+// src/components/navigation/AdminTopBar.tsx
 'use client';
+
 import { type FC, useState, useMemo, useCallback } from 'react';
-import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Tooltip } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Box,
+  Avatar,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Tooltip,
+} from '@mui/material';
 import { Menu as MenuIcon, Logout as LogoutIcon, AccountCircle as AccountCircleIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,9 +34,19 @@ const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick }) => {
 
   const handleMenu = useCallback((event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget), []);
   const handleClose = useCallback(() => setAnchorEl(null), []);
-  const handleProfile = useCallback(() => { handleClose(); router.push('/admin/profile'); }, [handleClose, router]);
-  const handleSettings = useCallback(() => { handleClose(); router.push('/admin/settings'); }, [handleClose, router]);
-  const handleLogout = useCallback(async () => { handleClose(); await logout(); router.replace('/auth/login'); }, [handleClose, logout, router]);
+  const handleProfile = useCallback(() => {
+    handleClose();
+    router.push('/admin/profile');
+  }, [handleClose, router]);
+  const handleSettings = useCallback(() => {
+    handleClose();
+    router.push('/admin/settings');
+  }, [handleClose, router]);
+  const handleLogout = useCallback(async () => {
+    handleClose();
+    await logout();
+    router.replace('/auth/login');
+  }, [handleClose, logout, router]);
 
   const avatarLetter = useMemo(() => (user?.name ? user.name.charAt(0).toUpperCase() : 'U'), [user?.name]);
 
@@ -69,21 +94,31 @@ const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick }) => {
             slotProps={{ list: { 'aria-labelledby': buttonId } }}
           >
             <Box sx={{ px: 2, py: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold">{user?.name || 'Usuario'}</Typography>
-              <Typography variant="body2" color="text.secondary">{user?.email || 'usuario@ejemplo.com'}</Typography>
+              <Typography variant="subtitle1" fontWeight="bold">
+                {user?.name || 'Usuario'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {user?.email || 'usuario@ejemplo.com'}
+              </Typography>
             </Box>
             <Divider sx={{ my: 1 }} />
             <MenuItem onClick={handleProfile}>
-              <ListItemIcon><AccountCircleIcon fontSize="small" /></ListItemIcon>
+              <ListItemIcon>
+                <AccountCircleIcon fontSize="small" />
+              </ListItemIcon>
               <ListItemText>Perfil</ListItemText>
             </MenuItem>
             <MenuItem onClick={handleSettings}>
-              <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
+              <ListItemIcon>
+                <SettingsIcon fontSize="small" />
+              </ListItemIcon>
               <ListItemText>Configuración</ListItemText>
             </MenuItem>
             <Divider />
             <MenuItem onClick={handleLogout}>
-              <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
               <ListItemText>Cerrar Sesión</ListItemText>
             </MenuItem>
           </Menu>

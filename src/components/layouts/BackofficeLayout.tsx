@@ -1,7 +1,11 @@
+// src/components/layouts/BackofficeLayout.tsx
 'use client';
-import { type ReactNode, useState } from 'react';
+
+import { useEffect, useState, type ReactNode } from 'react';
 import { Box, CssBaseline, useMediaQuery, useTheme } from '@mui/material';
 import Head from 'next/head';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/navigation/AdminSidebar';
 import AdminTopBar from '@/components/navigation/AdminTopBar';
 import BackofficeBreadcrumbs from '@/components/layouts/BackofficeBreadcrumbs';
@@ -14,7 +18,21 @@ export default function BackofficeLayout({ children, title = 'Admin - TicketOffi
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const { isLoading, isAuthenticated, hasBackofficeAccess } = useAuth();
+  const router = useRouter();
+
   const handleDrawerToggle = () => setMobileOpen((v) => !v);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/auth/login?next=/admin/dashboard');
+      return;
+    }
+    if (!hasBackofficeAccess) {
+      router.replace('/');
+    }
+  }, [isLoading, isAuthenticated, hasBackofficeAccess, router]);
 
   return (
     <>

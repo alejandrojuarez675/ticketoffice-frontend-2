@@ -5,7 +5,13 @@ export default function AuthShell({
   title,
   children,
   footer,
-}: { title: string; children: React.ReactNode; footer?: React.ReactNode }) {
+  textColor = 'inherit', 
+}: {
+  title: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  textColor?: string;
+}) {
   return (
     <Container component="main" maxWidth="xs" sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center' }}>
       <Paper
@@ -17,9 +23,13 @@ export default function AuthShell({
           flexDirection: 'column',
           alignItems: 'center',
           gap: 2,
+          color: textColor,
+          backgroundColor: 'transparent', 
         }}
       >
-        <Typography component="h1" variant="h5">{title}</Typography>
+        <Typography component="h1" variant="h5">
+          {title}
+        </Typography>
         <Box sx={{ width: '100%' }}>{children}</Box>
         {footer}
       </Paper>

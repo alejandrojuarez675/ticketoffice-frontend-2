@@ -1,17 +1,89 @@
 // src/components/navigation/AdminSidebar.tsx
 'use client';
-import { type FC, useState } from 'react';
-import { Drawer, List, ListItemIcon, ListItemText, Divider, Toolbar, ListItemButton, Box, Typography, Collapse } from '@mui/material';
-import { Dashboard as DashboardIcon, Event as EventIcon, People as PeopleIcon, Settings as SettingsIcon, ExpandLess as ExpandLessIcon, ExpandMore as ExpandMoreIcon, QrCodeScanner as QrCodeScannerIcon } from '@mui/icons-material';
+
+import { type FC, useMemo, useState } from 'react';
+import {
+  Drawer,
+  List,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Toolbar,
+  ListItemButton,
+  Box,
+  Typography,
+  Collapse,
+} from '@mui/material';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { navItems, type BackofficeRole, type NavItem } from '@/config/backofficeNav';
+import { useAuth } from '@/hooks/useAuth';
 
 type AdminSidebarProps = { mobileOpen: boolean; isMobile: boolean; onClose: () => void };
 
 const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
   const drawerWidth = 240;
   const pathname = usePathname();
-  const [openEvents, setOpenEvents] = useState(true);
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({ events: true });
+
+  const { isAdmin, isSeller } = useAuth();
+  const role: BackofficeRole | null = isAdmin ? 'admin' : isSeller ? 'seller' : null;
+
+  const items = useMemo<NavItem[]>(() => {
+    if (!role) return [];
+    const filterByRole = (list: NavItem[]): NavItem[] =>
+      list
+        .filter((i) => i.roles.includes(role))
+        .map((i) => (i.children ? { ...i, children: filterByRole(i.children) } : i));
+    return filterByRole(navItems);
+  }, [role]);
+
+  const toggle = (key: string) => setOpenMap((m) => ({ ...m, [key]: !m[key] }));
+
+  const renderItem = (item: NavItem) => {
+    const Icon = item.icon;
+    const selected = item.href ? pathname === item.href : false;
+    if (item.children && item.children.length > 0) {
+      const open = openMap[item.key] ?? false;
+      return (
+        <Box key={item.key}>
+          <ListItemButton onClick={() => toggle(item.key)}>
+            {Icon && (
+              <ListItemIcon>
+                <Icon />
+              </ListItemIcon>
+            )}
+            <ListItemText primary={item.label} />
+            {open ? <span className="material-icons">expand_less</span> : <span className="material-icons">expand_more</span>}
+          </ListItemButton>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <List component="div" disablePadding>
+              {item.children.map((child) => (
+                <ListItemButton key={child.key} component={Link} href={child.href!} selected={pathname === child.href} sx={{ pl: 4 }}>
+                  {child.icon && (
+                    <ListItemIcon>
+                      <child.icon />
+                    </ListItemIcon>
+                  )}
+                  <ListItemText primary={child.label} />
+                </ListItemButton>
+              ))}
+            </List>
+          </Collapse>
+        </Box>
+      );
+    }
+    return (
+      <ListItemButton key={item.key} component={Link} href={item.href!} selected={selected}>
+        {Icon && (
+          <ListItemIcon>
+            <Icon />
+          </ListItemIcon>
+        )}
+        <ListItemText primary={item.label} />
+      </ListItemButton>
+    );
+  };
 
   const drawer = (
     <div>
@@ -21,48 +93,7 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
         </Typography>
       </Toolbar>
       <Divider />
-      <List onClick={onClose}>
-        <ListItemButton component={Link} href="/admin/dashboard" selected={pathname === '/admin/dashboard'}>
-          <ListItemIcon><DashboardIcon /></ListItemIcon>
-          <ListItemText primary="Dashboard" />
-        </ListItemButton>
-
-        <ListItemButton onClick={() => setOpenEvents((v) => !v)}>
-          <ListItemIcon><EventIcon /></ListItemIcon>
-          <ListItemText primary="Eventos" />
-          {openEvents ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        </ListItemButton>
-
-        <Collapse in={openEvents} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            <ListItemButton component={Link} href="/admin/events" selected={pathname === '/admin/events'} sx={{ pl: 4 }}>
-              <ListItemText primary="Todos los eventos" />
-            </ListItemButton>
-            <ListItemButton component={Link} href="/admin/events/new" selected={pathname === '/admin/events/new'} sx={{ pl: 4 }}>
-              <ListItemText primary="Nuevo evento" />
-            </ListItemButton>
-          </List>
-        </Collapse>
-
-        <ListItemButton component={Link} href="/admin/validate" selected={pathname?.startsWith('/admin/validate')}>
-          <ListItemIcon><QrCodeScannerIcon /></ListItemIcon>
-          <ListItemText primary="Validar Entradas" />
-        </ListItemButton>
-
-        <ListItemButton component={Link} href="/admin/users" selected={pathname === '/admin/users'}>
-          <ListItemIcon><PeopleIcon /></ListItemIcon>
-          <ListItemText primary="Vendedores" />
-        </ListItemButton>
-      </List>
-
-      <Divider sx={{ my: 1 }} />
-
-      <List onClick={onClose}>
-        <ListItemButton component={Link} href="/admin/settings" selected={pathname === '/admin/settings'}>
-          <ListItemIcon><SettingsIcon /></ListItemIcon>
-          <ListItemText primary="Configuración" />
-        </ListItemButton>
-      </List>
+      <List onClick={onClose}>{items.map(renderItem)}</List>
     </div>
   );
 
@@ -90,4 +121,3 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
 };
 
 export default AdminSidebar;
-
