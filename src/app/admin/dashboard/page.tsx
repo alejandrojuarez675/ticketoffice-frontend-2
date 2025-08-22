@@ -62,8 +62,8 @@ function DashboardContent() {
     (async () => {
       try {
         setLoading(true);
-        const s = await fetchDashboardStats();
-        setStats(s);
+        const dashboardStats = await fetchDashboardStats();
+        setStats(dashboardStats);
       } catch (err) {
         console.error('Error loading dashboard stats:', err);
         setError('Error al cargar las estadísticas del panel');

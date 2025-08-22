@@ -2,53 +2,66 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  Box, Button, Card, CardContent, Chip, CircularProgress, 
-  Divider, Grid, IconButton, List, ListItem, ListItemIcon, 
-  ListItemText, Typography, useMediaQuery, useTheme, Paper
-} from '@mui/material';
-import { 
-  ArrowBack as ArrowBackIcon, CalendarToday as CalendarIcon, 
-  Edit as EditIcon, EventAvailable as EventAvailableIcon, 
-  EventBusy as EventBusyIcon, LocationOn as LocationIcon,
-  ArrowForward as ArrowForwardIcon, AttachMoney as PriceIcon 
-} from '@mui/icons-material';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { EventService } from '@/services/EventService';
 import type { EventDetail } from '@/types/Event';
 import { useAuth } from '@/hooks/useAuth';
-import { AuthService } from '@/services/AuthService';
+
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Divider,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Typography,
+  useMediaQuery,
+  useTheme,
+  Grid,
+} from '@mui/material';
+import {
+  ArrowBack as ArrowBackIcon,
+  CalendarToday as CalendarIcon,
+  Edit as EditIcon,
+  EventAvailable as EventAvailableIcon,
+  EventBusy as EventBusyIcon,
+  LocationOn as LocationIcon,
+} from '@mui/icons-material';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin } = useAuth();
-  
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push('/auth/login');
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/auth/login?next=' + encodeURIComponent(`/admin/events/${id}`));
       return;
     }
-    
-    if (!AuthService.isAdmin()) {
-      router.push('/');
+    if (!isAdmin) {
+      router.replace('/');
       return;
     }
-  }, [router]);
+  }, [id, isAuthenticated, isAdmin, isLoading, router]);
 
   useEffect(() => {
+    if (!id || !isAuthenticated || !isAdmin) return;
     const fetchEvent = async () => {
-      if (!id) return;
-      
       try {
         setLoading(true);
         setError(null);
@@ -61,14 +74,13 @@ export default function EventDetailPage() {
         setLoading(false);
       }
     };
-
     fetchEvent();
-  }, [id, isAuthenticated, isAdmin, router]);
+  }, [id, isAuthenticated, isAdmin]);
 
   const handleBack = () => router.push('/admin/events');
   const handleEdit = () => event && router.push(`/admin/events/${event.id}/edit`);
 
-  if (loading) {
+  if (isLoading || loading) {
     return (
       <BackofficeLayout title="Cargando...">
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -119,12 +131,7 @@ export default function EventDetailPage() {
               {event.title || 'Detalles del Evento'}
             </Typography>
           </Box>
-          <Button 
-            variant="contained" 
-            onClick={handleEdit} 
-            startIcon={<EditIcon />}
-            size={isMobile ? 'medium' : 'large'}
-          >
+          <Button variant="contained" onClick={handleEdit} startIcon={<EditIcon />} size={isMobile ? 'medium' : 'large'}>
             Editar Evento
           </Button>
         </Box>
@@ -137,24 +144,20 @@ export default function EventDetailPage() {
                   component="img"
                   src={event.image?.url || '/images/event-placeholder.jpg'}
                   alt={event.title}
-                  sx={{
-                    width: '100%',
-                    height: 300,
-                    objectFit: 'cover',
-                    borderRadius: 1,
-                    mb: 2
-                  }}
+                  sx={{ width: '100%', height: 300, objectFit: 'cover', borderRadius: 1, mb: 2 }}
                 />
-                
+
                 <Typography variant="h6" gutterBottom>Descripción</Typography>
-                <Typography paragraph>{event.description || 'No hay descripción disponible para este evento.'}</Typography>
-                
+                <Typography component="p" sx={{ mb: 2 }}>
+                  {event.description || 'No hay descripción disponible para este evento.'}
+                </Typography>
+
                 <Divider sx={{ my: 2 }} />
-                
+
                 <Typography variant="h6" gutterBottom>Información del evento</Typography>
-                
+
                 <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, sm: 6 }}>
+                  <Grid size={{ xs: 12, md: 8 }}>
                     <List dense>
                       <ListItem>
                         <ListItemIcon><CalendarIcon color="primary" /></ListItemIcon>
@@ -169,11 +172,11 @@ export default function EventDetailPage() {
                       </ListItem>
                     </List>
                   </Grid>
-                  
-                  <Grid size={{ xs: 12, sm: 6 }}>
+
+                  <Grid size={{ xs: 12, md: 8 }}>
                     <List dense>
-                      {event.tickets?.map((ticket, index) => (
-                        <ListItem key={index}>
+                      {event.tickets?.map((ticket) => (
+                        <ListItem key={ticket.id}>
                           <ListItemIcon>
                             {ticket.stock > 0 ? <EventAvailableIcon color="success" /> : <EventBusyIcon color="error" />}
                           </ListItemIcon>
@@ -195,8 +198,8 @@ export default function EventDetailPage() {
                     </List>
                   </Grid>
                 </Grid>
-                
-                {event.additionalInfo && event.additionalInfo.length > 0 && (
+
+                {event.additionalInfo?.length ? (
                   <>
                     <Divider sx={{ my: 2 }} />
                     <Typography variant="h6" gutterBottom>Información adicional</Typography>
@@ -208,30 +211,30 @@ export default function EventDetailPage() {
                       ))}
                     </List>
                   </>
-                )}
+                ) : null}
               </CardContent>
             </Card>
           </Grid>
-          
-          <Grid size={{ xs: 12, md: 4 }}>
+
+          <Grid size={{ xs: 12, md: 8 }}>
             <Card>
               <CardContent>
                 <Typography variant="h6" gutterBottom>Estado del evento</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Chip 
+                  <Chip
                     label={event.status === 'ACTIVE' ? 'Activo' : 'Inactivo'}
                     color={event.status === 'ACTIVE' ? 'success' : 'default'}
                     size="small"
                   />
                 </Box>
-                
+
                 <Divider sx={{ my: 2 }} />
-                
+
                 <Typography variant="h6" gutterBottom>Organizador</Typography>
                 {event.organizer ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                     {event.organizer.logoUrl && (
-                      <Box 
+                      <Box
                         component="img"
                         src={event.organizer.logoUrl}
                         alt={event.organizer.name}
@@ -250,9 +253,7 @@ export default function EventDetailPage() {
                     </Box>
                   </Box>
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    No especificado
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">No especificado</Typography>
                 )}
               </CardContent>
             </Card>

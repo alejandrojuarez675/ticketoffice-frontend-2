@@ -12,28 +12,23 @@ export default function Navbar() {
     <AppBar position="static" color="default" elevation={0}>
       <Toolbar>
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-          <Typography 
-            variant="h6" 
-            component={Link} 
-            href="/"
-            sx={{ 
-              textDecoration: 'none',
-              color: 'inherit',
-              fontWeight: 'bold',
-              mr: 2
-            }}
-          >
+            <Typography
+              variant="h6"
+              component={Link}
+              href="/"
+              sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold', mr: 2 }}
+            >
             TicketOffice
           </Typography>
           
-          {!isMobile && isAuthenticated && (
-            <Box sx={{ display: 'flex', ml: 2 }}>
-              <Button component={Link} href="/admin/events">Eventos</Button>
-              {isAdmin && (
-                <Button component={Link} href="/admin">Admin</Button>
-              )}
-            </Box>
-          )}
+        {!isMobile && (
+          <Box sx={{ display: 'flex', ml: 2 }}>
+            <Button component={Link} href="/events">Eventos</Button>
+            {isAuthenticated && isAdmin && (
+              <Button component={Link} href="/admin">Admin</Button>
+            )}
+          </Box>
+        )}
         </Box>
 
         {isMobile ? (
@@ -61,7 +56,7 @@ export default function Navbar() {
                 </Button>
                 <Button 
                   component={Link} 
-                  href="/register" 
+                  href="/auth/register" 
                   variant="contained" 
                   color="primary"
                   sx={{ ml: 1 }}
