@@ -1,10 +1,10 @@
-
-// src/app/admin/profile/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
-import { Box, Card, CardContent, CircularProgress, Grid, Typography, Button } from '@mui/material';
+import { Box, Card, CardContent, CircularProgress, Typography, Button } from '@mui/material';
+import Grid from '@mui/material/Grid';
+import Link from 'next/link';
 import { StatsService, type SellerSummary } from '@/services/StatsService';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -48,7 +48,7 @@ export default function SellerProfilePage() {
                     Eventos totales
                   </Typography>
                   <Typography variant="h4">{summary?.totalEvents ?? 0}</Typography>
-                  <Button size="small" sx={{ mt: 1 }} href="/admin/events">
+                  <Button component={Link} href="/admin/events" size="small" sx={{ mt: 1 }}>
                     Ver todos mis eventos
                   </Button>
                 </CardContent>

@@ -1,4 +1,3 @@
-// src/components/navigation/AdminSidebar.tsx
 'use client';
 
 import { type FC, useMemo, useState } from 'react';
@@ -14,6 +13,8 @@ import {
   Typography,
   Collapse,
 } from '@mui/material';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { navItems, type BackofficeRole, type NavItem } from '@/config/backofficeNav';
@@ -54,7 +55,7 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
               </ListItemIcon>
             )}
             <ListItemText primary={item.label} />
-            {open ? <span className="material-icons">expand_less</span> : <span className="material-icons">expand_more</span>}
+            {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </ListItemButton>
           <Collapse in={open} timeout="auto" unmountOnExit>
             <List component="div" disablePadding>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Box, Button, Card, CardContent, Divider, 
+  Box, Button, Card, CardContent,
   Grid, IconButton, TextField, Typography, 
   useMediaQuery, useTheme, MenuItem, FormControl, 
   InputLabel, Select, FormHelperText, Switch, CircularProgress,
@@ -14,11 +14,11 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { es, id } from 'date-fns/locale';
+import { es } from 'date-fns/locale';
 
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { EventService } from '@/services/EventService';
-import type { EventDetail } from '@/types/Event';
+import type { EventDetail, Ticket } from '@/types/Event';
 import { AuthService } from '@/services/AuthService';
 import { randomUUID } from 'crypto';
 
@@ -97,15 +97,25 @@ export default function NewEventPage() {
     }
   };
 
-  const handleTicketChange = (index: number, field: string, value: any) => {
+  const handleTicketChange = <K extends keyof Ticket>(index: number, field: K, value: unknown) => {
     const updatedTickets = [...formData.tickets];
+    // Coerce incoming value based on target field type
+    const coerced: Ticket[K] = (
+      field === 'value' || field === 'stock'
+        ? Number(value)
+        : field === 'isFree'
+          ? Boolean(value)
+          : (String(value) as unknown)
+    ) as Ticket[K];
+
     updatedTickets[index] = {
       ...updatedTickets[index],
-      [field]: field === 'value' || field === 'stock' ? Number(value) : value
-    };
+      [field]: coerced,
+    } as Ticket;
+
     setFormData(prev => ({
       ...prev,
-      tickets: updatedTickets
+      tickets: updatedTickets,
     }));
   };
 

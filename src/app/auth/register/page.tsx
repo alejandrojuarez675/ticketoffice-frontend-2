@@ -30,6 +30,7 @@ import { getPasswordStrength, hasLower, hasUpper, hasNumber, meetsBasicPasswordR
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
+import Collapse from '@mui/material/Collapse';
 
 const usernameRegex = /^[A-Za-z][A-Za-z0-9._]{2,19}$/;
 const forbidRepeats = /(\.\.|__|_\.)/;
@@ -227,9 +228,9 @@ export default function RegisterPage() {
                           <CloseIcon color="error" fontSize="small" />
                         </InputAdornment>
                       ) : undefined,
+                    inputProps: { autoComplete: 'off', style: { WebkitTextFillColor: 'white' } },
                   },
                 }}
-                inputProps={{ autoComplete: 'off', style: { WebkitTextFillColor: 'white' } }}
               />
             </Grid>
 
@@ -243,7 +244,7 @@ export default function RegisterPage() {
                 helperText={errors.firstName?.message ?? ' '}
                 disabled={isSubmitting || isLoading}
                 sx={inputWhiteSx}
-                inputProps={{ autoComplete: 'off', style: { WebkitTextFillColor: 'white' } }}
+                slotProps={{ input: { inputProps: { autoComplete: 'off', style: { WebkitTextFillColor: 'white' } } } }}
               />
             </Grid>
 
@@ -257,7 +258,7 @@ export default function RegisterPage() {
                 helperText={errors.lastName?.message ?? ' '}
                 disabled={isSubmitting || isLoading}
                 sx={inputWhiteSx}
-                inputProps={{ autoComplete: 'off', style: { WebkitTextFillColor: 'white' } }}
+                slotProps={{ input: { inputProps: { autoComplete: 'off', style: { WebkitTextFillColor: 'white' } } } }}
               />
             </Grid>
 
@@ -266,7 +267,7 @@ export default function RegisterPage() {
                 fullWidth
                 type="email"
                 label="Email"
-                autoComplete="email" // único con sugerencias
+                autoComplete="email"
                 {...register('email')}
                 error={!!errors.email || mailAvail === 'taken'}
                 helperText={errors.email?.message ?? (mailAvail === 'taken' ? 'Este correo ya está en uso' : ' ')}
@@ -288,9 +289,9 @@ export default function RegisterPage() {
                           <CloseIcon color="error" fontSize="small" />
                         </InputAdornment>
                       ) : undefined,
+                    inputProps: { autoComplete: 'email', style: { WebkitTextFillColor: 'white' } },
                   },
                 }}
-                inputProps={{ autoComplete: 'email', style: { WebkitTextFillColor: 'white' } }}
               />
             </Grid>
 
@@ -321,7 +322,7 @@ export default function RegisterPage() {
                       slotProps={{ input: { inputProps: { autoComplete: 'new-password', style: { WebkitTextFillColor: 'white' } } } }}
                     />
                     {showPwdHints && (
-                      <>
+                      <Collapse in={showPwdHints} timeout={200} unmountOnExit>
                         <PasswordStrengthBar strength={strength} />
                         <Box sx={{ mt: 1 }}>
                           {rules.map((r) => (
@@ -334,7 +335,7 @@ export default function RegisterPage() {
                             </Typography>
                           ))}
                         </Box>
-                      </>
+                      </Collapse>
                     )}
                   </>
                 )}
