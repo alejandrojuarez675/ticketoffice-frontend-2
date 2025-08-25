@@ -2,11 +2,12 @@ export interface SearchEvent {
   id: string;
   name: string;
   date: string;
-  location: string;
+  location: string; // "Ciudad, País"
   bannerUrl: string;
   price: number;
   currency: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT';
+  minAge?: number; 
 }
 
 export interface SearchEventResponse {

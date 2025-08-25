@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
@@ -14,9 +16,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+html, body {
+  min-height: 100%;
 }
 
 body {
@@ -24,3 +29,56 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+body {
+  background:
+    radial-gradient(1200px 600px at 10% 0%, rgba(124, 77, 255, 0.08), transparent 45%),
+    radial-gradient(1000px 500px at 90% 100%, rgba(16, 185, 129, 0.06), transparent 45%),
+    linear-gradient(180deg, #0f1324 0%, #0b0f19 100%);
+  background-attachment: fixed;
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.MuiInputBase-root input:-webkit-autofill,
+.MuiInputBase-root textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* src/app/globals.css */
+/* Autofill: mantener texto blanco y fondo transparente en inputs (login/register) */
+.MuiInputBase-root :-webkit-autofill,
+.MuiInputBase-root :-webkit-autofill:hover,
+.MuiInputBase-root :-webkit-autofill:focus {
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+}
+
+/* Ya tenías estas reglas; las mantenemos para más compatibilidad */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+
+.MuiInputBase-root input:-webkit-autofill,
+.MuiInputBase-root textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+}
+
+/* Opcional: quitar flechas de number */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type='number'] { -moz-appearance: textfield; }

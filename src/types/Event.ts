@@ -1,4 +1,3 @@
-// Location and Image interfaces are used in multiple places
 export interface Location {
   name: string;
   address: string;

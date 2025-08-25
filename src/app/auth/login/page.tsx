@@ -1,174 +1,147 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
 import LightLayout from '@/components/layouts/LightLayout';
-import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Container,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-  Link as MuiLink,
-} from '@mui/material';
+import AuthShell from '@/components/auth/AuthShell';
+import SubmitButton from '@/components/forms/SubmitButton';
+import PasswordField from '@/components/forms/PasswordField';
+import { TextField, Link as MuiLink, FormControlLabel, Checkbox, Box } from '@mui/material';
 import Link from 'next/link';
-import { AuthService } from '@/services/AuthService';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { useSnackbar } from '@/components/forms/SnackbarProvider';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-function LoginForm() {
+const LoginSchema = z.object({
+  username: z.string().trim().min(3, 'El usuario debe tener al menos 3 caracteres').max(50, 'Máximo 50 caracteres'),
+  password: z.string().min(1, 'La contraseña es obligatoria'),
+  remember: z.boolean().optional(),
+});
+type LoginData = z.infer<typeof LoginSchema>;
+
+const inputSx = {
+  '& .MuiInputBase-input': { color: 'common.white', WebkitTextFillColor: 'white' },
+  '& .MuiOutlinedInput-input': { color: 'common.white' },
+  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.75)' },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.35)' },
+  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.6)' },
+  '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
+  '& .MuiInputLabel-root.Mui-focused': { color: 'primary.light' },
+};
+
+function LoginFormInner() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const { isAuthenticated, isLoading, login, isAdmin, hasBackofficeAccess } = useAuth();
+  const { showSnack } = useSnackbar();
+  const attemptsRef = useRef({ count: 0, until: 0 });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginData>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: { username: '', password: '', remember: true },
+  });
+
+  const computeDestination = () => {
+    if (nextParam) return nextParam;
+    if (hasBackofficeAccess) return isAdmin ? '/admin/dashboard' : '/admin/profile';
+    return '/';
+  };
 
   useEffect(() => {
-    // If user is already logged in, redirect to dashboard
-    if (AuthService.isAuthenticated()) {
-      router.push('/admin/dashboard');
+    if (!isLoading && isAuthenticated) {
+      router.replace(computeDestination());
     }
-  }, [router]);
+  }, [isAuthenticated, isLoading, router, hasBackofficeAccess, isAdmin]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    
-    if (!username || !password) {
-      setError('Por favor, complete todos los campos');
+  const onSubmit = async (data: LoginData) => {
+    const now = Date.now();
+    if (attemptsRef.current.until > now) {
+      const secs = Math.ceil((attemptsRef.current.until - now) / 1000);
+      showSnack({ message: `Espera ${secs}s para volver a intentar.`, severity: 'warning' });
       return;
     }
-
     try {
-      setLoading(true);
-      await AuthService.login({ username, password });
-      
-      // Redirect to dashboard on successful login
-      router.push('/admin/dashboard');
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
-    } finally {
-      setLoading(false);
+      await login({ username: data.username, password: data.password, remember: data.remember });
+      showSnack({ message: 'Sesión iniciada', severity: 'success' });
+      router.replace(computeDestination());
+    } catch {
+      attemptsRef.current.count += 1;
+      if (attemptsRef.current.count >= 5) {
+        attemptsRef.current.until = Date.now() + 30_000;
+        attemptsRef.current.count = 0;
+      }
+      showSnack({ message: 'Usuario o contraseña incorrectos', severity: 'error' });
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 4, 
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Typography component="h1" variant="h5" gutterBottom>
-            Iniciar Sesión
-          </Typography>
-          
-          {error && (
-            <Alert 
-              severity="error" 
-              sx={{ 
-                width: '100%',
-                mb: 3,
-                '& .MuiAlert-message': {
-                  width: '100%',
-                }
-              }}
-            >
-              {error}
-            </Alert>
-          )}
-          
-          <Box 
-            component="form" 
-            onSubmit={handleSubmit} 
-            sx={{ 
-              mt: 1,
-              width: '100%',
-            }}
-          >
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              id="username"
-              label="Usuario"
-              name="username"
-              autoComplete="username"
-              autoFocus
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Contraseña"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Iniciar Sesión'
-              )}
-            </Button>
-            
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                ¿No tienes una cuenta?{' '}
-                <MuiLink 
-                  component={Link} 
-                  href="/auth/register" 
-                  sx={{ 
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                    }
-                  }}
-                >
-                  Regístrate aquí
-                </MuiLink>
-              </Typography>
-            </Box>
-          </Box>
-        </Paper>
-      </Box>
-    </Container>
+    <AuthShell
+      title="Iniciar Sesión"
+      textColor="common.white"
+      footer={
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+          <MuiLink component={Link} href="/auth/forgot" underline="hover" sx={{ color: 'primary.light' }} variant="body2">
+            ¿Olvidaste tu contraseña?
+          </MuiLink>
+          <MuiLink component={Link} href="/auth/register" underline="hover" sx={{ color: 'primary.light' }} variant="body2">
+            ¿No tienes cuenta? Regístrate
+          </MuiLink>
+        </Box>
+      }
+    >
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <TextField
+          fullWidth
+          margin="normal"
+          label="Usuario"
+          autoComplete="username"
+          autoFocus
+          {...register('username')}
+          error={!!errors.username}
+          helperText={errors.username?.message ?? ' '}
+          disabled={isSubmitting || isLoading}
+          sx={inputSx}
+        />
+
+        <PasswordField
+          fullWidth
+          margin="normal"
+          label="Contraseña"
+          autoComplete="current-password"
+          {...register('password')}
+          error={!!errors.password}
+          helperText={errors.password?.message ?? ' '}
+          disabled={isSubmitting || isLoading}
+          sx={inputSx}
+        />
+
+        <FormControlLabel
+          control={<Checkbox {...register('remember')} sx={{ color: 'rgba(255,255,255,0.7)' }} />}
+          label="Mantener sesión iniciada"
+          sx={{ color: 'rgba(255,255,255,0.85)' }}
+        />
+
+        <SubmitButton type="submit" fullWidth variant="contained" sx={{ mt: 1 }} loading={isSubmitting || isLoading}>
+          Iniciar Sesión
+        </SubmitButton>
+      </form>
+    </AuthShell>
   );
 }
 
 export default function LoginPage() {
   return (
     <LightLayout title="Iniciar Sesión - TicketOffice">
-      <LoginForm />
+      <Suspense fallback={null}>
+        <LoginFormInner />
+      </Suspense>
     </LightLayout>
   );
 }

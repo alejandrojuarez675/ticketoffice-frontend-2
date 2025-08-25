@@ -1,199 +1,172 @@
-import { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
+import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
 import { ConfigService } from './ConfigService';
 
-// Mock data for development
-const mockUsers: User[] = [
-  {
-    id: 1,
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Administrador',
-    email: 'admin@example.com'
-  },
-  {
-    id: 2,
-    username: 'user',
-    password: 'user123',
-    role: 'user',
-    name: 'Usuario',
-    email: 'user@example.com'
-  },
+const MOCK_USERS: User[] = [
+  { id: 1, username: 'admin',   password: 'Admin123',  role: 'admin',  name: 'Administrador', email: 'admin@example.com' },
+  { id: 2, username: 'seller1', password: 'Seller123', role: 'seller', name: 'Vendedor Uno',  email: 'seller1@example.com' },
+  { id: 3, username: 'user1',   password: 'User1234',  role: 'user',   name: 'Usuario Uno',   email: 'user1@example.com'  },
 ];
 
 class AuthService {
-  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  private static BASE_URL = ConfigService.getApiBase();
   private static TOKEN_KEY = 'auth_token';
   private static USER_KEY = 'user_data';
+  private static AUTH_PREFIX = '/api/public/v1/auth';
 
-  /**
-   * Logs in a user with the provided credentials
-   */
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     if (ConfigService.isMockedEnabled()) {
-      return this.mockLogin(credentials);
+      await new Promise((r) => setTimeout(r, 350));
+      const u = MOCK_USERS.find(
+        (x) => x.username.toLowerCase() === credentials.username.toLowerCase() && x.password === credentials.password
+      );
+      if (!u) throw new Error('Usuario o contraseña incorrectos');
+      const token = `mock_${Date.now()}`;
+      const { password, ...safeUser } = u;
+      this.setAuthData({ token, user: safeUser }, credentials.remember);
+      return { token, user: safeUser };
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al iniciar sesión');
-      }
-
-      const data = await response.json();
-      this.setAuthData(data);
-      return data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+    if (!res.ok) throw new Error('Usuario o contraseña incorrectos');
+    const data = (await res.json()) as LoginResponse;
+    this.setAuthData(data, credentials.remember);
+    return data;
   }
 
-  /**
-   * Registers a new user
-   */
-  static async register(credentials: RegisterCredentials): Promise<void> {
+  static async register(payload: RegisterCredentials & { captchaToken?: string }): Promise<void> {
     if (ConfigService.isMockedEnabled()) {
-      return this.mockRegister(credentials);
+      await new Promise((r) => setTimeout(r, 400));
+      // Mock: no persistimos, el BE real debe crear con role "user" por defecto
+      return;
     }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al registrar el usuario');
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'No se pudo registrar');
     }
   }
 
-  /**
-   * Logs out the current user
-   */
-  static logout(): void {
+  static async verifyEmail(token: string): Promise<void> {
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 300));
+      if (!token) throw new Error('Token inválido');
+      return;
+    }
+    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/verify?token=${encodeURIComponent(token)}`, { method: 'GET' });
+    if (!res.ok) throw new Error('No se pudo verificar el correo');
+  }
+
+  static async checkAvailability(params: { username?: string; email?: string }): Promise<{ usernameAvailable?: boolean; emailAvailable?: boolean }> {
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 300));
+      const takenUsers = MOCK_USERS.map(u => u.username.toLowerCase());
+      const takenEmails = MOCK_USERS.map(u => u.email.toLowerCase());
+      return {
+        usernameAvailable: params.username ? !takenUsers.includes((params.username || '').toLowerCase()) : undefined,
+        emailAvailable: params.email ? !takenEmails.includes((params.email || '').toLowerCase()) : undefined,
+      };
+    }
+    const qs = new URLSearchParams(params as any).toString();
+    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/availability?${qs}`, { headers: { 'Content-Type': 'application/json' } });
+    if (!res.ok) throw new Error('No se pudo verificar disponibilidad');
+    return res.json();
+  }
+
+  static logout() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
+      sessionStorage.removeItem(this.TOKEN_KEY);
+      sessionStorage.removeItem(this.USER_KEY);
     }
   }
 
-  /**
-   * Gets the current authenticated user
-   */
   static getCurrentUser(): User | null {
     if (typeof window === 'undefined') return null;
-    
-    const userData = localStorage.getItem(this.USER_KEY);
-    return userData ? JSON.parse(userData) : null;
+    const raw = localStorage.getItem(this.USER_KEY) ?? sessionStorage.getItem(this.USER_KEY);
+    return raw ? JSON.parse(raw) : null;
   }
 
-  /**
-   * Gets the current authentication token
-   */
   static getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem(this.TOKEN_KEY);
+    return localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
   }
 
-  /**
-   * Checks if the user is authenticated
-   */
   static isAuthenticated(): boolean {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem(this.TOKEN_KEY);
+    return !!this.getToken();
   }
 
-  /**
-   * Checks if the current user has admin role
-   */
+  static getAuthHeader(): Record<string, string> {
+    const t = this.getToken();
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  }
+
+  // Helpers de rol
+  static getRole(): User['role'] | null {
+    const u = this.getCurrentUser();
+    return u?.role ?? null;
+  }
+
+  static isUser(): boolean {
+    return this.getRole() === 'user';
+  }
+
+  static isSeller(): boolean {
+    return this.getRole() === 'seller';
+  }
+
   static isAdmin(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === 'admin';
+    const r = this.getRole();
+    return r === 'admin' ;
   }
 
-  // Private helper methods
-  private static setAuthData(data: { token: string; user: User }): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.TOKEN_KEY, data.token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
+  static hasBackofficeAccess(): boolean {
+    const r = this.getRole();
+    return r === 'seller' || r === 'admin';
+  }
+
+  private static setAuthData(data: { token: string; user: User }, remember?: boolean) {
+    if (typeof window === 'undefined') return;
+    const storage = remember ? localStorage : sessionStorage;
+    const other = remember ? sessionStorage : localStorage;
+    storage.setItem(this.TOKEN_KEY, data.token);
+    storage.setItem(this.USER_KEY, JSON.stringify(data.user));
+    other.removeItem(this.TOKEN_KEY);
+    other.removeItem(this.USER_KEY);
+  }
+
+  static async requestPasswordReset(email: string): Promise<void> {
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 500));
+      return;
     }
+    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/forgot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) throw new Error('No se pudo procesar la solicitud');
   }
 
-  // Mock implementation for development
-  private static async mockLogin(credentials: LoginCredentials): Promise<LoginResponse> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const user = mockUsers.find(
-          (u) => u.username === credentials.username && u.password === credentials.password
-        );
-
-        if (!user) {
-          reject(new Error('Credenciales inválidas'));
-          return;
-        }
-
-        const token = `mock_token_${Date.now()}`;
-        const { password, ...userWithoutPassword } = user;
-        const response = {
-          token,
-          user: userWithoutPassword,
-        };
-
-        this.setAuthData(response);
-        resolve(response);
-      }, 500); // Simulate network delay
+  static async resetPassword(token: string, newPassword: string): Promise<void> {
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 500));
+      return;
+    }
+    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
     });
-  }
-
-  // Mock implementation for development
-  private static async mockRegister(credentials: RegisterCredentials): Promise<void> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (credentials.password !== credentials.confirmPassword) {
-          reject(new Error('Las contraseñas no coinciden'));
-          return;
-        }
-
-        if (mockUsers.some(user => user.username === credentials.username)) {
-          reject(new Error('El nombre de usuario ya está en uso'));
-          return;
-        }
-
-        if (mockUsers.some(user => user.email === credentials.email)) {
-          reject(new Error('El correo electrónico ya está en uso'));
-          return;
-        }
-
-        const newUser: User = {
-          id: mockUsers.length + 1,
-          username: credentials.username,
-          password: credentials.password,
-          email: credentials.email,
-          role: 'user',
-          name: credentials.firstName || credentials.username,
-        };
-
-        mockUsers.push(newUser);
-        resolve();
-      }, 500); // Simulate network delay
-    });
+    if (!res.ok) throw new Error('No se pudo restablecer la contraseña');
   }
 }
 
