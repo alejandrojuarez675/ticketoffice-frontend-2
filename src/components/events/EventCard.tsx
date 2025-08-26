@@ -11,7 +11,18 @@ import {
   Chip,
   Button,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  TextField,
+  CircularProgress,
 } from '@mui/material';
+import type { ChipProps } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import type { SearchEvent } from '@/types/search-event';
@@ -19,8 +30,11 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
 import { isFavorite, toggleFavorite } from '@/utils/favorites';
 import { deriveCategory } from '@/utils/eventsFilters';
+import { EventService } from '@/services/EventService';
+import { CheckoutService } from '@/services/CheckoutService';
+import type { Ticket } from '@/types/Event';
 
-function statusColor(status: SearchEvent['status']) {
+function statusColor(status: SearchEvent['status']): ChipProps['color'] {
   switch (status) {
     case 'ACTIVE':
       return 'success';
@@ -35,6 +49,12 @@ function statusColor(status: SearchEvent['status']) {
 export default function EventCard({ event }: { event: SearchEvent }) {
   const router = useRouter();
   const [fav, setFav] = useState(false);
+  const [openBuy, setOpenBuy] = useState(false);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [creatingSession, setCreatingSession] = useState(false);
 
   useEffect(() => {
     setFav(isFavorite(event.id));
@@ -57,9 +77,35 @@ export default function EventCard({ event }: { event: SearchEvent }) {
   });
   const timeLabel = dateObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
 
+  const storageKey = `quickbuy:${event.id}`;
+
+  const loadPrefs = () => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { selectedTicketId?: string; quantity?: number };
+      if (parsed.selectedTicketId) setSelectedTicketId(parsed.selectedTicketId);
+      if (parsed.quantity && parsed.quantity > 0) setQuantity(parsed.quantity);
+    } catch {}
+  };
+
+  const savePrefs = (next?: Partial<{ selectedTicketId: string; quantity: number }>) => {
+    try {
+      const data = {
+        selectedTicketId,
+        quantity,
+        ...next,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    } catch {}
+  };
+
   return (
     <Card
-      onClick={() => router.push(`/events/${event.id}`)}
+      onClick={() => {
+        if (openBuy) return; // avoid navigating while quick-buy is open
+        router.push(`/events/${event.id}`);
+      }}
       sx={{
         height: '100%',
         display: 'flex',
@@ -89,7 +135,7 @@ export default function EventCard({ event }: { event: SearchEvent }) {
           <Chip
             size="small"
             label={event.status === 'ACTIVE' ? 'Activo' : event.status === 'SOLD_OUT' ? 'Agotado' : 'Inactivo'}
-            color={statusColor(event.status) as any}
+            color={statusColor(event.status)}
           />
         </Stack>
 
@@ -134,13 +180,122 @@ export default function EventCard({ event }: { event: SearchEvent }) {
           variant="contained"
           onClick={(e) => {
             e.stopPropagation();
-            router.push(`/events/${event.id}`);
+            // Telemetry
+            console.log('[quickbuy] open', { eventId: event.id });
+            // Quick-buy: open dialog and fetch tickets
+            setOpenBuy(true);
+            setLoadingTickets(true);
+            // Restore previous selection if any
+            loadPrefs();
+            EventService.getEventById(event.id)
+              .then((evt) => {
+                setTickets(evt.tickets || []);
+                // preselect first available
+                if (!selectedTicketId) {
+                  const firstAvailable = (evt.tickets || []).find((t) => t.stock > 0);
+                  if (firstAvailable) setSelectedTicketId(firstAvailable.id);
+                }
+              })
+              .finally(() => setLoadingTickets(false));
           }}
           sx={{ transition: 'transform .2s ease, background-color .2s ease' }}
         >
           Comprar ahora
         </Button>
       </Box>
+
+      {/* Quick Buy Dialog */}
+      <Dialog open={openBuy} onClose={() => { setOpenBuy(false); }} fullWidth maxWidth="xs">
+        <DialogTitle>Comprar entradas</DialogTitle>
+        <DialogContent dividers>
+          {loadingTickets ? (
+            <Box display="flex" justifyContent="center" py={3}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : tickets.length === 0 ? (
+            <Typography variant="body2">No hay tipos de entradas disponibles.</Typography>
+          ) : (
+            <>
+              <FormControl fullWidth margin="normal">
+                <InputLabel id="ticket-type-label">Tipo de entrada</InputLabel>
+                <Select
+                  labelId="ticket-type-label"
+                  label="Tipo de entrada"
+                  value={selectedTicketId}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedTicketId(val);
+                    savePrefs({ selectedTicketId: val });
+                    console.log('[quickbuy] selectTicket', { eventId: event.id, ticketId: val });
+                  }}
+                >
+                  {tickets.map((t) => (
+                    <MenuItem key={t.id} value={t.id} disabled={t.stock <= 0}>
+                      {t.type} {t.isFree ? '(Gratis)' : `- $${t.value.toLocaleString('es-AR')} ${t.currency}`} {t.stock <= 0 ? ' - Agotado' : ''}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                type="number"
+                fullWidth
+                label="Cantidad"
+                margin="normal"
+                value={quantity}
+                inputProps={{ min: 1, max: (tickets.find(t => t.id === selectedTicketId)?.stock) ?? 1 }}
+                helperText={(() => {
+                  const stock = (tickets.find(t => t.id === selectedTicketId)?.stock) ?? 0;
+                  return stock > 0 ? `Disponibles: ${stock}` : 'Sin stock disponible';
+                })()}
+                onChange={(e) => {
+                  const max = (tickets.find(t => t.id === selectedTicketId)?.stock) ?? 1;
+                  const val = Math.max(1, Math.min(parseInt(e.target.value || '1', 10), max));
+                  setQuantity(val);
+                  savePrefs({ quantity: val });
+                  console.log('[quickbuy] changeQuantity', { eventId: event.id, quantity: val });
+                }}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log('[quickbuy] cancel', { eventId: event.id });
+              setOpenBuy(false);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!selectedTicketId || quantity < 1 || creatingSession}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!selectedTicketId) return;
+              try {
+                setCreatingSession(true);
+                const session = await CheckoutService.createSession(event.id, selectedTicketId, quantity);
+                if (session?.sessionId) {
+                  console.log('[quickbuy] createSession:success', { eventId: event.id, sessionId: session.sessionId });
+                  setOpenBuy(false);
+                  router.push(`/checkout/${session.sessionId}`);
+                }
+              } catch (err) {
+                console.error(err);
+                console.log('[quickbuy] createSession:fail', { eventId: event.id, error: String(err) });
+                alert('No se pudo iniciar la compra. Inténtalo nuevamente.');
+              } finally {
+                setCreatingSession(false);
+              }
+            }}
+          >
+            {creatingSession ? 'Iniciando...' : 'Ir a pagar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 }

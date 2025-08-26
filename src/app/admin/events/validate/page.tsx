@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Card,
@@ -69,7 +69,7 @@ function EventTicketValidationContent() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isSeller, user, isLoading } = useAuth();
 
   const [ticketId, setTicketId] = useState('');
   const [sale, setSale] = useState<ValidatedSale | null>(null);
@@ -86,20 +86,20 @@ function EventTicketValidationContent() {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'info' });
 
-  // Guard de autenticación
+  // Guard de autenticación y rol (admin o seller)
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
       router.replace('/auth/login?next=' + encodeURIComponent('/admin/events/validate' + (eventId ? `?eventId=${eventId}` : '')));
       return;
     }
-    if (!isAdmin) {
+    if (!isAdmin && !isSeller) {
       router.replace('/');
       return;
     }
-  }, [isLoading, isAuthenticated, isAdmin, router, eventId]);
+  }, [isLoading, isAuthenticated, isAdmin, isSeller, router, eventId]);
 
-  // Carga de evento (opcional, sólo si viene eventId por query)
+  // Carga de evento (opcional, sólo si viene eventId por query) y verificación de pertenencia si es seller
   useEffect(() => {
     let active = true;
     (async () => {
@@ -108,6 +108,12 @@ function EventTicketValidationContent() {
         setEventLoading(true);
         const ev = await EventService.getEventById(eventId);
         if (!active) return;
+        // Si es seller, verificar que el evento le pertenezca (organizer.id === user.id)
+        if (isSeller && user && ev?.organizer?.id && ev.organizer.id !== String(user.id)) {
+          setSnackbar({ open: true, message: 'No tienes acceso a validar este evento', severity: 'error' });
+          router.replace('/admin/events');
+          return;
+        }
         setEvent(ev);
       } catch {
         if (active) {
@@ -121,7 +127,7 @@ function EventTicketValidationContent() {
     return () => {
       active = false;
     };
-  }, [eventId]);
+  }, [eventId, isSeller, user, router]);
 
   // Auto-validación si se pasa saleId por query
   useEffect(() => {
@@ -489,7 +495,6 @@ function EventTicketValidationContent() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={5000}
@@ -507,15 +512,7 @@ function EventTicketValidationContent() {
 export default function EventTicketValidationPage() {
   return (
     <BackofficeLayout title="Validar Entradas">
-      <Suspense
-        fallback={
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
-            <CircularProgress />
-          </Box>
-        }
-      >
-        <EventTicketValidationContent />
-      </Suspense>
+      <EventTicketValidationContent />
     </BackofficeLayout>
   );
 }

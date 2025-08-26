@@ -8,6 +8,9 @@ export interface SearchEvent {
   currency: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT';
   minAge?: number; 
+  // Optional vendor (seller) info to enable client-side filtering
+  vendorId?: string;
+  vendorName?: string;
 }
 
 export interface SearchEventResponse {
@@ -26,4 +29,6 @@ export interface SearchEventParams {
   dateTo?: string;
   pageSize?: number;
   pageNumber?: number;
+  // Optional comma-separated vendor IDs to filter by seller(s)
+  vendors?: string;
 }

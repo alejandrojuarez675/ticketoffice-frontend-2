@@ -6,7 +6,7 @@ import {
   Box, Button, TextField, Typography, Paper, 
   CircularProgress, Dialog, DialogTitle, DialogContent, 
   DialogContentText, DialogActions, IconButton, Container,
-  useTheme, useMediaQuery, Alert, Card, CardHeader, Avatar
+  useTheme, useMediaQuery, Alert, Card, CardHeader, Avatar, Snackbar
 } from '@mui/material';
 import { QrCodeScanner as QrCodeScannerIcon, CheckCircle, Error, Event as EventIcon } from '@mui/icons-material';
 import { ValidatorService } from '@/services/ValidatorService';
@@ -30,12 +30,23 @@ const EventTicketValidationPage = () => {
     message: string;
     ticketId?: string;
   } | null>(null);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string }>(
+    { open: false, message: '' }
+  );
 
-  // Fetch event details
+  // Fetch event details and enforce seller ownership
   useEffect(() => {
     const fetchEvent = async () => {
       try {
         const eventData = await EventService.getEventById(eventId);
+        // If current user is a seller, ensure they own the event
+        const current = AuthService.getCurrentUser();
+        const isSeller = AuthService.isSeller();
+        if (isSeller && current && eventData?.organizer?.id && eventData.organizer.id !== String(current.id)) {
+          setSnackbar({ open: true, message: 'No tienes acceso para validar entradas de este evento.' });
+          router.replace('/admin/events');
+          return;
+        }
         setEvent(eventData);
       } catch (error) {
         console.error('Error fetching event:', error);
@@ -45,7 +56,7 @@ const EventTicketValidationPage = () => {
     };
 
     fetchEvent();
-  }, [eventId]);
+  }, [eventId, router]);
 
   // Auth check
   useEffect(() => {
@@ -66,7 +77,7 @@ const EventTicketValidationPage = () => {
         message: '¡Entrada validada exitosamente para este evento!',
         ticketId
       });
-    } catch (err) {
+    } catch {
       setValidationResult({
         success: false,
         message: 'Error al validar la entrada. Verifica el código del ticket.',
@@ -219,6 +230,13 @@ const EventTicketValidationPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ open: false, message: '' })}
+        message={snackbar.message}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </BackofficeLayout>
   );
 };

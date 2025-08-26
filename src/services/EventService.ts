@@ -2,6 +2,9 @@ import type { SearchEventParams, SearchEventResponse } from '@/types/search-even
 import type { EventDetail, EventForList } from '@/types/Event';
 import { ConfigService } from './ConfigService';
 import { AuthService } from './AuthService';
+import { http } from '@/lib/http';
+import { logger } from '@/lib/logger';
+import { EventDetailSchema, EventListResponseSchema, SearchEventResponseSchema } from './schemas/event';
 import {
   mockGetEvents,
   mockSearchEvents,
@@ -31,17 +34,16 @@ export class EventService {
       return mockGetEvents(page, pageSize);
     }
 
-    const response = await fetch(
-      `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...AuthService.getAuthHeader(),
-        },
-      }
+    // If current user is a seller, scope listing to their events via query param
+    const currentUser = AuthService.getCurrentUser();
+    const sellerScope = AuthService.isSeller() && currentUser ? `&sellerId=${encodeURIComponent(String(currentUser.id))}` : '';
+    const raw = await http.get<unknown>(
+      `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}${sellerScope}`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
     );
-    if (!response.ok) throw new Error('Failed to fetch events');
-    return response.json();
+    const parsed = EventListResponseSchema.parse(raw);
+    logger.debug('getEvents parsed', { page, pageSize, total: parsed.total });
+    return parsed;
   }
 
   static async searchEvents(params: SearchEventParams): Promise<SearchEventResponse> {
@@ -50,16 +52,17 @@ export class EventService {
     }
 
     const queryString = Object.entries(params)
-      .filter(([_, value]) => value !== undefined)
+      .filter(([, value]) => value !== undefined)
       .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
       .join('&');
 
-    const response = await fetch(
+    const raw = await http.get<unknown>(
       `${this.BASE_URL}/api/public/v1/event/search?${queryString}`,
-      { headers: { 'Content-Type': 'application/json' } }
+      { retries: 1 }
     );
-    if (!response.ok) throw new Error('Failed to search events');
-    return response.json();
+    const parsed = SearchEventResponseSchema.parse(raw);
+    logger.debug('searchEvents parsed', { count: parsed.events.length, page: parsed.currentPage, pageSize: parsed.pageSize });
+    return parsed;
   }
 
   static async getEventById(id: string): Promise<EventDetail> {
@@ -67,14 +70,12 @@ export class EventService {
       return mockGetEventById(id);
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthService.getAuthHeader(),
-      },
-    });
-    if (!response.ok) throw new Error('Failed to fetch event details');
-    return response.json();
+    const raw = await http.get<unknown>(`${this.BASE_URL}/api/v1/events/${id}`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
+    );
+    const parsed = EventDetailSchema.parse(raw);
+    logger.debug('getEventById parsed', { id: parsed.id });
+    return parsed;
   }
 
   static async createEvent(event: EventDetail): Promise<EventDetail> {
@@ -82,16 +83,28 @@ export class EventService {
       return mockCreateEvent(event);
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/v1/events`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthService.getAuthHeader(),
-      },
-      body: JSON.stringify(event),
-    });
-    if (!response.ok) throw new Error('Failed to create event');
-    return response.json();
+    // If seller is creating, ensure organizer is set to seller identity
+    const user = AuthService.getCurrentUser();
+    const payload: EventDetail = {
+      ...event,
+      organizer: AuthService.isSeller() && user
+        ? {
+            id: String(user.id),
+            name: user.name,
+            url: event.organizer?.url || '',
+            logoUrl: event.organizer?.logoUrl,
+          }
+        : event.organizer ?? null,
+    };
+
+    const raw = await http.post<unknown>(
+      `${this.BASE_URL}/api/v1/events`,
+      payload,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
+    );
+    const parsed = EventDetailSchema.parse(raw);
+    logger.info('createEvent success', { id: parsed.id });
+    return parsed;
   }
 
   static async updateEvent(id: string, event: Partial<EventDetail>): Promise<EventDetail> {
@@ -99,16 +112,14 @@ export class EventService {
       return mockUpdateEvent(id, event);
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...AuthService.getAuthHeader(),
-      },
-      body: JSON.stringify(event),
-    });
-    if (!response.ok) throw new Error('Failed to update event');
-    return response.json();
+    const raw = await http.put<unknown>(
+      `${this.BASE_URL}/api/v1/events/${id}`,
+      event,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
+    );
+    const parsed = EventDetailSchema.parse(raw);
+    logger.info('updateEvent success', { id: parsed.id });
+    return parsed;
   }
 
   static async deleteEvent(id: string): Promise<void> {
@@ -116,10 +127,9 @@ export class EventService {
       return mockDeleteEvent(id);
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-      method: 'DELETE',
-      headers: { ...AuthService.getAuthHeader() },
-    });
-    if (!response.ok) throw new Error('Failed to delete event');
+    await http.delete<void>(`${this.BASE_URL}/api/v1/events/${id}`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
+    );
+    logger.warn('deleteEvent', { id });
   }
 }

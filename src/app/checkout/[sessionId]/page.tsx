@@ -6,11 +6,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   Box, 
   Typography, 
-  CircularProgress, 
   Button,
   Paper,
   Divider,
-  Alert,
   TextField,
   Grid,
   FormControl,
@@ -18,18 +16,23 @@ import {
   Select,
   MenuItem,
   FormHelperText,
-  IconButton,
   Container,
-  Card,
-  CardContent,
   CardMedia
 } from '@mui/material';
-import { Add as AddIcon, Remove as RemoveIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Alert, Chip, Stack } from '@mui/material';
+import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
 import { CheckoutService } from '@/services/CheckoutService';
+import { MercadoPagoApi } from '@/services/MercadoPagoApi';
 import { EventService } from '@/services/EventService';
 import type { EventDetail } from '@/types/Event';
 import type { BuyerData, SessionInfoResponse } from '@/types/checkout';
 import Link from 'next/link';
+import { formatCurrency, formatEventDate } from '@/utils/format';
+import { logger } from '@/lib/logger';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
+import { useSearchParams } from 'next/navigation';
 
 // List of countries for the nationality dropdown
 const COUNTRIES = [
@@ -39,19 +42,13 @@ const COUNTRIES = [
   'Uruguay', 'Venezuela', 'España', 'Estados Unidos', 'Otro'
 ];
 
-// Document types
-const documentType = [
-  { value: 'CC', label: 'Cédula de Ciudadanía' },
-  { value: 'CE', label: 'Cédula de Extranjería' },
-  { value: 'PA', label: 'Pasaporte' },
-  { value: 'TI', label: 'Tarjeta de Identidad' },
-  { value: 'NIT', label: 'NIT' },
-  { value: 'OTRO', label: 'Otro' },
-];
+// (unused) document types list removed
 
 function CheckoutContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const status = (searchParams?.get('status') || '').toLowerCase();
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,9 +56,9 @@ function CheckoutContent() {
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [buyers, setBuyers] = useState<BuyerData[]>([]);
   const [mainEmail, setMainEmail] = useState('');
+  const [couponCode, setCouponCode] = useState('');
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
 
   // Fetch session and event data on component mount
   useEffect(() => {
@@ -78,7 +75,7 @@ function CheckoutContent() {
 
         // Initialize buyers array based on quantity
         if (sessionData.quantity > 0) {
-          const initialBuyers = Array(sessionData.quantity).fill(0).map((_, index) => ({
+          const initialBuyers = Array(sessionData.quantity).fill(0).map(() => ({
             name: '',
             lastName: '',
             email: '',
@@ -87,7 +84,31 @@ function CheckoutContent() {
             documentType: 'DNI',
             document: ''
           }));
-          setBuyers(initialBuyers);
+          // Try to restore persisted data for this session
+          try {
+            const key = `checkout:${sessionData.sessionId}`;
+            const persisted = typeof window !== 'undefined' ? localStorage.getItem(key) : null;
+            if (persisted) {
+              const parsed = JSON.parse(persisted) as { mainEmail?: string; buyers?: BuyerData[]; couponCode?: string };
+              if (parsed.mainEmail) setMainEmail(parsed.mainEmail);
+              if (parsed.couponCode) setCouponCode(parsed.couponCode);
+              if (Array.isArray(parsed.buyers) && parsed.buyers.length) {
+                // Ensure length matches quantity
+                const adjusted = [...parsed.buyers].slice(0, sessionData.quantity);
+                while (adjusted.length < sessionData.quantity) adjusted.push({ ...initialBuyers[0] });
+                setBuyers(adjusted);
+              } else {
+                setBuyers(initialBuyers);
+              }
+              logger.info('checkout_open_restored', { sessionId: sessionData.sessionId });
+            } else {
+              setBuyers(initialBuyers);
+              logger.info('checkout_open_new', { sessionId: sessionData.sessionId });
+            }
+          } catch (e) {
+            setBuyers(initialBuyers);
+            logger.warn('checkout_restore_failed', e);
+          }
         }
 
         // Set main email if it exists
@@ -99,7 +120,7 @@ function CheckoutContent() {
         const eventData = await EventService.getEventById(sessionData.eventId);
         setEvent(eventData);
       } catch (err) {
-        console.error('Error:', err);
+        logger.error('checkout_load_failed', err);
         setError('La sesión no existe o ha expirado. Por favor, inicia el proceso de compra nuevamente.');
       } finally {
         setLoading(false);
@@ -118,6 +139,18 @@ function CheckoutContent() {
     };
     setBuyers(updatedBuyers);
   };
+
+  // Persist to localStorage when relevant state changes
+  useEffect(() => {
+    if (!session?.sessionId) return;
+    try {
+      const key = `checkout:${session.sessionId}`;
+      const payload = { mainEmail, buyers, couponCode };
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch {
+      // ignore quota/serialisation errors
+    }
+  }, [session?.sessionId, mainEmail, buyers, couponCode]);
 
   // Validate form fields
   const validateForm = (): boolean => {
@@ -168,23 +201,21 @@ function CheckoutContent() {
 
     try {
       setIsSubmitting(true);
+      logger.info('checkout_submit', { sessionId });
       
       // Save buyer data to session
       await CheckoutService.addSessionData(sessionId as string, {
         mainEmail,
-        buyer: buyers
+        buyer: buyers,
+        couponCode: couponCode?.trim() || undefined,
       });
 
-      // Process payment (this would redirect to payment gateway in a real scenario)
-      const result = await CheckoutService.processPayment(sessionId as string);
-      
-      if (result.success && result.redirectUrl) {
-        router.push(result.redirectUrl);
-      } else {
-        throw new Error('Error al procesar el pago');
-      }
+      // Process payment via MercadoPago and redirect
+      const redirectUrl = await MercadoPagoApi.createCheckoutRedirect(sessionId as string);
+      logger.info('checkout_payment_redirect', { sessionId, redirectUrl });
+      router.push(redirectUrl);
     } catch (error) {
-      console.error('Error:', error);
+      logger.error('checkout_submit_failed', error);
       setError('Ocurrió un error al procesar tu solicitud. Por favor, inténtalo de nuevo.');
     } finally {
       setIsSubmitting(false);
@@ -194,8 +225,8 @@ function CheckoutContent() {
   // Render loading state
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Loading label="Cargando checkout..." minHeight="60vh" />
       </Container>
     );
   }
@@ -204,13 +235,14 @@ function CheckoutContent() {
   if (error) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
+        <ErrorState message={error} onRetry={() => location.reload()} />
         <Button 
           variant="contained" 
           color="primary" 
           component={Link} 
           href="/"
           startIcon={<ArrowBackIcon />}
+          sx={{ mt: 2 }}
         >
           Volver al inicio
         </Button>
@@ -222,7 +254,7 @@ function CheckoutContent() {
   if (!session || !event) {
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="warning">No se encontró la información del evento.</Alert>
+        <Empty title="No se encontró la información del evento" description="Vuelve al inicio e intenta nuevamente." />
         <Button 
           variant="contained" 
           color="primary" 
@@ -238,7 +270,7 @@ function CheckoutContent() {
   }
 
   // Find the selected ticket
-  const selectedTicket = event.tickets.find(t => t.id === session.priceId);
+  const selectedTicket = event.tickets.find((t) => t.id === session.priceId);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -256,6 +288,18 @@ function CheckoutContent() {
       <Typography variant="h4" component="h1" gutterBottom>
         Finalizar compra
       </Typography>
+
+      {/* Status banner if user returned from provider */}
+      {status === 'failure' && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          El pago fue rechazado o cancelado. Intenta nuevamente o usa otro medio de pago.
+        </Alert>
+      )}
+      {status === 'pending' && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Tu pago está pendiente de confirmación. Te notificaremos por email cuando se acredite.
+        </Alert>
+      )}
       
       <Grid container spacing={4}>
         {/* Event Summary */}
@@ -275,14 +319,7 @@ function CheckoutContent() {
               <Box>
                 <Typography variant="subtitle1">{event.title}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {new Date(event.date).toLocaleDateString('es-AR', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {(() => { const { dateStr, timeStr } = formatEventDate(event.date, 'es-AR'); return `${dateStr} ${timeStr}`; })()}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {event.location.name}, {event.location.city}
@@ -299,7 +336,7 @@ function CheckoutContent() {
                   {selectedTicket?.type} x {session.quantity}
                 </Typography>
                 <Typography>
-                  ${selectedTicket ? (selectedTicket.value * session.quantity).toLocaleString('es-AR') : '0'} {selectedTicket?.currency}
+                  {selectedTicket ? formatCurrency(selectedTicket.value * session.quantity, selectedTicket.currency, 'es-AR') : formatCurrency(0, 'ARS', 'es-AR')}
                 </Typography>
               </Box>
             </Box>
@@ -309,7 +346,7 @@ function CheckoutContent() {
             <Box display="flex" justifyContent="space-between" mb={1}>
               <Typography variant="subtitle1">Total:</Typography>
               <Typography variant="h6" color="primary">
-                ${selectedTicket ? (selectedTicket.value * session.quantity).toLocaleString('es-AR') : '0'} {selectedTicket?.currency}
+                {selectedTicket ? formatCurrency(selectedTicket.value * session.quantity, selectedTicket.currency, 'es-AR') : formatCurrency(0, 'ARS', 'es-AR')}
               </Typography>
             </Box>
           </Paper>
@@ -320,28 +357,12 @@ function CheckoutContent() {
             <Typography variant="body2" color="text.secondary" paragraph>
               Aceptamos todas las tarjetas de crédito y débito a través de MercadoPago.
             </Typography>
-            <Box display="flex" flexWrap="wrap" gap={2} mt={2}>
-              <img 
-                src="/images/payment-methods/visa.png" 
-                alt="Visa" 
-                style={{ height: 24, objectFit: 'contain' }} 
-              />
-              <img 
-                src="/images/payment-methods/mastercard.png" 
-                alt="Mastercard" 
-                style={{ height: 24, objectFit: 'contain' }} 
-              />
-              <img 
-                src="/images/payment-methods/amex.png" 
-                alt="American Express" 
-                style={{ height: 24, objectFit: 'contain' }} 
-              />
-              <img 
-                src="/images/payment-methods/mercadopago.png" 
-                alt="MercadoPago" 
-                style={{ height: 24, objectFit: 'contain' }} 
-              />
-            </Box>
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" mt={2}>
+              <Chip label="Visa" variant="outlined" size="small" />
+              <Chip label="Mastercard" variant="outlined" size="small" />
+              <Chip label="American Express" variant="outlined" size="small" />
+              <Chip label="MercadoPago" color="primary" variant="outlined" size="small" />
+            </Stack>
           </Paper>
         </Grid>
         
@@ -364,6 +385,17 @@ function CheckoutContent() {
               error={!!formErrors.mainEmail}
               helperText={formErrors.mainEmail}
               required
+            />
+
+            <TextField
+              fullWidth
+              label="Cupón de descuento (opcional)"
+              variant="outlined"
+              margin="normal"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              onBlur={() => logger.info('checkout_coupon_blur', { sessionId, couponCode: couponCode?.trim() || '' })}
+              placeholder="Ingresa tu código"
             />
             
             <Typography variant="h5" sx={{ mt: 4, mb: 2 }}>Información de los asistentes</Typography>

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { Box, Typography, Card, CardContent, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
 
 // Estilos existentes (conservados)
 const DashboardContainer = styled(Box)(({ theme }) => ({
@@ -38,7 +40,7 @@ const fetchDashboardStats = async () =>
 
 function DashboardContent() {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalEvents: 0, ticketsSold: 0, totalRevenue: 0, activeUsers: 0 });
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ function DashboardContent() {
         setLoading(true);
         const s = await fetchDashboardStats();
         setStats(s);
-      } catch (err) {
+      } catch {
         setError('Error al cargar las estadísticas del panel');
       } finally {
         setLoading(false);
@@ -137,9 +139,25 @@ function DashboardContent() {
 }
 
 export default function DashboardPage() {
+  const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated && !isAdmin) {
+      router.replace('/admin/profile');
+    }
+  }, [isLoading, isAuthenticated, isAdmin, router]);
+
   return (
     <BackofficeLayout title="Panel de Control">
-      <DashboardContent />
+      {isLoading ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
+          <CircularProgress />
+        </Box>
+      ) : isAuthenticated && isAdmin ? (
+        <DashboardContent />
+      ) : null}
     </BackofficeLayout>
   );
 }

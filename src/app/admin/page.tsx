@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '@/hooks/useAuth';
-
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 
 export default function AdminIndexRedirect() {
   const router = useRouter();
@@ -28,8 +28,10 @@ export default function AdminIndexRedirect() {
   }, [isLoading, isAuthenticated, isAdmin, hasBackofficeAccess, router]);
 
   return (
-    <Box display="flex" alignItems="center" justifyContent="center" minHeight="60vh">
-      <CircularProgress />
-    </Box>
+    <BackofficeLayout title="Redirigiendo...">
+      <Box display="flex" alignItems="center" justifyContent="center" minHeight="60vh">
+        <CircularProgress />
+      </Box>
+    </BackofficeLayout>
   );
 }

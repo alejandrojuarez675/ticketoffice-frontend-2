@@ -1,17 +1,22 @@
 'use client';
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
+
 import LightLayout from '@/components/layouts/LightLayout';
 import EventCard from '@/components/events/EventCard';
 import FiltersPanel from '@/components/events/FiltersPanel';
 import AppliedFiltersChips from '@/components/events/AppliedFiltersChips';
 import { EventService } from '@/services/EventService';
 import type { SearchEvent, SearchEventParams } from '@/types/search-event';
-import { Box, Container, Typography, Skeleton, Alert, Pagination } from '@mui/material';
+import { Box, Container, Typography, Pagination } from '@mui/material';
 import Grid from '@mui/material/Grid';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getFavoriteIds } from '@/utils/favorites';
 import { applyFilters, buildFacets, sortEvents, paginate, type Filters, type SortKey } from '@/utils/eventsFilters';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
 
 function EventsListInner() {
   const searchParams = useSearchParams();
@@ -28,6 +33,7 @@ function EventsListInner() {
   const adultOnly = searchParams.get('adultOnly') === 'true';
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
+  const vendorsParam = searchParams.get('vendors');
 
   const filters: Filters = useMemo(
     () => ({
@@ -40,8 +46,9 @@ function EventsListInner() {
       adultOnly,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      vendors: vendorsParam ? vendorsParam.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     }),
-    [searchParams, savedOnly, adultOnly, minPrice, maxPrice]
+    [searchParams, savedOnly, adultOnly, minPrice, maxPrice, vendorsParam]
   );
 
   // Carga de catálogo completo y única (mock). Con BE real, migrar a server-side paging con endpoints de conteo.
@@ -88,7 +95,7 @@ function EventsListInner() {
   // Contador de filtros activos y chips
   const activeCount = useMemo(() => {
     let n = 0;
-    const keys = ['country', 'city', 'category', 'dateFrom', 'dateTo', 'savedOnly', 'adultOnly', 'minPrice', 'maxPrice'];
+    const keys = ['country', 'city', 'category', 'dateFrom', 'dateTo', 'savedOnly', 'adultOnly', 'minPrice', 'maxPrice', 'vendors'];
     keys.forEach((k) => {
       const v = searchParams.get(k);
       if (v && v !== 'false' && v !== '0') n += 1;
@@ -102,32 +109,15 @@ function EventsListInner() {
       <AppliedFiltersChips />
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
+        <Box sx={{ mb: 3 }}>
+          <ErrorState message={error} onRetry={() => { setError(null); /* re-trigger */ setLoading(true); }} />
+        </Box>
       )}
 
       {loading ? (
-        <Grid container spacing={3}>
-          {Array.from({ length: pageSize }).map((_, i) => (
-            <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Box>
-                <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 1 }} />
-                <Skeleton width="60%" sx={{ mt: 1 }} />
-                <Skeleton width="40%" />
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
+        <Loading label="Cargando eventos..." minHeight="40vh" />
       ) : visible.length === 0 ? (
-        <Box sx={{ py: 6, textAlign: 'center' }}>
-          <Typography variant="h6" gutterBottom>
-            No se encontraron eventos
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Ajusta los filtros o limpia la búsqueda.
-          </Typography>
-        </Box>
+        <Empty title="No se encontraron eventos" description="Ajusta los filtros o limpia la búsqueda." />
       ) : (
         <>
           <Box sx={{ mb: 2 }}>
@@ -168,7 +158,7 @@ export default function EventsPage() {
           </Typography>
         </Container>
 
-        <Suspense fallback={<Container><Skeleton height={48} /></Container>}>
+        <Suspense fallback={<Container><Loading label="Cargando..." /></Container>}>
           <EventsListInner />
         </Suspense>
       </Box>

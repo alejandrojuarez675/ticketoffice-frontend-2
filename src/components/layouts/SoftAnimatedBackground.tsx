@@ -11,7 +11,6 @@ export default function SoftAnimatedBackground() {
         inset: 0,
         pointerEvents: 'none',
         zIndex: 0,
-        // Fondo animado suave con gradientes (rendimiento-friendly)
         background:
           'radial-gradient(600px 200px at 20% 20%, rgba(99,102,241,.12), transparent 60%),' +
           'radial-gradient(500px 180px at 80% 10%, rgba(16,185,129,.10), transparent 60%),' +

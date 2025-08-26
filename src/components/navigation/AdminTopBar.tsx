@@ -1,4 +1,3 @@
-// src/components/navigation/AdminTopBar.tsx
 'use client';
 
 import { type FC, useState, useMemo, useCallback } from 'react';
@@ -20,10 +19,11 @@ import { Menu as MenuIcon, Logout as LogoutIcon, AccountCircle as AccountCircleI
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
-type AdminTopBarProps = { onMenuClick: () => void };
+type ResponsiveOffset = { xs?: number; sm?: number };
+type AdminTopBarProps = { onMenuClick: () => void; topOffset?: number | ResponsiveOffset };
 const drawerWidth = 240;
 
-const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick }) => {
+const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick, topOffset = 0 }) => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -50,10 +50,19 @@ const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick }) => {
 
   const avatarLetter = useMemo(() => (user?.name ? user.name.charAt(0).toUpperCase() : 'U'), [user?.name]);
 
+  // Normalize top offset to responsive values
+  const topXs = typeof topOffset === 'number' ? topOffset : topOffset?.xs ?? 0;
+  const topSm = typeof topOffset === 'number' ? topOffset : topOffset?.sm ?? topXs;
+
   return (
     <AppBar
       position="fixed"
-      sx={{ width: { sm: `calc(100% - ${drawerWidth}px)` }, ml: { sm: `${drawerWidth}px` }, bgcolor: 'background.paper' }}
+      sx={{
+        width: { sm: `calc(100% - ${drawerWidth}px)` },
+        ml: { sm: `${drawerWidth}px` },
+        bgcolor: 'background.paper',
+        top: { xs: topXs, sm: topSm },
+      }}
       color="default"
       elevation={1}
     >

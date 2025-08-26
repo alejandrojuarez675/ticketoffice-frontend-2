@@ -1,10 +1,19 @@
 import { ConfigService } from './ConfigService';
+import { http } from '@/lib/http';
+import { logger } from '@/lib/logger';
+
 import type {
   CheckoutSessionResponse,
   SessionDataRequest,
   SessionInfoResponse,
   ProcessPaymentResponse,
 } from '@/types/checkout';
+import {
+  CheckoutSessionResponseSchema,
+  SessionDataRequestSchema,
+  SessionInfoResponseSchema,
+  ProcessPaymentResponseSchema,
+} from './schemas/checkout';
 import {
   mockCreateSession,
   mockGetSessionInfo,
@@ -20,13 +29,14 @@ export class CheckoutService {
       return mockCreateSession();
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session`, {
-      method: 'POST',
-      headers: { accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId, priceId: ticketId, quantity }),
-    });
-    if (!response.ok) throw new Error(`Failed to create checkout session: ${response.status}`);
-    return response.json();
+    const raw = await http.post<unknown>(
+      `${this.BASE_URL}/api/public/v1/checkout/session`,
+      { eventId, priceId: ticketId, quantity },
+      { retries: 2 }
+    );
+    const parsed = CheckoutSessionResponseSchema.parse(raw);
+    logger.debug('createSession: parsed response', parsed);
+    return parsed;
   }
 
   static async getSession(sessionId: string): Promise<SessionInfoResponse> {
@@ -34,26 +44,30 @@ export class CheckoutService {
       return mockGetSessionInfo(sessionId);
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}`, {
-      method: 'GET',
-      headers: { accept: 'application/json', 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) throw new Error(`Failed to get session: ${response.status}`);
-    return response.json();
+    const raw = await http.get<unknown>(
+      `${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}`,
+      { retries: 2 }
+    );
+    const parsed = SessionInfoResponseSchema.parse(raw);
+    logger.debug('getSession: parsed response', parsed);
+    return parsed;
   }
 
   static async addSessionData(sessionId: string, data: SessionDataRequest): Promise<SessionInfoResponse> {
     if (ConfigService.isMockedEnabled()) {
       return mockGetSessionInfoWithData(sessionId, data);
     }
+    // validate request shape before sending
+    const validReq = SessionDataRequestSchema.parse(data);
 
-    const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}/data`, {
-      method: 'PUT',
-      headers: { accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    if (!response.ok) throw new Error(`Failed to update session data: ${response.status}`);
-    return response.json();
+    const raw = await http.put<unknown>(
+      `${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}/data`,
+      validReq,
+      { retries: 1 }
+    );
+    const parsed = SessionInfoResponseSchema.parse(raw);
+    logger.debug('addSessionData: parsed response', parsed);
+    return parsed;
   }
 
   static async processPayment(sessionId: string): Promise<ProcessPaymentResponse> {
@@ -61,12 +75,13 @@ export class CheckoutService {
       return mockProcessPayment(sessionId);
     }
 
-    const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/process-payment`, {
-      method: 'POST',
-      headers: { accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId }),
-    });
-    if (!response.ok) throw new Error(`Failed to process payment: ${response.status}`);
-    return response.json();
+    const raw = await http.post<unknown>(
+      `${this.BASE_URL}/api/public/v1/checkout/process-payment`,
+      { sessionId },
+      { retries: 1 }
+    );
+    const parsed = ProcessPaymentResponseSchema.parse(raw);
+    logger.debug('processPayment: parsed response', parsed);
+    return parsed;
   }
 }

@@ -17,7 +17,6 @@ import {
   Menu,
   MenuItem,
   Box,
-  CircularProgress,
   Button,
   useTheme,
   useMediaQuery,
@@ -27,8 +26,13 @@ import Grid from '@mui/material/Grid';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+import { formatCurrency } from '@/utils/format';
 import { SalesService, type SaleRecord } from '@/services/SalesService';
 import { useAuth } from '@/hooks/useAuth';
+import { logger } from '@/lib/logger';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
 
 function EventSalesPageInner() {
   const { id } = useParams<{ id: string }>();
@@ -67,6 +71,7 @@ function EventSalesPageInner() {
         if (!active) return;
         setRows(data);
       } catch (err) {
+        logger.error('Error al cargar las ventas del evento', err);
         if (active) setError('Error al cargar las ventas del evento');
       } finally {
         if (active) setLoading(false);
@@ -96,12 +101,7 @@ function EventSalesPageInner() {
     handleClose();
   };
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(amount);
+  const formatARS = (amount: number) => formatCurrency(amount, 'ARS', 'es-AR');
 
   const statusLabel = (s: SaleRecord['paymentStatus']) => {
     switch (s) {
@@ -134,8 +134,8 @@ function EventSalesPageInner() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
+      <Box sx={{ p: 3 }}>
+        <Loading label="Cargando ventas..." minHeight="60vh" />
       </Box>
     );
   }
@@ -143,9 +143,7 @@ function EventSalesPageInner() {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography color="error" variant="h6">
-          {error}
-        </Typography>
+        <ErrorState message={error} onRetry={() => { setError(null); router.refresh(); }} />
         <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
           Volver al evento
         </Button>
@@ -156,7 +154,7 @@ function EventSalesPageInner() {
   if (!rows.length) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography variant="h6">No se encontraron ventas para este evento</Typography>
+        <Empty title="Sin ventas" description="No se encontraron ventas para este evento." />
         <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
           Volver al evento
         </Button>
@@ -202,8 +200,8 @@ function EventSalesPageInner() {
                           </Typography>
                         </TableCell>
                         <TableCell align="right">{r.quantity}</TableCell>
-                        <TableCell align="right">{formatCurrency(r.unitPrice)}</TableCell>
-                        <TableCell align="right">{formatCurrency(r.total)}</TableCell>
+                        <TableCell align="right">{formatARS(r.unitPrice)}</TableCell>
+                        <TableCell align="right">{formatARS(r.total)}</TableCell>
                         <TableCell>
                           <Chip label={statusLabel(r.paymentStatus)} color={statusColor(r.paymentStatus)} size="small" />
                         </TableCell>

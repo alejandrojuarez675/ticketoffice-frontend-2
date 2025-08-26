@@ -26,7 +26,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { VendorService, type Vendor } from '@/services/VendorService ';
+import { VendorService, type Vendor } from '@/services/VendorService';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 

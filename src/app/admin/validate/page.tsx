@@ -42,6 +42,7 @@ import type { EventDetail } from '@/types/Event';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Loading from '@/components/common/Loading';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,7 +69,7 @@ function EventTicketValidationContent() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isSeller, user, isLoading } = useAuth();
 
   const [ticketId, setTicketId] = useState('');
   const [sale, setSale] = useState<ValidatedSale | null>(null);
@@ -92,11 +93,11 @@ function EventTicketValidationContent() {
       router.replace('/auth/login?next=' + encodeURIComponent('/admin/events/validate' + (eventId ? `?eventId=${eventId}` : '')));
       return;
     }
-    if (!isAdmin) {
+    if (!(isAdmin || isSeller)) {
       router.replace('/');
       return;
     }
-  }, [isLoading, isAuthenticated, isAdmin, router, eventId]);
+  }, [isLoading, isAuthenticated, isAdmin, isSeller, router, eventId]);
 
   // Carga de evento (opcional, sólo si viene eventId por query)
   useEffect(() => {
@@ -108,6 +109,12 @@ function EventTicketValidationContent() {
         const ev = await EventService.getEventById(eventId);
         if (!active) return;
         setEvent(ev);
+        // Si es vendedor, validar que el evento le pertenezca
+        if (isSeller && ev?.organizer?.id && user?.id && ev.organizer.id !== String(user.id)) {
+          setSnackbar({ open: true, message: 'No tienes permiso para validar entradas de este evento', severity: 'error' });
+          router.replace('/admin/events');
+          return;
+        }
       } catch {
         if (active) {
           setEvent(null);
@@ -120,7 +127,7 @@ function EventTicketValidationContent() {
     return () => {
       active = false;
     };
-  }, [eventId]);
+  }, [eventId, isSeller, user?.id, router]);
 
   // Autovalidación si se pasa saleId por query
   useEffect(() => {
@@ -185,11 +192,7 @@ function EventTicketValidationContent() {
   };
 
   if (isLoading || (eventId && eventLoading)) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <Loading minHeight="60vh" />;
   }
 
   return (
@@ -504,9 +507,7 @@ export default function EventTicketValidationPage() {
     <BackofficeLayout title="Validar Entradas">
       <Suspense
         fallback={
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '40vh' }}>
-            <CircularProgress />
-          </Box>
+          <Loading minHeight="40vh" />
         }
       >
         <EventTicketValidationContent />

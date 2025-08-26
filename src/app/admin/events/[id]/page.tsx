@@ -14,7 +14,6 @@ import {
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Divider,
   IconButton,
   List,
@@ -36,6 +35,9 @@ import {
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -86,9 +88,7 @@ export default function EventDetailPage() {
   if (isLoading || loading) {
     return (
       <BackofficeLayout title="Cargando...">
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-          <CircularProgress />
-        </Box>
+        <Loading minHeight="60vh" />
       </BackofficeLayout>
     );
   }
@@ -96,14 +96,7 @@ export default function EventDetailPage() {
   if (error) {
     return (
       <BackofficeLayout title="Error">
-        <Box sx={{ p: 3 }}>
-          <Typography color="error" variant="h6">
-            {error}
-          </Typography>
-          <Button onClick={handleBack} sx={{ mt: 2 }} startIcon={<ArrowBackIcon />}>
-            Volver a la lista
-          </Button>
-        </Box>
+        <ErrorState message={error} onRetry={() => window.location.reload()} />
       </BackofficeLayout>
     );
   }
@@ -111,12 +104,7 @@ export default function EventDetailPage() {
   if (!event) {
     return (
       <BackofficeLayout title="Evento no encontrado">
-        <Box textAlign="center" p={4}>
-          <Typography variant="h6">Evento no encontrado</Typography>
-          <Button onClick={handleBack} sx={{ mt: 2 }} startIcon={<ArrowBackIcon />}>
-            Volver a la lista
-          </Button>
-        </Box>
+        <Empty title="Evento no encontrado" description="No pudimos encontrar el evento solicitado." />
       </BackofficeLayout>
     );
   }

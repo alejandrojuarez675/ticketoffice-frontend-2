@@ -18,6 +18,7 @@ export default function AppliedFiltersChips() {
   const maxPrice = sp.get('maxPrice');
   const savedOnly = sp.get('savedOnly') === 'true';
   const adultOnly = sp.get('adultOnly') === 'true';
+  const vendorsParam = sp.get('vendors');
 
   if (country) items.push({ key: 'country', label: `País: ${country}` });
   if (city) items.push({ key: 'city', label: `Ciudad: ${city}` });
@@ -26,6 +27,10 @@ export default function AppliedFiltersChips() {
   if (minPrice || maxPrice) items.push({ key: 'price', label: `Precio: ${minPrice ?? '0'} - ${maxPrice ?? '∞'}` });
   if (savedOnly) items.push({ key: 'savedOnly', label: 'Guardados' });
   if (adultOnly) items.push({ key: 'adultOnly', label: '+18' });
+  if (vendorsParam) {
+    const count = vendorsParam.split(',').filter(Boolean).length;
+    items.push({ key: 'vendors', label: `Vendedores: ${count}` });
+  }
 
   const remove = (k: string) => {
     const next = new URLSearchParams(sp.toString());
@@ -52,6 +57,9 @@ export default function AppliedFiltersChips() {
         break;
       case 'adultOnly':
         next.delete('adultOnly');
+        break;
+      case 'vendors':
+        next.delete('vendors');
         break;
     }
     next.set('page', '1');

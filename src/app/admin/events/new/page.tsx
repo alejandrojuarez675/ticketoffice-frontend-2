@@ -61,7 +61,7 @@ export default function NewEventPage() {
       return;
     }
     
-    if (!AuthService.isAdmin()) {
+    if (!(AuthService.isAdmin() || AuthService.isSeller())) {
       router.push('/');
       return;
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Card,
@@ -42,6 +42,7 @@ import type { EventDetail } from '@/types/Event';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '@/hooks/useAuth';
+import Loading from '@/components/common/Loading';
 
 type ValidatedSale = {
   id: string;
@@ -78,7 +79,7 @@ function SalesValidationContent() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isSeller, isLoading, user } = useAuth();
 
   const [ticketId, setTicketId] = useState('');
   const [sale, setSale] = useState<ValidatedSale | null>(null);
@@ -102,11 +103,11 @@ function SalesValidationContent() {
       router.replace('/auth/login?next=' + encodeURIComponent(`/admin/validate/${saleId}`));
       return;
     }
-    if (!isAdmin) {
+    if (!(isAdmin || isSeller)) {
       router.replace('/');
       return;
     }
-  }, [isLoading, isAuthenticated, isAdmin, router, saleId]);
+  }, [isLoading, isAuthenticated, isAdmin, isSeller, router, saleId]);
 
   // Autovalidar usando el saleId del path
   useEffect(() => {
@@ -126,6 +127,12 @@ function SalesValidationContent() {
         const ev = await EventService.getEventById(sale.eventId);
         if (!active) return;
         setEvent(ev);
+        // Si es vendedor, validar que el evento le pertenezca
+        if (isSeller && ev?.organizer?.id && user?.id && ev.organizer.id !== String(user.id)) {
+          setSnackbar({ open: true, message: 'No tienes permiso para validar entradas de este evento', severity: 'error' });
+          router.replace('/admin/events');
+          return;
+        }
       } catch {
         if (active) setEvent(null);
       } finally {
@@ -135,7 +142,7 @@ function SalesValidationContent() {
     return () => {
       active = false;
     };
-  }, [sale?.eventId]);
+  }, [sale?.eventId, isSeller, user?.id, router]);
 
   const handleCloseDialog = () => setOpenDialog(false);
 
@@ -177,11 +184,7 @@ function SalesValidationContent() {
   };
 
   if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <Loading minHeight="60vh" />;
   }
 
   return (
@@ -264,7 +267,7 @@ function SalesValidationContent() {
                 1. Ingrese el ID del ticket o escanee el código QR
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                2. Presione "Validar" o Enter
+                2. Presione &quot;Validar&quot; o Enter
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 3. Revise los resultados de la validación

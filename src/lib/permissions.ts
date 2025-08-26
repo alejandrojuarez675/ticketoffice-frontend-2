@@ -1,6 +1,5 @@
 import type { BackofficeRole } from '@/config/backofficeNav';
 
-// Define permisos por rol con tipado literal
 const rolePermissions = {
   admin: [
     'dashboard.read_global',
@@ -44,7 +43,6 @@ export function canAny(permissions: Permission[], list: Permission[]) {
   return list.some((p) => permissions.includes(p));
 }
 
-// Útil si necesitas listar todos los permisos (diagnóstico/UI)
 export const ALL_PERMISSIONS: Permission[] = Array.from(
   new Set<Permission>([...rolePermissions.admin, ...rolePermissions.seller] as Permission[])
 );

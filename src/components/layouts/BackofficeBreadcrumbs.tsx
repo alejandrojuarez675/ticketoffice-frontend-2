@@ -1,4 +1,3 @@
-// src/components/layouts/BackofficeBreadcrumbs.tsx
 'use client';
 
 import React, { useMemo } from 'react';

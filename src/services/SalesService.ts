@@ -1,4 +1,9 @@
-// src/services/SalesService.ts
+import { AuthService } from './AuthService';
+import { ConfigService } from './ConfigService';
+import { http } from '@/lib/http';
+import { logger } from '@/lib/logger';
+import { SalesListResponseSchema, type SaleRecordDTO } from './schemas/sales';
+
 export type SaleRecord = {
   id: string;
   date: string; // ISO
@@ -99,10 +104,36 @@ function applyFilters(data: SaleRecord[], f: SalesFilters): SaleRecord[] {
 }
 
 export const SalesService = {
-  // Por ahora mock. Luego sustituir por fetch a tu BE con estos mismos filtros.
   async list(filters: SalesFilters = {}): Promise<SaleRecord[]> {
-    await new Promise((r) => setTimeout(r, 250));
-    return applyFilters(mockSales, filters);
+    // Scope por defecto para vendedores: si no se especifica sellerId y el usuario es seller, usar su id
+    const current = AuthService.getCurrentUser();
+    const isSeller = AuthService.isSeller();
+    const scoped: SalesFilters = {
+      ...filters,
+      sellerId: filters.sellerId ?? (isSeller && current ? String(current.id) : undefined),
+    };
+
+    // Modo mock
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 250));
+      return applyFilters(mockSales, scoped);
+    }
+
+    // Construir querystring a partir de filtros definidos
+    const query = Object.entries(scoped)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
+      .join('&');
+
+    const base = ConfigService.getApiBase();
+    const raw = await http.get<unknown>(
+      `${base}/api/v1/sales${query ? `?${query}` : ''}`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
+    );
+    const parsed = SalesListResponseSchema.parse(raw) as SaleRecordDTO[];
+    logger.debug('SalesService.list parsed', { count: parsed.length });
+    // Convert DTOs to local type if needed; shapes match, so cast
+    return parsed as unknown as SaleRecord[];
   },
 
   toCSV(rows: SaleRecord[]): string {

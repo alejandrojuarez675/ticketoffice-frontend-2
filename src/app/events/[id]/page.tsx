@@ -20,8 +20,6 @@ import {
   IconButton,
   TextField,
   Container,
-  CircularProgress,
-  Alert,
   Chip,
   Collapse,
   Tooltip,
@@ -39,8 +37,12 @@ import {
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { EventService } from '@/services/EventService';
+import { CheckoutService } from '@/services/CheckoutService';
 import type { EventDetail, Ticket } from '@/types/Event';
 import Image from 'next/image';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
 
 function formatCurrency(value: number, currency: string) {
   try {
@@ -149,14 +151,17 @@ function EventDetailContent() {
     [event]
   );
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!selectedTicket) return;
-    const sp = new URLSearchParams({
-      eventId: String(id),
-      ticketId: selectedTicketId,
-      quantity: String(quantity),
-    });
-    router.push(`/checkout?${sp.toString()}`);
+    try {
+      const session = await CheckoutService.createSession(String(id), selectedTicketId, quantity);
+      if (session?.sessionId) {
+        router.push(`/checkout/${session.sessionId}`);
+      }
+    } catch (e) {
+      console.error('Failed to start checkout session', e);
+      alert('No se pudo iniciar la compra. Inténtalo nuevamente.');
+    }
   };
 
   const handleShare = async () => {
@@ -175,16 +180,14 @@ function EventDetailContent() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
+      <Loading minHeight="60vh" />
     );
   }
 
   if (error) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="error">{error}</Alert>
+        <ErrorState message={error} onRetry={() => window.location.reload()} />
       </Container>
     );
   }
@@ -192,7 +195,7 @@ function EventDetailContent() {
   if (!event) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="warning">Evento no encontrado</Alert>
+        <Empty title="Evento no encontrado" description="No pudimos encontrar el evento solicitado." />
       </Container>
     );
   }

@@ -21,6 +21,7 @@ import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import CloseIcon from '@mui/icons-material/Close';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { todayRange, weekendRange } from '@/utils/date';
+import { VendorService, type Vendor } from '@/services/VendorService';
 
 type Facets = {
   countries: string[];
@@ -52,6 +53,16 @@ export default function FiltersPanel({
   const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState<string>(searchParams.get('maxPrice') || '');
 
+  // Vendors
+  const [vendorsOptions, setVendorsOptions] = useState<Vendor[]>([]);
+  const [vendorsLoading, setVendorsLoading] = useState(false);
+  const [selectedVendors, setSelectedVendors] = useState<string[]>(
+    (searchParams.get('vendors') || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  );
+
   useEffect(() => {
     if (open) return;
     setCountry(searchParams.get('country') || '');
@@ -63,6 +74,12 @@ export default function FiltersPanel({
     setAdultOnly(searchParams.get('adultOnly') === 'true');
     setMinPrice(searchParams.get('minPrice') || '');
     setMaxPrice(searchParams.get('maxPrice') || '');
+    setSelectedVendors(
+      (searchParams.get('vendors') || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
   }, [searchParams, open]);
 
   const filteredCities = useMemo(() => {
@@ -88,18 +105,21 @@ export default function FiltersPanel({
 
   const apply = () => {
     pushParams((sp) => {
-      country ? sp.set('country', country) : sp.delete('country');
-      city ? sp.set('city', city) : sp.delete('city');
-      category ? sp.set('category', category) : sp.delete('category');
-      dateFrom ? sp.set('dateFrom', dateFrom) : sp.delete('dateFrom');
-      dateTo ? sp.set('dateTo', dateTo) : sp.delete('dateTo');
-      savedOnly ? sp.set('savedOnly', 'true') : sp.delete('savedOnly');
-      adultOnly ? sp.set('adultOnly', 'true') : sp.delete('adultOnly');
+      if (country) sp.set('country', country); else sp.delete('country');
+      if (city) sp.set('city', city); else sp.delete('city');
+      if (category) sp.set('category', category); else sp.delete('category');
+      if (dateFrom) sp.set('dateFrom', dateFrom); else sp.delete('dateFrom');
+      if (dateTo) sp.set('dateTo', dateTo); else sp.delete('dateTo');
+      if (savedOnly) sp.set('savedOnly', 'true'); else sp.delete('savedOnly');
+      if (adultOnly) sp.set('adultOnly', 'true'); else sp.delete('adultOnly');
 
       const minP = minPrice.trim() === '' ? undefined : Number(minPrice);
       const maxP = maxPrice.trim() === '' ? undefined : Number(maxPrice);
-      if (minP !== undefined) sp.set('minPrice', String(minP)); else sp.delete('minPrice');
-      if (maxP !== undefined) sp.set('maxPrice', String(maxP)); else sp.delete('maxPrice');
+      if (minP !== undefined) { sp.set('minPrice', String(minP)); } else { sp.delete('minPrice'); }
+      if (maxP !== undefined) { sp.set('maxPrice', String(maxP)); } else { sp.delete('maxPrice'); }
+
+      // Vendors
+      if (selectedVendors.length > 0) { sp.set('vendors', selectedVendors.join(',')); } else { sp.delete('vendors'); }
 
       if (!sp.get('pageSize')) sp.set('pageSize', '6');
       sp.set('page', '1');
@@ -121,6 +141,12 @@ export default function FiltersPanel({
     setAdultOnly(searchParams.get('adultOnly') === 'true');
     setMinPrice(searchParams.get('minPrice') || '');
     setMaxPrice(searchParams.get('maxPrice') || '');
+    setSelectedVendors(
+      (searchParams.get('vendors') || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    );
     setOpen(false);
   };
 
@@ -147,6 +173,25 @@ export default function FiltersPanel({
   };
 
   const hasActive = activeCount > 0;
+
+  // Load vendors once when panel opens first time (or on mount)
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        setVendorsLoading(true);
+        const list = await VendorService.list();
+        if (!alive) return;
+        // Only vendors with events > 0 for the toggle list
+        setVendorsOptions(list.filter((v: Vendor) => (v.events ?? 0) > 0));
+      } catch {
+        // silently ignore for now
+      } finally {
+        if (alive) setVendorsLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   return (
     <>
@@ -325,6 +370,28 @@ export default function FiltersPanel({
                   <MenuItem value="">Todas</MenuItem>
                   {facets.categories.map((c) => (
                     <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
+
+            {/* Vendedores (con eventos) */}
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
+                <TextField
+                  select
+                  fullWidth
+                  SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).map((id) => vendorsOptions.find((v) => v.id === id)?.name || id).join(', ') }}
+                  label="Vendedores"
+                  value={selectedVendors}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSelectedVendors(typeof v === 'string' ? v.split(',') : (v as string[]));
+                  }}
+                  helperText={vendorsLoading ? 'Cargando vendedores...' : 'Seleccione uno o varios vendedores'}
+                >
+                  {vendorsOptions.map((v) => (
+                    <MenuItem key={v.id} value={v.id}>{v.name}</MenuItem>
                   ))}
                 </TextField>
               </Grid>

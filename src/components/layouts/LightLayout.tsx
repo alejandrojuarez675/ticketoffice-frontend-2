@@ -1,3 +1,5 @@
+"use client";
+
 import { type ReactNode } from 'react';
 import { Box } from '@mui/material';
 import Head from 'next/head';
@@ -26,7 +28,7 @@ export default function LightLayout({ children, title = 'TicketOffice' }: LightL
         }}
       >
         <Navbar />
-        <Box component="main" sx={{ flexGrow: 1 }}>
+        <Box component="main" sx={{ flexGrow: 1, mt: { xs: '56px', sm: '64px' } }}>
           {children}
         </Box>
         <Footer />

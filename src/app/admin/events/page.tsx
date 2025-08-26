@@ -9,7 +9,6 @@ import {
   Button,
   Card,
   CardContent,
-  CircularProgress,
   IconButton,
   Menu,
   MenuItem,
@@ -23,11 +22,15 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
 import { EventService, type EventListResponse } from '@/services/EventService';
 import type { EventForList } from '@/types/Event';
 import { useAuth } from '@/hooks/useAuth';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
 
 function EventActionsMenu({
   anchorEl,
@@ -171,11 +174,7 @@ const EventsList = () => {
   const handlePageChange = (newPage: number) => setPagination((prev) => ({ ...prev, page: newPage }));
 
   if (isLoading || (loading && events.length === 0)) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
+    return <Loading label="Cargando eventos..." minHeight="60vh" />;
   }
 
   return (
@@ -191,7 +190,7 @@ const EventsList = () => {
 
       {error && (
         <Box mb={3}>
-          <Typography color="error">{error}</Typography>
+          <ErrorState message={error} onRetry={() => window.location.reload()} />
         </Box>
       )}
 
@@ -232,7 +231,7 @@ const EventsList = () => {
                 {events.length === 0 && !loading && (
                   <TableRow>
                     <TableCell colSpan={5} align="center">
-                      No hay eventos disponibles
+                      <Empty title="Sin eventos" description="No hay eventos disponibles" />
                     </TableCell>
                   </TableRow>
                 )}
@@ -240,7 +239,7 @@ const EventsList = () => {
                 {loading && events.length > 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center">
-                      <CircularProgress size={24} />
+                      <Loading label="" minHeight={0} size={24} />
                     </TableCell>
                   </TableRow>
                 )}
@@ -281,7 +280,7 @@ const EventsList = () => {
   );
 };
 
-function getStatusColor(status: string, theme: any) {
+function getStatusColor(status: 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT', theme: Theme) {
   switch (status) {
     case 'ACTIVE':
       return theme.palette.success.main;
@@ -301,3 +300,4 @@ export default function EventsPage() {
     </BackofficeLayout>
   );
 }
+

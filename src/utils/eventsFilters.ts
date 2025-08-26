@@ -12,6 +12,7 @@ export type Filters = {
   minPrice?: number;
   maxPrice?: number;
   adultOnly?: boolean;
+  vendors?: string[]; // vendor IDs
 };
 
 export function parseLocation(loc: string) {
@@ -73,6 +74,14 @@ export function applyFilters(list: SearchEvent[], filters: Filters, favoriteIds?
     if (filters.maxPrice !== undefined && e.price > filters.maxPrice) return false;
 
     if (filters.adultOnly && !(e.minAge !== undefined && e.minAge >= 18)) return false;
+
+    // Vendors (seller) filter: accept if event vendorId is in selected list.
+    if (filters.vendors && filters.vendors.length > 0) {
+      const vid = e.vendorId ?? '';
+      const vname = (e.vendorName ?? '').toLowerCase();
+      const hasVendor = filters.vendors.some((v) => v === vid || v.toLowerCase() === vname);
+      if (!hasVendor) return false;
+    }
 
     const { city, country } = parseLocation(e.location);
     if (filters.country && country !== filters.country) return false;

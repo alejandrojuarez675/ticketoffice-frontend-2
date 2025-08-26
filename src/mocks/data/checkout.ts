@@ -46,5 +46,5 @@ export async function mockGetSessionInfoWithData(
 
 export async function mockProcessPayment(sessionId: string): Promise<ProcessPaymentResponse> {
   await new Promise((r) => setTimeout(r, 500));
-  return { success: true, redirectUrl: `/congrats?sessionId=${sessionId}` };
+  return { success: true, redirectUrl: `/checkout/congrats?sessionId=${sessionId}` };
 }

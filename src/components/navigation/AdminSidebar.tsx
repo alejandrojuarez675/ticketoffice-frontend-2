@@ -7,7 +7,6 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-  Toolbar,
   ListItemButton,
   Box,
   Typography,
@@ -41,78 +40,107 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
 
   const toggle = (key: string) => setOpenMap((m) => ({ ...m, [key]: !m[key] }));
 
-  const renderItem = (item: NavItem) => {
-    const Icon = item.icon;
-    const selected = item.href ? pathname === item.href : false;
-    if (item.children && item.children.length > 0) {
-      const open = openMap[item.key] ?? false;
-      return (
-        <Box key={item.key}>
-          <ListItemButton onClick={() => toggle(item.key)}>
-            {Icon && (
-              <ListItemIcon>
-                <Icon />
-              </ListItemIcon>
-            )}
-            <ListItemText primary={item.label} />
-            {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-          </ListItemButton>
-          <Collapse in={open} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              {item.children.map((child) => (
-                <ListItemButton key={child.key} component={Link} href={child.href!} selected={pathname === child.href} sx={{ pl: 4 }}>
-                  {child.icon && (
-                    <ListItemIcon>
-                      <child.icon />
-                    </ListItemIcon>
-                  )}
-                  <ListItemText primary={child.label} />
-                </ListItemButton>
-              ))}
-            </List>
-          </Collapse>
-        </Box>
-      );
-    }
-    return (
-      <ListItemButton key={item.key} component={Link} href={item.href!} selected={selected}>
-        {Icon && (
-          <ListItemIcon>
-            <Icon />
-          </ListItemIcon>
-        )}
-        <ListItemText primary={item.label} />
-      </ListItemButton>
-    );
-  };
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>
           Admin Panel
         </Typography>
-      </Toolbar>
+      </Box>
       <Divider />
-      <List onClick={onClose}>{items.map(renderItem)}</List>
+      <List onClick={onClose} sx={{ px: 0.5 }}>
+        {items.map((it) => {
+          const Icon = it.icon;
+          const selected = it.href ? pathname === it.href : false;
+          if (it.children && it.children.length > 0) {
+            const open = openMap[it.key] ?? false;
+            return (
+              <Box key={it.key}>
+                <ListItemButton onClick={() => toggle(it.key)} sx={{ mx: 0.5, my: 0.25, borderRadius: 1 }}>
+                  {Icon && (
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Icon />
+                    </ListItemIcon>
+                  )}
+                  <ListItemText primary={it.label} />
+                  {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemButton>
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {it.children.map((child) => (
+                      <ListItemButton
+                        key={child.key}
+                        component={Link}
+                        href={child.href!}
+                        selected={pathname === child.href}
+                        sx={{ pl: 3, mx: 0.5, my: 0.25, borderRadius: 1 }}
+                      >
+                        {child.icon && (
+                          <ListItemIcon sx={{ minWidth: 36 }}>
+                            <child.icon />
+                          </ListItemIcon>
+                        )}
+                        <ListItemText primary={child.label} />
+                      </ListItemButton>
+                    ))}
+                  </List>
+                </Collapse>
+              </Box>
+            );
+          }
+          return (
+            <ListItemButton
+              key={it.key}
+              component={Link}
+              href={it.href!}
+              selected={selected}
+              sx={{ mx: 0.5, my: 0.25, borderRadius: 1 }}
+            >
+              {Icon && (
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Icon />
+                </ListItemIcon>
+              )}
+              <ListItemText primary={it.label} />
+            </ListItemButton>
+          );
+        })}
+      </List>
     </div>
   );
 
   return (
-    <Box component="nav" sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }} aria-label="admin navigation">
+    <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="admin navigation">
       <Drawer
         variant="temporary"
         open={mobileOpen}
         onClose={onClose}
         ModalProps={{ keepMounted: true }}
-        sx={{ display: { xs: 'block', sm: 'none' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth } }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            top: { xs: 56, sm: 64 },
+            height: { xs: 'calc(100% - 56px)', sm: 'calc(100% - 64px)' },
+          },
+        }}
       >
         {drawer}
       </Drawer>
 
       <Drawer
         variant="permanent"
-        sx={{ display: { xs: 'none', sm: 'block' }, '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth } }}
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            top: 64,
+            height: 'calc(100% - 64px)',
+          },
+        }}
         open
       >
         {drawer}

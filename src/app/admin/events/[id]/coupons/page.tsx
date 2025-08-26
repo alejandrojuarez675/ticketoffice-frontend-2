@@ -2,22 +2,57 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { Box, Button, Card, CardContent, Grid, TextField, Typography } from '@mui/material';
 import { CouponService, type Coupon } from '@/services/CouponService';
+import { useAuth } from '@/hooks/useAuth';
+import { EventService } from '@/services/EventService';
 
 export default function EventCouponsPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { isLoading, isAuthenticated, isAdmin, isSeller, user } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [form, setForm] = useState({ code: '', type: 'percent' as 'percent' | 'fixed', value: 10 });
+  const [ownerChecked, setOwnerChecked] = useState(false);
+
+  // Auth/backoffice guard and ownership check
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/auth/login?next=' + encodeURIComponent(`/admin/events/${id}/coupons`));
+      return;
+    }
+    if (!(isAdmin || isSeller)) {
+      router.replace('/');
+      return;
+    }
+    // If seller, ensure event belongs to current user
+    (async () => {
+      if (!isSeller || !user?.id) {
+        setOwnerChecked(true);
+        return;
+      }
+      try {
+        const ev = await EventService.getEventById(String(id));
+        if (ev?.organizer?.id && ev.organizer.id !== String(user.id)) {
+          router.replace('/admin/events');
+          return;
+        }
+      } finally {
+        setOwnerChecked(true);
+      }
+    })();
+  }, [id, isLoading, isAuthenticated, isAdmin, isSeller, user?.id, router]);
 
   useEffect(() => {
+    if (!ownerChecked) return;
     (async () => {
       const list = await CouponService.listByEvent(id);
       setCoupons(list);
     })();
-  }, [id]);
+  }, [id, ownerChecked]);
 
   const create = async () => {
     if (!form.code.trim()) return;
@@ -44,7 +79,7 @@ export default function EventCouponsPage() {
                   fullWidth
                   label="Tipo"
                   value={form.type}
-                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as any }))}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as 'percent' | 'fixed' }))}
                   SelectProps={{ native: true }}
                 >
                   <option value="percent">Porcentaje</option>

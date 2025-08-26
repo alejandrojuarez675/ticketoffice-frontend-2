@@ -1,12 +1,13 @@
 'use client';
 
 import React from 'react';
+import { useRouter } from 'next/navigation';
+
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import {
   Box,
   Card,
   CardContent,
-  Typography,
   TextField,
   Button,
   IconButton,
@@ -29,8 +30,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function ReportsPage() {
+  const router = useRouter();
   const { can } = usePermissions();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, isAuthenticated, isLoading, hasBackofficeAccess } = useAuth();
 
   const [filters, setFilters] = React.useState<SalesFilters>(() => {
     const today = new Date();
@@ -48,6 +50,19 @@ export default function ReportsPage() {
   const [rows, setRows] = React.useState<SaleRecord[]>([]);
   const [loading, setLoading] = React.useState(false);
 
+  // Auth/backoffice guard
+  React.useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/auth/login?next=' + encodeURIComponent('/admin/reports'));
+      return;
+    }
+    if (!hasBackofficeAccess) {
+      router.replace('/');
+      return;
+    }
+  }, [isLoading, isAuthenticated, hasBackofficeAccess, router]);
+
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
@@ -64,14 +79,11 @@ export default function ReportsPage() {
 
   // Menú de acciones por fila (fix al bug de los "tres puntos")
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const [rowId, setRowId] = React.useState<string | null>(null);
-  const openMenu = (e: React.MouseEvent<HTMLElement>, id: string) => {
+  const openMenu = (e: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(e.currentTarget);
-    setRowId(id);
   };
   const closeMenu = () => {
     setAnchorEl(null);
-    setRowId(null);
   };
 
   const downloadCSV = () => {
@@ -238,7 +250,7 @@ export default function ReportsPage() {
                       <TableCell>{r.vendorCode || '-'}</TableCell>
                       <TableCell>{r.paymentStatus}</TableCell>
                       <TableCell align="right">
-                        <IconButton onClick={(e) => openMenu(e, r.id)}>
+                        <IconButton onClick={(e) => openMenu(e)}>
                           <MoreVertIcon />
                         </IconButton>
                       </TableCell>
