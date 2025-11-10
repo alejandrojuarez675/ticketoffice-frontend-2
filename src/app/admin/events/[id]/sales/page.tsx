@@ -1,38 +1,54 @@
+// src/app/admin/events/[id]/sales/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
+  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
+  Chip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Paper,
-  IconButton,
-  Menu,
-  MenuItem,
-  Box,
-  Button,
-  useTheme,
+  Typography,
   useMediaQuery,
-  Chip,
+  useTheme,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
-import { formatCurrency } from '@/utils/format';
-import { SalesService, type SaleRecord } from '@/services/SalesService';
-import { useAuth } from '@/hooks/useAuth';
-import { logger } from '@/lib/logger';
 import Loading from '@/components/common/Loading';
 import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
+import { SalesService } from '@/services/SalesService';
+import { logger } from '@/lib/logger';
+
+type Row = {
+  id: string;
+  name: string;
+  email: string;
+  ticketType: string;
+  price: number;
+  validated: boolean;
+};
+
+export default function EventSalesPage() {
+  return (
+    <BackofficeLayout title="Ventas del Evento">
+      <EventSalesPageInner />
+    </BackofficeLayout>
+  );
+}
 
 function EventSalesPageInner() {
   const { id } = useParams<{ id: string }>();
@@ -40,9 +56,7 @@ function EventSalesPageInner() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const { isAuthenticated, isAdmin, isLoading } = useAuth();
-
-  const [rows, setRows] = useState<SaleRecord[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,86 +65,55 @@ function EventSalesPageInner() {
   const open = Boolean(anchorEl);
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/auth/login?next=' + encodeURIComponent(`/admin/events/${id}/sales`));
-      return;
-    }
-    if (!isAdmin) {
-      router.replace('/');
-      return;
-    }
-
     let active = true;
     (async () => {
       if (!id) return;
       try {
         setLoading(true);
         setError(null);
-        const data = await SalesService.list({ eventId: String(id) });
+        // BE real: GET /api/v1/events/{id}/sales
+        const res = await SalesService.listByEvent(String(id)); // { sales: SaleLightDTO[] }
         if (!active) return;
-        setRows(data);
+        setRows(
+          (res || []).map((s) => ({
+            id: s.id,
+            name: s.sellerName,
+            email: s.buyerEmail,
+            ticketType: 'General', // Default value since ticketType is not in SaleRecord
+            price: s.unitPrice,
+            validated: s.paymentStatus === 'paid',
+          }))
+        );
       } catch (err) {
-        logger.error('Error al cargar las ventas del evento', err);
+        logger.error('sales_load_failed', err);
         if (active) setError('Error al cargar las ventas del evento');
       } finally {
         if (active) setLoading(false);
       }
     })();
-
     return () => {
       active = false;
     };
-  }, [id, isAuthenticated, isAdmin, isLoading, router]);
+  }, [id]);
 
-  const handleBack = () => {
-    router.push(`/admin/events/${id}`);
-  };
+  const handleBack = () => router.push(`/admin/events/${id}`);
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>, saleId: string) => {
-    setAnchorEl(event.currentTarget);
+  const handleClick = (e: React.MouseEvent<HTMLElement>, saleId: string) => {
+    setAnchorEl(e.currentTarget);
     selectedSaleId.current = saleId;
   };
-
   const handleClose = () => setAnchorEl(null);
 
   const handleValidate = () => {
     if (selectedSaleId.current) {
-      router.push(`/admin/validate/${selectedSaleId.current}`);
+      router.push(`/admin/events/${id}/validate?saleId=${encodeURIComponent(selectedSaleId.current)}`);
     }
     handleClose();
   };
 
-  const formatARS = (amount: number) => formatCurrency(amount, 'ARS', 'es-AR');
-
-  const statusLabel = (s: SaleRecord['paymentStatus']) => {
-    switch (s) {
-      case 'paid':
-        return 'Pagado';
-      case 'pending':
-        return 'Pendiente';
-      case 'refunded':
-        return 'Reembolsado';
-      case 'failed':
-        return 'Fallido';
-      default:
-        return s;
-    }
-  };
-
-  const statusColor = (s: SaleRecord['paymentStatus']): 'success' | 'warning' | 'error' | 'default' => {
-    switch (s) {
-      case 'paid':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'refunded':
-      case 'failed':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  const statusChip = (v: boolean) => (
+    <Chip label={v ? 'Validado' : 'Pendiente'} color={v ? 'success' : 'warning'} size="small" />
+  );
 
   if (loading) {
     return (
@@ -143,7 +126,7 @@ function EventSalesPageInner() {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <ErrorState message={error} onRetry={() => { setError(null); router.refresh(); }} />
+        <ErrorState message={error} onRetry={() => router.refresh()} />
         <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
           Volver al evento
         </Button>
@@ -168,14 +151,12 @@ function EventSalesPageInner() {
         <IconButton onClick={handleBack} sx={{ mr: 1 }}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" component="h1">
-          Ventas del Evento
-        </Typography>
+        <Typography variant="h4">Ventas del Evento</Typography>
         <Box sx={{ flexGrow: 1 }} />
       </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <TableContainer component={Paper} sx={{ maxHeight: '70vh', overflow: 'auto' }}>
@@ -183,9 +164,9 @@ function EventSalesPageInner() {
                   <TableHead>
                     <TableRow>
                       <TableCell>Comprador</TableCell>
-                      <TableCell align="right">Cant.</TableCell>
-                      <TableCell align="right">P. Unit.</TableCell>
-                      <TableCell align="right">Total</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Ticket</TableCell>
+                      <TableCell align="right">Precio</TableCell>
                       <TableCell>Estado</TableCell>
                       <TableCell align="center">Acciones</TableCell>
                     </TableRow>
@@ -193,18 +174,13 @@ function EventSalesPageInner() {
                   <TableBody>
                     {rows.map((r) => (
                       <TableRow key={r.id} hover>
-                        <TableCell>
-                          <Typography variant="body2">{r.buyerEmail}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Orden: {r.orderId}
-                          </Typography>
+                        <TableCell>{r.name || '—'}</TableCell>
+                        <TableCell>{r.email}</TableCell>
+                        <TableCell>{r.ticketType}</TableCell>
+                        <TableCell align="right">
+                          {r.price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
                         </TableCell>
-                        <TableCell align="right">{r.quantity}</TableCell>
-                        <TableCell align="right">{formatARS(r.unitPrice)}</TableCell>
-                        <TableCell align="right">{formatARS(r.total)}</TableCell>
-                        <TableCell>
-                          <Chip label={statusLabel(r.paymentStatus)} color={statusColor(r.paymentStatus)} size="small" />
-                        </TableCell>
+                        <TableCell>{statusChip(r.validated)}</TableCell>
                         <TableCell align="center">
                           <IconButton
                             size="small"
@@ -224,23 +200,6 @@ function EventSalesPageInner() {
             </CardContent>
           </Card>
         </Grid>
-
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Filtros
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip label="Todas" color="primary" variant="outlined" />
-                <Chip label="Pagadas" variant="outlined" />
-                <Chip label="Pendientes" variant="outlined" />
-                <Chip label="Reembolsadas" variant="outlined" />
-                <Chip label="Fallidas" variant="outlined" />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
 
       <Menu
@@ -254,13 +213,5 @@ function EventSalesPageInner() {
         <MenuItem onClick={handleValidate}>Validar Entrada</MenuItem>
       </Menu>
     </Box>
-  );
-}
-
-export default function EventSalesPage() {
-  return (
-    <BackofficeLayout title="Ventas del Evento">
-      <EventSalesPageInner />
-    </BackofficeLayout>
   );
 }

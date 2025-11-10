@@ -4,36 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import LightLayout from '@/components/layouts/LightLayout';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Divider,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel,
-  IconButton,
-  TextField,
-  Container,
-  Chip,
-  Collapse,
-  Tooltip,
-  Grid,
+  Box, Typography, Paper, Button, Divider, List, ListItem, ListItemIcon, ListItemText,
+  Radio, RadioGroup, FormControl, FormLabel, IconButton, TextField, Container, Chip,
+  Collapse, Tooltip, Grid,
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  CheckCircle as CheckCircleIcon,
-  LocationOn as LocationIcon,
-  CalendarToday as CalendarIcon,
-  Info as InfoIcon,
-  Share as ShareIcon,
-  Event as CalendarAddIcon,
+  Add as AddIcon, Remove as RemoveIcon, CheckCircle as CheckCircleIcon, LocationOn as LocationIcon,
+  CalendarToday as CalendarIcon, Info as InfoIcon, Share as ShareIcon, Event as CalendarAddIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { EventService } from '@/services/EventService';
@@ -43,46 +20,26 @@ import Image from 'next/image';
 import Loading from '@/components/common/Loading';
 import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
-
-function formatCurrency(value: number, currency: string) {
-  try {
-    return new Intl.NumberFormat('es-AR', { style: 'currency', currency }).format(value);
-  } catch {
-    return `$${value.toLocaleString('es-AR')} ${currency}`;
-  }
-}
+import { formatMoneyByCountry } from '@/utils/format';
 
 function toICSDate(d: Date) {
   return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 }
-
 function downloadICS(evt: EventDetail) {
   const start = new Date(evt.date);
   const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
   const location = `${evt.location?.name ?? ''} ${evt.location?.address ?? ''} ${evt.location?.city ?? ''} ${evt.location?.country ?? ''}`.trim();
-
   const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//TicketOffice//ES',
-    'BEGIN:VEVENT',
-    `UID:${evt.id}@ticketoffice`,
-    `DTSTAMP:${toICSDate(new Date())}`,
-    `DTSTART:${toICSDate(start)}`,
-    `DTEND:${toICSDate(end)}`,
-    `SUMMARY:${evt.title}`,
-    `LOCATION:${location}`,
-    `DESCRIPTION:${(evt.description || '').replace(/\n/g, '\\n')}`,
-    'END:VEVENT',
-    'END:VCALENDAR',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TicketOffice//ES','BEGIN:VEVENT',
+    `UID:${evt.id}@ticketoffice`,`DTSTAMP:${toICSDate(new Date())}`,
+    `DTSTART:${toICSDate(start)}`,`DTEND:${toICSDate(end)}`,
+    `SUMMARY:${evt.title}`,`LOCATION:${location}`,`DESCRIPTION:${(evt.description || '').replace(/\n/g, '\\n')}`,
+    'END:VEVENT','END:VCALENDAR',
   ].join('\r\n');
-
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${evt.title.replace(/\s+/g, '_')}.ics`;
-  a.click();
+  const a = document.createElement('a'); a.href = url;
+  a.download = `${evt.title.replace(/\s+/g, '_')}.ics`; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -103,8 +60,8 @@ function EventDetailContent() {
       try {
         setLoading(true);
         setError(null);
-        const eventData = await EventService.getEventById(id as string);
-        setEvent(eventData);
+        const eventData = await EventService.getPublicById(id as string);
+        setEvent(eventData as unknown as EventDetail);
       } catch (err) {
         console.error('Error fetching event:', err);
         setError('Error al cargar los detalles del evento. Por favor, intente nuevamente.');
@@ -112,7 +69,6 @@ function EventDetailContent() {
         setLoading(false);
       }
     };
-
     if (id) fetchEvent();
   }, [id]);
 
@@ -140,12 +96,7 @@ function EventDetailContent() {
     () =>
       event
         ? new Date(event.date).toLocaleDateString('es-AR', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
           })
         : '',
     [event]
@@ -154,8 +105,18 @@ function EventDetailContent() {
   const handleCheckout = async () => {
     if (!selectedTicket) return;
     try {
-      const session = await CheckoutService.createSession(String(id), selectedTicketId, quantity);
+      const session = await CheckoutService.createSession({
+        eventId: String(id),
+        priceId: selectedTicketId,
+        quantity,
+      });
       if (session?.sessionId) {
+        try {
+          localStorage.setItem(
+            `checkout:meta:${session.sessionId}`,
+            JSON.stringify({ eventId: String(id), priceId: selectedTicketId, quantity })
+          );
+        } catch {}
         router.push(`/checkout/${session.sessionId}`);
       }
     } catch (e) {
@@ -173,16 +134,10 @@ function EventDetailContent() {
         await navigator.clipboard.writeText(url);
         alert('Enlace copiado al portapapeles');
       }
-    } catch {
-      // usuario canceló
-    }
+    } catch { /* cancel */ }
   };
 
-  if (loading) {
-    return (
-      <Loading minHeight="60vh" />
-    );
-  }
+  if (loading) return <Loading minHeight="60vh" />;
 
   if (error) {
     return (
@@ -204,9 +159,7 @@ function EventDetailContent() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom>
-        {event.title}
-      </Typography>
+      <Typography variant="h3" component="h1" gutterBottom>{event.title}</Typography>
 
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, md: 8 }}>
@@ -269,9 +222,7 @@ function EventDetailContent() {
                       key={ticket.id}
                       variant="outlined"
                       sx={{
-                        p: 2,
-                        mb: 2,
-                        borderRadius: 1,
+                        p: 2, mb: 2, borderRadius: 1,
                         borderColor: selectedTicketId === ticket.id ? 'primary.main' : 'divider',
                         borderWidth: selectedTicketId === ticket.id ? 2 : 1,
                         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -290,7 +241,7 @@ function EventDetailContent() {
                         <Box display="flex" alignItems="center" gap={1}>
                           {disabled && <Chip size="small" label="Agotado" />}
                           <Typography variant="h6">
-                            {ticket.isFree ? 'Gratis' : formatCurrency(ticket.value, ticket.currency)}
+                            {ticket.isFree ? 'Gratis' : formatMoneyByCountry(ticket.value, event.location?.country)}
                           </Typography>
                         </Box>
                       </Box>
@@ -306,9 +257,7 @@ function EventDetailContent() {
                 <Box mb={3}>
                   <FormLabel component="legend" sx={{ mb: 1, display: 'block' }}>Cantidad</FormLabel>
                   <Box display="flex" alignItems="center">
-                    <IconButton onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}>
-                      <RemoveIcon />
-                    </IconButton>
+                    <IconButton onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}><RemoveIcon /></IconButton>
                     <TextField
                       value={quantity}
                       type="number"
@@ -316,9 +265,7 @@ function EventDetailContent() {
                       sx={{ width: '80px', mx: 1 }}
                       onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
                     />
-                    <IconButton onClick={() => handleQuantityChange(quantity + 1)} disabled={quantity >= (selectedTicket?.stock || 1)}>
-                      <AddIcon />
-                    </IconButton>
+                    <IconButton onClick={() => handleQuantityChange(quantity + 1)} disabled={quantity >= (selectedTicket?.stock || 1)}><AddIcon /></IconButton>
                   </Box>
                   <Typography variant="caption" color="text.secondary">Máximo {selectedTicket.stock} por compra</Typography>
                 </Box>
@@ -326,7 +273,7 @@ function EventDetailContent() {
                 <Box mb={2}>
                   <Box display="flex" justifyContent="space-between" mb={1}>
                     <Typography>Precio por entrada:</Typography>
-                    <Typography>{formatCurrency(selectedTicket.value, selectedTicket.currency)}</Typography>
+                    <Typography>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
                   </Box>
                   <Box display="flex" justifyContent="space-between" mb={1}>
                     <Typography>Cantidad:</Typography>
@@ -335,7 +282,7 @@ function EventDetailContent() {
                   <Divider sx={{ my: 1 }} />
                   <Box display="flex" justifyContent="space-between" fontWeight="bold">
                     <Typography>Subtotal:</Typography>
-                    <Typography>{formatCurrency(total, selectedTicket.currency)}</Typography>
+                    <Typography>{formatMoneyByCountry(total, event.location?.country)}</Typography>
                   </Box>
 
                   <Button
@@ -349,11 +296,11 @@ function EventDetailContent() {
                   <Collapse in={showBreakdown}>
                     <Box display="flex" justifyContent="space-between" mt={1}>
                       <Typography>Tasas (10%):</Typography>
-                      <Typography>{formatCurrency(fees, selectedTicket.currency)}</Typography>
+                      <Typography>{formatMoneyByCountry(fees, event.location?.country)}</Typography>
                     </Box>
                     <Box display="flex" justifyContent="space-between" fontWeight="bold" mt={1}>
                       <Typography>Total:</Typography>
-                      <Typography>{formatCurrency(grandTotal, selectedTicket.currency)}</Typography>
+                      <Typography>{formatMoneyByCountry(grandTotal, event.location?.country)}</Typography>
                     </Box>
                   </Collapse>
                 </Box>
@@ -376,12 +323,8 @@ function EventDetailContent() {
                   </Tooltip>
 
                   <Box display="flex" gap={1}>
-                    <Button fullWidth variant="outlined" startIcon={<ShareIcon />} onClick={handleShare}>
-                      Compartir
-                    </Button>
-                    <Button fullWidth variant="outlined" startIcon={<CalendarAddIcon />} onClick={() => downloadICS(event)}>
-                      Agregar al calendario
-                    </Button>
+                    <Button fullWidth variant="outlined" startIcon={<ShareIcon />} onClick={handleShare}>Compartir</Button>
+                    <Button fullWidth variant="outlined" startIcon={<CalendarAddIcon />} onClick={() => downloadICS(event)}>Agregar al calendario</Button>
                   </Box>
                 </Box>
               </>
@@ -392,12 +335,12 @@ function EventDetailContent() {
             <Paper elevation={3} sx={{ p: 3, borderRadius: 2, mt: 3 }}>
               <Typography variant="h6" gutterBottom>Organizador</Typography>
               <Box display="flex" alignItems="center">
-                {event.organizer.logoUrl && (
+                {event.organizer?.logoUrl && (
                   <Box component="img" src={event.organizer.logoUrl} alt={event.organizer.name} sx={{ width: 60, height: 60, borderRadius: 1, objectFit: 'contain', mr: 2 }} />
                 )}
                 <Box>
-                  <Typography variant="subtitle1">{event.organizer.name}</Typography>
-                  {event.organizer.url && (
+                  <Typography variant="subtitle1">{event.organizer?.name}</Typography>
+                  {event.organizer?.url && (
                     <Typography
                       variant="body2"
                       color="primary"

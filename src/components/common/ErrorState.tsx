@@ -1,4 +1,5 @@
-"use client";
+// src/components/common/ErrorState.tsx
+'use client';
 
 import React from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
@@ -20,8 +21,8 @@ export default function ErrorState({
 }: ErrorStateProps) {
   return (
     <Box display="flex" alignItems="center" justifyContent="center" flexDirection="column" minHeight={minHeight} textAlign="center">
-      <Alert severity="error" sx={{ width: '100%', maxWidth: 520, mb: 2 }}>
-        <Typography variant="subtitle1" gutterBottom>
+      <Alert severity="error" sx={{ width: '100%', maxWidth: 560, mb: 2 }}>
+        <Typography variant="subtitle1" gutterBottom fontWeight={700}>
           {title}
         </Typography>
         <Typography variant="body2">{message}</Typography>

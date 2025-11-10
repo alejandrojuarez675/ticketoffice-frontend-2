@@ -1,8 +1,44 @@
+// src/utils/format.ts
+
+// Mapa simple país → { currencyCode, locale }
+// Nota: usa nombres tal como los envías al BE (p.ej., "Colombia", "Argentina").
+const countryToCurrency: Record<string, { code: string; locale: string }> = {
+  Colombia: { code: 'COP', locale: 'es-CO' },
+  Argentina: { code: 'ARS', locale: 'es-AR' },
+  Chile:     { code: 'CLP', locale: 'es-CL' },
+  México:    { code: 'MXN', locale: 'es-MX' },
+  Mexico:    { code: 'MXN', locale: 'es-MX' },
+  Perú:      { code: 'PEN', locale: 'es-PE' },
+  Peru:      { code: 'PEN', locale: 'es-PE' },
+  Uruguay:   { code: 'UYU', locale: 'es-UY' },
+  Paraguay:  { code: 'PYG', locale: 'es-PY' },
+  Bolivia:   { code: 'BOB', locale: 'es-BO' },
+  Ecuador:   { code: 'USD', locale: 'es-EC' },
+  España:    { code: 'EUR', locale: 'es-ES' },
+  'Estados Unidos': { code: 'USD', locale: 'es-US' },
+};
+
+// Si no reconocemos el país, usamos COP por defecto (MVP)
+export function getCurrencyForCountry(country?: string) {
+  const key = (country || '').trim();
+  return countryToCurrency[key] ?? { code: 'COP', locale: 'es-CO' };
+}
+
+// NUEVO: preferido en VIP/checkout
+export function formatMoneyByCountry(value: number, country?: string) {
+  const { code, locale } = getCurrencyForCountry(country);
+  try {
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: code }).format(value);
+  } catch {
+    return `${code} ${new Intl.NumberFormat(locale).format(value)}`;
+  }
+}
+
+// Mantengo tu helper (por compatibilidad)
 export function formatCurrency(value: number, currency: string = 'USD', locale: string = 'es-AR') {
   try {
     return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
   } catch {
-    // fallback if currency code is unknown
     return `${new Intl.NumberFormat(locale).format(value)} ${currency}`;
   }
 }

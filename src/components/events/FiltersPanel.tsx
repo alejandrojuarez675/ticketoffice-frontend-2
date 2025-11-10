@@ -1,3 +1,4 @@
+// src/components/events/FiltersPanel.tsx
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -83,7 +84,7 @@ export default function FiltersPanel({
   }, [searchParams, open]);
 
   const filteredCities = useMemo(() => {
-    if (!country) return facets.cities;
+    if (!country || country.toLowerCase() === 'all') return facets.cities;
     return facets.citiesByCountry[country] ?? [];
   }, [country, facets]);
 
@@ -105,30 +106,42 @@ export default function FiltersPanel({
 
   const apply = () => {
     pushParams((sp) => {
-      if (country) sp.set('country', country); else sp.delete('country');
-      if (city) sp.set('city', city); else sp.delete('city');
-      if (category) sp.set('category', category); else sp.delete('category');
-      if (dateFrom) sp.set('dateFrom', dateFrom); else sp.delete('dateFrom');
-      if (dateTo) sp.set('dateTo', dateTo); else sp.delete('dateTo');
-      if (savedOnly) sp.set('savedOnly', 'true'); else sp.delete('savedOnly');
-      if (adultOnly) sp.set('adultOnly', 'true'); else sp.delete('adultOnly');
+      // País: si está vacío, usamos "all" (Todos) para alinear con la vista
+      if (country) sp.set('country', country);
+      else sp.set('country', 'all');
+
+      if (city) sp.set('city', city);
+      else sp.delete('city');
+      if (category) sp.set('category', category);
+      else sp.delete('category');
+      if (dateFrom) sp.set('dateFrom', dateFrom);
+      else sp.delete('dateFrom');
+      if (dateTo) sp.set('dateTo', dateTo);
+      else sp.delete('dateTo');
+      if (savedOnly) sp.set('savedOnly', 'true');
+      else sp.delete('savedOnly');
+      if (adultOnly) sp.set('adultOnly', 'true');
+      else sp.delete('adultOnly');
 
       const minP = minPrice.trim() === '' ? undefined : Number(minPrice);
       const maxP = maxPrice.trim() === '' ? undefined : Number(maxPrice);
-      if (minP !== undefined) { sp.set('minPrice', String(minP)); } else { sp.delete('minPrice'); }
-      if (maxP !== undefined) { sp.set('maxPrice', String(maxP)); } else { sp.delete('maxPrice'); }
+      if (minP !== undefined && !Number.isNaN(minP)) sp.set('minPrice', String(minP));
+      else sp.delete('minPrice');
+      if (maxP !== undefined && !Number.isNaN(maxP)) sp.set('maxPrice', String(maxP));
+      else sp.delete('maxPrice');
 
       // Vendors
-      if (selectedVendors.length > 0) { sp.set('vendors', selectedVendors.join(',')); } else { sp.delete('vendors'); }
+      if (selectedVendors.length > 0) sp.set('vendors', selectedVendors.join(','));
+      else sp.delete('vendors');
 
-      if (!sp.get('pageSize')) sp.set('pageSize', '6');
+      if (!sp.get('pageSize')) sp.set('pageSize', '9');
       sp.set('page', '1');
     });
     setOpen(false);
   };
 
   const clear = () => {
-    router.push('/events?page=1&pageSize=6&sort=dateAsc');
+    router.push('/events?country=all&page=1&pageSize=9&sort=dateAsc');
   };
 
   const closeWithoutApply = () => {
@@ -174,7 +187,7 @@ export default function FiltersPanel({
 
   const hasActive = activeCount > 0;
 
-  // Load vendors once when panel opens first time (or on mount)
+  // Load vendors on mount
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -182,15 +195,16 @@ export default function FiltersPanel({
         setVendorsLoading(true);
         const list = await VendorService.list();
         if (!alive) return;
-        // Only vendors with events > 0 for the toggle list
         setVendorsOptions(list.filter((v: Vendor) => (v.events ?? 0) > 0));
       } catch {
-        // silently ignore for now
+        // ignore
       } finally {
         if (alive) setVendorsLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
   return (
@@ -200,7 +214,6 @@ export default function FiltersPanel({
           Filtros
         </Button>
         {hasActive && <Chip label={`${activeCount}`} color="primary" variant="filled" />}
-
         {hasActive && (
           <Button variant="outlined" onClick={clear}>
             Eliminar filtros
@@ -211,7 +224,9 @@ export default function FiltersPanel({
       <Collapse in={open} unmountOnExit>
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="subtitle1" fontWeight="bold">Filtrar eventos</Typography>
+            <Typography variant="subtitle1" fontWeight="bold">
+              Filtrar eventos
+            </Typography>
             <Tooltip title="Cerrar sin aplicar">
               <IconButton aria-label="Cerrar" onClick={closeWithoutApply}>
                 <CloseIcon />
@@ -220,7 +235,7 @@ export default function FiltersPanel({
           </Box>
 
           <Stack spacing={2}>
-            {/* Toggle list */}
+            {/* Toggles rápidos */}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <FormControlLabel
@@ -243,16 +258,10 @@ export default function FiltersPanel({
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <FormControlLabel
-                  control={<Switch checked={adultOnly} onChange={(_, c) => setAdultOnly(c)} />}
-                  label="Mayores de edad"
-                />
+                <FormControlLabel control={<Switch checked={adultOnly} onChange={(_, c) => setAdultOnly(c)} />} label="Mayores de edad" />
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <FormControlLabel
-                  control={<Switch checked={savedOnly} onChange={(_, c) => setSavedOnly(c)} />}
-                  label="Guardados"
-                />
+                <FormControlLabel control={<Switch checked={savedOnly} onChange={(_, c) => setSavedOnly(c)} />} label="Guardados" />
               </Grid>
             </Grid>
 
@@ -286,15 +295,9 @@ export default function FiltersPanel({
                   label="Precio mínimo"
                   value={minPrice}
                   onChange={(e) => setMinPrice(e.target.value)}
-                  slotProps={{
-                    input: { inputProps: { min: 0 } },
-                    inputLabel: { shrink: true },
-                  }}
+                  slotProps={{ input: { inputProps: { min: 0 } }, inputLabel: { shrink: true } }}
                   sx={{
-                    '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
+                    '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
                     '& input[type=number]': { MozAppearance: 'textfield' },
                   }}
                 />
@@ -306,15 +309,9 @@ export default function FiltersPanel({
                   label="Precio máximo"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(e.target.value)}
-                  slotProps={{
-                    input: { inputProps: { min: 0 } },
-                    inputLabel: { shrink: true },
-                  }}
+                  slotProps={{ input: { inputProps: { min: 0 } }, inputLabel: { shrink: true } }}
                   sx={{
-                    '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': {
-                      WebkitAppearance: 'none',
-                      margin: 0,
-                    },
+                    '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
                     '& input[type=number]': { MozAppearance: 'textfield' },
                   }}
                 />
@@ -336,9 +333,12 @@ export default function FiltersPanel({
                   disabled={!!city}
                   helperText={city ? 'País bloqueado por selección de ciudad' : ' '}
                 >
-                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="">{'Todos'}</MenuItem>
+                  <MenuItem value="all">{'Todos (CO+AR)'}</MenuItem>
                   {facets.countries.map((c) => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
                   ))}
                 </TextField>
               </Grid>
@@ -350,38 +350,42 @@ export default function FiltersPanel({
                   label="Ciudad"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  helperText={country ? `Ciudades en ${country}` : 'Todas las ciudades'}
+                  helperText={country && country !== 'all' ? `Ciudades en ${country}` : 'Todas las ciudades'}
                 >
                   <MenuItem value="">Todas</MenuItem>
                   {filteredCities.map((c) => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
                   ))}
                 </TextField>
               </Grid>
 
               <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Categoría"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
+                <TextField select fullWidth label="Categoría" value={category} onChange={(e) => setCategory(e.target.value)}>
                   <MenuItem value="">Todas</MenuItem>
                   {facets.categories.map((c) => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                    <MenuItem key={c} value={c}>
+                      {c}
+                    </MenuItem>
                   ))}
                 </TextField>
               </Grid>
             </Grid>
 
-            {/* Vendedores (con eventos) */}
+            {/* Vendedores */}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12 }}>
                 <TextField
                   select
                   fullWidth
-                  SelectProps={{ multiple: true, renderValue: (selected) => (selected as string[]).map((id) => vendorsOptions.find((v) => v.id === id)?.name || id).join(', ') }}
+                  SelectProps={{
+                    multiple: true,
+                    renderValue: (selected) =>
+                      (selected as string[])
+                        .map((id) => vendorsOptions.find((v) => v.id === id)?.name || id)
+                        .join(', '),
+                  }}
                   label="Vendedores"
                   value={selectedVendors}
                   onChange={(e) => {
@@ -391,7 +395,9 @@ export default function FiltersPanel({
                   helperText={vendorsLoading ? 'Cargando vendedores...' : 'Seleccione uno o varios vendedores'}
                 >
                   {vendorsOptions.map((v) => (
-                    <MenuItem key={v.id} value={v.id}>{v.name}</MenuItem>
+                    <MenuItem key={v.id} value={v.id}>
+                      {v.name}
+                    </MenuItem>
                   ))}
                 </TextField>
               </Grid>
@@ -399,7 +405,9 @@ export default function FiltersPanel({
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
               <Button onClick={clear}>Limpiar</Button>
-              <Button variant="contained" onClick={apply}>Aplicar</Button>
+              <Button variant="contained" onClick={apply}>
+                Aplicar
+              </Button>
             </Box>
           </Stack>
         </Paper>

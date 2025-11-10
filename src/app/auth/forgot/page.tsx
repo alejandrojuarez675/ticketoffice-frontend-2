@@ -1,3 +1,4 @@
+// src/app/auth/forgot/page.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -12,20 +13,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthService } from '@/services/AuthService';
 
-const Schema = z.object({
-  email: z.string().email('Email inválido'),
-});
+const Schema = z.object({ email: z.string().email('Email inválido') });
 type Data = z.infer<typeof Schema>;
-
-const inputSx = {
-  '& .MuiInputBase-input': { color: 'common.white', WebkitTextFillColor: 'white' },
-  '& .MuiOutlinedInput-input': { color: 'common.white' },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.75)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.35)' },
-  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.6)' },
-  '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
-  '& .MuiInputLabel-root.Mui-focused': { color: 'primary.light' },
-};
 
 export default function ForgotPage() {
   const { showSnack } = useSnackbar();
@@ -35,15 +24,26 @@ export default function ForgotPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<Data>({ resolver: zodResolver(Schema), defaultValues: { email: '' } });
+  } = useForm<Data>({
+    resolver: zodResolver(Schema),
+    defaultValues: { email: '' },
+  });
 
   const onSubmit = async (data: Data) => {
     try {
       await AuthService.requestPasswordReset(data.email);
       setSent(true);
-      showSnack({ message: 'Si el correo existe, te enviamos un enlace para restablecer la contraseña.', severity: 'success' });
-    } catch (err) {
-      showSnack({ message: 'No se pudo procesar la solicitud. Intenta de nuevo.', severity: 'error' });
+      showSnack({
+        message: 'Si el correo existe, te enviamos un enlace para restablecer la contraseña.',
+        severity: 'success',
+      });
+    } catch {
+      // MVP: función no disponible en BE; igualmente mostramos mensaje informativo
+      setSent(true);
+      showSnack({
+        message: 'Si el correo existe, te enviaremos un enlace para restablecer la contraseña.',
+        severity: 'info',
+      });
     }
   };
 
@@ -51,9 +51,8 @@ export default function ForgotPage() {
     <LightLayout title="Recuperar contraseña - TicketOffice">
       <AuthShell
         title="Recuperar contraseña"
-        textColor="common.white"
         footer={
-          <MuiLink component={Link} href="/auth/login" underline="hover" sx={{ color: 'primary.light' }}>
+          <MuiLink component={Link} href="/auth/login" underline="hover">
             Volver a iniciar sesión
           </MuiLink>
         }
@@ -63,7 +62,7 @@ export default function ForgotPage() {
             Si el correo proporcionado corresponde a una cuenta, recibirás un enlace para restablecer tu contraseña.
           </Alert>
         ) : (
-          <Typography variant="body2" sx={{ mb: 2, color: 'rgba(255,255,255,0.85)' }}>
+          <Typography variant="body2" sx={{ mb: 2 }}>
             Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
           </Typography>
         )}
@@ -79,7 +78,6 @@ export default function ForgotPage() {
               error={!!errors.email}
               helperText={errors.email?.message ?? ' '}
               disabled={isSubmitting}
-              sx={inputSx}
             />
             <SubmitButton type="submit" fullWidth variant="contained" loading={isSubmitting}>
               Enviar enlace

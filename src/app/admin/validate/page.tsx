@@ -1,64 +1,68 @@
+// src/app/admin/events/validate/page.tsx
 'use client';
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  Alert,
+  Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  TextField,
-  Button,
-  Box,
   CardMedia,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Paper,
-  Divider,
-  CircularProgress,
-  useTheme,
-  useMediaQuery,
-  IconButton,
   Chip,
-  Snackbar,
-  Alert,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  IconButton,
   InputAdornment,
+  Paper,
+  Snackbar,
+  TextField,
+  Typography,
 } from '@mui/material';
-import Grid from '@mui/material/Grid';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import {
-  QrCodeScanner as QrCodeScannerIcon,
-  Event as EventIcon,
-  LocationOn as LocationIcon,
+  ArrowBack as ArrowBackIcon,
   CalendarToday as CalendarIcon,
   CheckCircle as CheckCircleIcon,
-  ArrowBack as ArrowBackIcon,
   ContentCopy as ContentCopyIcon,
+  Event as EventIcon,
+  LocationOn as LocationIcon,
+  QrCodeScanner as QrCodeScannerIcon,
 } from '@mui/icons-material';
-import { EventService } from '@/services/EventService';
-import { SalesService, type SaleRecord } from '@/services/SalesService';
-import type { EventDetail } from '@/types/Event';
-import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import Loading from '@/components/common/Loading';
+import { AuthService } from '@/services/AuthService';
+import { EventService } from '@/services/EventService';
+import type { EventDetail } from '@/types/Event';
+import { SalesService } from '@/services/SalesService';
+import { ConfigService } from '@/services/ConfigService';
 
 export const dynamic = 'force-dynamic';
 
 type ValidatedSale = {
   id: string;
-  ticketType: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  price: number;
+  ticketType?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  price?: number;
   validated: boolean;
   validatedAt?: string;
 };
 
-function formatDate(dateString: string) {
-  return format(new Date(dateString), "EEEE d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es });
+export default function EventTicketValidationPage() {
+  return (
+    <BackofficeLayout title="Validar Entradas">
+      <Suspense fallback={<Loading minHeight="40vh" />}>
+        <EventTicketValidationContent />
+      </Suspense>
+    </BackofficeLayout>
+  );
 }
 
 function EventTicketValidationContent() {
@@ -67,9 +71,6 @@ function EventTicketValidationContent() {
   const preSaleId = search.get('saleId') || undefined;
 
   const router = useRouter();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, isAdmin, isSeller, user, isLoading } = useAuth();
 
   const [ticketId, setTicketId] = useState('');
   const [sale, setSale] = useState<ValidatedSale | null>(null);
@@ -77,29 +78,26 @@ function EventTicketValidationContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [event, setEvent] = useState<EventDetail | null>(null);
-  const [eventLoading, setEventLoading] = useState(!!eventId);
+  const [eventLoading, setEventLoading] = useState<boolean>(!!eventId);
 
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({ open: false, message: '', severity: 'info' });
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
+    open: false,
+    message: '',
+    severity: 'info',
+  });
 
-  // Guard de autenticación
   useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/auth/login?next=' + encodeURIComponent('/admin/events/validate' + (eventId ? `?eventId=${eventId}` : '')));
+    if (!AuthService.isAuthenticated()) {
+      router.replace(`/auth/login?next=${encodeURIComponent('/admin/events/validate' + (eventId ? `?eventId=${eventId}` : ''))}`);
       return;
     }
-    if (!(isAdmin || isSeller)) {
+    if (!(AuthService.isAdmin() || AuthService.isSeller())) {
       router.replace('/');
       return;
     }
-  }, [isLoading, isAuthenticated, isAdmin, isSeller, router, eventId]);
+  }, [router, eventId]);
 
-  // Carga de evento (opcional, sólo si viene eventId por query)
   useEffect(() => {
     let active = true;
     (async () => {
@@ -109,12 +107,6 @@ function EventTicketValidationContent() {
         const ev = await EventService.getEventById(eventId);
         if (!active) return;
         setEvent(ev);
-        // Si es vendedor, validar que el evento le pertenezca
-        if (isSeller && ev?.organizer?.id && user?.id && ev.organizer.id !== String(user.id)) {
-          setSnackbar({ open: true, message: 'No tienes permiso para validar entradas de este evento', severity: 'error' });
-          router.replace('/admin/events');
-          return;
-        }
       } catch {
         if (active) {
           setEvent(null);
@@ -127,28 +119,14 @@ function EventTicketValidationContent() {
     return () => {
       active = false;
     };
-  }, [eventId, isSeller, user?.id, router]);
+  }, [eventId]);
 
-  // Autovalidación si se pasa saleId por query
   useEffect(() => {
     if (!preSaleId || isSubmitting) return;
     setTicketId(preSaleId);
     void handleValidateTicket();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preSaleId]);
-
-  const mapSaleRecordToValidated = (r: SaleRecord): ValidatedSale => ({
-    id: r.id,
-    ticketType: r.couponCode ? 'General (c/ cupón)' : 'General',
-    firstName: '',
-    lastName: '',
-    email: r.buyerEmail,
-    price: r.unitPrice,
-    validated: true,
-    validatedAt: new Date().toISOString(),
-  });
-
-  const handleCloseDialog = () => setOpenDialog(false);
 
   const handleValidateTicket = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -157,30 +135,42 @@ function EventTicketValidationContent() {
 
     try {
       setIsSubmitting(true);
-      // Mock de validación: buscar la venta en SalesService
-      const rows = await SalesService.list(eventId ? { eventId } : {});
-      const found = rows.find((r) => r.id === idToValidate || r.orderId === idToValidate);
-      if (!found) {
-        setSnackbar({ open: true, message: 'Entrada/venta no encontrada', severity: 'warning' });
+
+      if (ConfigService.isMockedEnabled()) {
+        // MOCK: buscamos entre ventas del evento (si hay eventId) o devolvemos OK
+        let ok = true;
+        if (eventId) {
+          const rows = await (await SalesService.list({ eventId })).slice(0, 100);
+          ok = rows.some((r) => r.id === idToValidate || r.orderId === idToValidate);
+        }
+        if (!ok) {
+          setSnackbar({ open: true, message: 'Entrada/venta no encontrada', severity: 'warning' });
+          return;
+        }
+        setSale({ id: idToValidate, validated: true, validatedAt: new Date().toISOString() });
+        setOpenDialog(true);
+        setSnackbar({ open: true, message: 'Entrada validada correctamente (mock)', severity: 'success' });
         return;
       }
-      const v = mapSaleRecordToValidated(found);
-      setSale(v);
+
+      if (!eventId) {
+        setSnackbar({ open: true, message: 'Selecciona un evento para validar (eventId requerido)', severity: 'warning' });
+        return;
+      }
+
+      await SalesService.validate(eventId, idToValidate);
+      setSale({ id: idToValidate, validated: true, validatedAt: new Date().toISOString() });
       setOpenDialog(true);
-      setSnackbar({ open: true, message: 'Entrada validada correctamente (mock)', severity: 'success' });
+      setSnackbar({ open: true, message: 'Entrada validada correctamente', severity: 'success' });
     } catch {
-      setSnackbar({
-        open: true,
-        message: 'Error al validar el ticket. Intente nuevamente.',
-        severity: 'error',
-      });
+      setSnackbar({ open: true, message: 'Error al validar el ticket. Intente nuevamente.', severity: 'error' });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleScanSuccess = (scannedTicketId: string) => {
-    setTicketId(scannedTicketId);
+  const handleScanSuccess = (scanned: string) => {
+    setTicketId(scanned);
     setScannerOpen(false);
     void handleValidateTicket();
   };
@@ -191,12 +181,12 @@ function EventTicketValidationContent() {
     setSnackbar({ open: true, message: 'ID copiado al portapapeles', severity: 'info' });
   };
 
-  if (isLoading || (eventId && eventLoading)) {
+  if (eventId && eventLoading) {
     return <Loading minHeight="60vh" />;
   }
 
   return (
-    <Box sx={{ p: isMobile ? 2 : 3 }}>
+    <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
         <IconButton onClick={() => router.push(eventId ? `/admin/events/${eventId}` : '/admin/events')} sx={{ mr: 1 }}>
           <ArrowBackIcon />
@@ -212,7 +202,15 @@ function EventTicketValidationContent() {
             {event ? (
               <CardMedia component="img" height="200" image={event.image?.url || '/placeholder-event.jpg'} alt={event.title} />
             ) : (
-              <Box sx={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover' }}>
+              <Box
+                sx={{
+                  height: 200,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'action.hover',
+                }}
+              >
                 <EventIcon color="action" sx={{ fontSize: 40 }} />
               </Box>
             )}
@@ -231,7 +229,7 @@ function EventTicketValidationContent() {
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
                     <CalendarIcon color="action" sx={{ mr: 1, fontSize: 20 }} />
                     <Typography variant="body2" color="text.secondary">
-                      {formatDate(String(event.date))}
+                      {new Date(event.date).toLocaleString('es-AR')}
                     </Typography>
                   </Box>
                   <Divider sx={{ my: 2 }} />
@@ -242,7 +240,7 @@ function EventTicketValidationContent() {
                     Validación sin evento asignado
                   </Typography>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Puedes validar una entrada ingresando su ID, aunque no hayas seleccionado un evento.
+                    Puedes validar ingresando el ID de la venta o del ticket. Para el MVP, si quieres validar en el backend necesitas pasar eventId.
                   </Typography>
                   <Divider sx={{ my: 2 }} />
                 </>
@@ -252,29 +250,21 @@ function EventTicketValidationContent() {
                 Instrucciones:
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                1. Ingrese el ID del ticket o escanee el código QR
+                1. Ingresa el ID del ticket/venta o escanea el QR.
               </Typography>
               <Typography variant="body2" color="text.secondary" paragraph>
-                2. Presione &quot;Validar&quot; o Enter
+                2. Presiona &ldquo;Validar&rdquo;.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                3. Revise los resultados de la validación
+                3. Revisa el resultado.
               </Typography>
 
               <Box sx={{ mt: 3, textAlign: 'center' }}>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  startIcon={<QrCodeScannerIcon />}
-                  onClick={() => setScannerOpen(true)}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                >
+                <Button variant="outlined" startIcon={<QrCodeScannerIcon />} onClick={() => setScannerOpen(true)} fullWidth sx={{ mb: 2 }}>
                   Escanear Código QR
                 </Button>
                 <Button
                   variant="contained"
-                  color="primary"
                   onClick={() => router.push(eventId ? `/admin/events/${eventId}` : '/admin/events')}
                   fullWidth
                 >
@@ -342,72 +332,28 @@ function EventTicketValidationContent() {
                   Escanear Código QR
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Haga clic aquí o presione el botón para abrir el escáner QR
+                  Haz clic aquí para abrir el escáner (simulado en MVP).
                 </Typography>
               </Paper>
-            </CardContent>
-          </Card>
-
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Historial de Validaciones
-              </Typography>
-              <Divider sx={{ mb: 3 }} />
-              <Box sx={{ textAlign: 'center', py: 4 }}>
-                <EventIcon color="action" sx={{ fontSize: 60, mb: 2, opacity: 0.5 }} />
-                <Typography variant="body1" color="text.secondary">
-                  El historial de validaciones aparecerá aquí
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  (Función en desarrollo)
-                </Typography>
-              </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Resultado de validación */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{sale?.validated ? 'Entrada Validada' : 'Resultado de Validación'}</DialogTitle>
         <DialogContent>
           {sale ? (
             <Box sx={{ mt: 2 }}>
               <Typography variant="h6" gutterBottom>
-                Detalles de la Entrada
+                Detalles
               </Typography>
               <Divider sx={{ mb: 2 }} />
-
               <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
                 <Box>
                   <Typography variant="subtitle2">ID</Typography>
                   <Typography variant="body1" gutterBottom>
                     {sale.id}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2">Tipo</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {sale.ticketType}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2">Comprador</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {`${sale.firstName} ${sale.lastName}`.trim() || sale.email}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2">Email</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    {sale.email}
-                  </Typography>
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2">Precio</Typography>
-                  <Typography variant="body1" gutterBottom>
-                    ${sale.price.toFixed(2)}
                   </Typography>
                 </Box>
                 <Box>
@@ -434,11 +380,10 @@ function EventTicketValidationContent() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cerrar</Button>
+          <Button onClick={() => setOpenDialog(false)}>Cerrar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Diálogo de escáner QR (mock) */}
       <Dialog open={scannerOpen} onClose={() => setScannerOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Escanear Código QR</DialogTitle>
         <DialogContent sx={{ textAlign: 'center', p: 4 }}>
@@ -470,12 +415,10 @@ function EventTicketValidationContent() {
               }}
             />
             <Typography variant="body1" color="white">
-              Vista previa del escáner QR
+              Vista previa del escáner (MVP)
             </Typography>
           </Box>
-          <Typography variant="body2" color="text.secondary">
-            Escanea el código QR de la entrada para validarla automáticamente.
-          </Typography>
+          <Typography variant="body2" color="text.secondary">Simulación de escaneo disponible en MVP.</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setScannerOpen(false)} color="inherit">
@@ -487,31 +430,21 @@ function EventTicketValidationContent() {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={5000}
         onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert onClose={() => setSnackbar((p) => ({ ...p, open: false }))} severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
+        <Alert
+          onClose={() => setSnackbar((p) => ({ ...p, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>
-  );
-}
-
-export default function EventTicketValidationPage() {
-  return (
-    <BackofficeLayout title="Validar Entradas">
-      <Suspense
-        fallback={
-          <Loading minHeight="40vh" />
-        }
-      >
-        <EventTicketValidationContent />
-      </Suspense>
-    </BackofficeLayout>
   );
 }

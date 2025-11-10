@@ -15,8 +15,12 @@ function FeaturedEventCard({ event }: { event: SearchEvent }) {
       <CardActionArea onClick={() => router.push(`/events/${event.id}`)} sx={{ display: 'block', textAlign: 'left' }}>
         <CardMedia component="img" height="200" image={event.bannerUrl} alt={event.name} sx={{ objectFit: 'cover' }} />
         <CardContent sx={{ flexGrow: 1 }}>
-          <Typography gutterBottom variant="h5" component="h2">{event.name}</Typography>
-          <Typography variant="body2" color="text.secondary" gutterBottom>{event.location}</Typography>
+          <Typography gutterBottom variant="h5" component="h2">
+            {event.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            {event.location}
+          </Typography>
           <Typography variant="body2" color="text.secondary">
             {new Date(event.date).toLocaleDateString('es-AR', {
               weekday: 'long',
@@ -28,7 +32,11 @@ function FeaturedEventCard({ event }: { event: SearchEvent }) {
             })}
           </Typography>
           <Typography variant="h6" color="primary">
-            ${event.price.toLocaleString('es-AR')} {event.currency}
+            {event.currency
+              ? new Intl.NumberFormat('es-AR', { style: 'currency', currency: /^[A-Z]{3}$/.test(event.currency) ? event.currency : 'ARS' }).format(
+                  event.price
+                )
+              : `$${event.price.toLocaleString('es-AR')}`}
           </Typography>
         </CardContent>
       </CardActionArea>
@@ -44,11 +52,46 @@ export default function FeaturedEvents() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const params = { country: 'Argentina', pageSize: 3, pageNumber: 1 };
-        const response = await EventService.searchEvents(params);
-        setEvents(response.events);
+        setLoading(true);
+        setError(null);
+
+        // Mostrar destacados combinando CO + AR y tomando los primeros 3
+        const targets = ['Colombia', 'Argentina'];
+        const reqs = await Promise.allSettled(
+          targets.map((c) =>
+            EventService.search({
+              country: c,
+              pageSize: 6,
+              pageNumber: 0, // 0-based
+            })
+          )
+        );
+
+        const merged: SearchEvent[] = [];
+        for (const r of reqs) {
+          if (r.status === 'fulfilled' && Array.isArray((r.value).events)) {
+            merged.push(...((r.value).events as SearchEvent[]));
+          }
+        }
+
+        // de-duplicar por id y tomar top 3 por fecha más próxima
+        const seen = new Set<string>();
+        const dedup = merged.filter((e) => {
+          if (!e?.id) return false;
+          if (seen.has(e.id)) return false;
+          seen.add(e.id);
+          return true;
+        });
+        dedup.sort((a: SearchEvent, b: SearchEvent) => {
+          const ta = a?.date ? new Date(a.date).getTime() : 0;
+          const tb = b?.date ? new Date(b.date).getTime() : 0;
+          return ta - tb;
+        });
+
+        setEvents(dedup.slice(0, 3));
       } catch (err) {
         setError('Error al cargar los eventos destacados');
+         
         console.error('Error:', err);
       } finally {
         setLoading(false);
@@ -65,7 +108,7 @@ export default function FeaturedEvents() {
         </Typography>
 
         {error && (
-          <Typography variant="h6" color="error" align="center">
+          <Typography variant="h6" color="error" align="center" sx={{ mb: 2 }}>
             {error}
           </Typography>
         )}
@@ -86,7 +129,9 @@ export default function FeaturedEvents() {
             ))}
           </Grid>
         ) : events.length === 0 ? (
-          <Typography variant="h6" align="center">No hay eventos disponibles en este momento.</Typography>
+          <Typography variant="h6" align="center">
+            No hay eventos disponibles en este momento.
+          </Typography>
         ) : (
           <Grid container spacing={4}>
             {events.map((event) => (

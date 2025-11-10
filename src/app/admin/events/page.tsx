@@ -1,303 +1,130 @@
 // src/app/admin/events/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
-import { useRouter } from 'next/navigation';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  IconButton,
-  Menu,
-  MenuItem,
+  Container,
   Paper,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
   Typography,
-  useTheme,
+  Chip,
+  CircularProgress,
 } from '@mui/material';
-import type { Theme } from '@mui/material/styles';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import AddIcon from '@mui/icons-material/Add';
-import { EventService, type EventListResponse } from '@/services/EventService';
+import { EventService } from '@/services/EventService';
 import type { EventForList } from '@/types/Event';
-import { useAuth } from '@/hooks/useAuth';
-import Loading from '@/components/common/Loading';
-import ErrorState from '@/components/common/ErrorState';
-import Empty from '@/components/common/Empty';
+import Link from 'next/link';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
-function EventActionsMenu({
-  anchorEl,
-  open,
-  onClose,
-  onViewDetails,
-  onViewAsClient,
-  onViewSales,
-  onValidate,
-  onEdit,
-  onDelete,
-}: {
-  anchorEl: HTMLElement | null;
-  open: boolean;
-  onClose: () => void;
-  onViewDetails: () => void;
-  onViewAsClient: () => void;
-  onViewSales: () => void;
-  onValidate: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <Menu id="event-actions-menu" anchorEl={anchorEl} keepMounted open={open} onClose={onClose}>
-      <MenuItem onClick={onViewDetails}>
-        <Typography variant="body2">Ver detalles</Typography>
-      </MenuItem>
-      <MenuItem onClick={onViewAsClient}>
-        <Typography variant="body2">Ver como cliente</Typography>
-      </MenuItem>
-      <MenuItem onClick={onViewSales}>
-        <Typography variant="body2">Ver ventas</Typography>
-      </MenuItem>
-      <MenuItem onClick={onValidate}>
-        <Typography variant="body2">Validar entradas</Typography>
-      </MenuItem>
-      <MenuItem onClick={onEdit}>
-        <Typography variant="body2">Editar</Typography>
-      </MenuItem>
-      <MenuItem onClick={onDelete}>
-        <Typography variant="body2" color="error">
-          Eliminar
-        </Typography>
-      </MenuItem>
-    </Menu>
-  );
+function statusChip(status?: string) {
+  const s = (status || '').toUpperCase();
+  if (s === 'ACTIVE' || s === 'PUBLISHED') return <Chip label="Publicado" color="success" size="small" />;
+  if (s === 'DRAFT') return <Chip label="Borrador" color="warning" size="small" />;
+  if (s === 'CANCELLED') return <Chip label="Cancelado" color="error" size="small" />;
+  return <Chip label={status || '—'} size="small" />;
 }
 
-const EventsList = () => {
+export default function AdminEventsPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const { isAuthenticated, hasBackofficeAccess, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const hasBackoffice = !!user && (user.role === 'admin' || user.role === 'seller');
 
-  const [events, setEvents] = useState<EventForList[]>([]);
+  const [rows, setRows] = useState<EventForList[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0, totalPages: 1 });
 
-  // Guards
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      router.replace('/auth/login?next=' + encodeURIComponent('/admin/events'));
+      router.replace('/auth/login?next=/admin/events');
       return;
     }
-    if (!hasBackofficeAccess) {
+    if (!hasBackoffice) {
       router.replace('/');
       return;
     }
-  }, [isAuthenticated, hasBackofficeAccess, isLoading, router]);
 
-  // Fetch events
-  useEffect(() => {
-    if (!isAuthenticated || !hasBackofficeAccess) return;
-    const fetchEvents = async () => {
+    let active = true;
+    (async () => {
       try {
         setLoading(true);
-        const data: EventListResponse = await EventService.getEvents(pagination.page, pagination.pageSize);
-        setEvents(data.events);
-        setPagination((prev) => ({ ...prev, total: data.total, totalPages: data.totalPages }));
-      } catch (err) {
-        console.error('Error fetching events:', err);
-        setError('Error al cargar los eventos. Por favor, inténtalo de nuevo.');
+        const res = await EventService.getEvents(1, 50);
+        if (!active) return;
+        setRows(res.events || []);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
+    })();
+
+    return () => {
+      active = false;
     };
-    fetchEvents();
-  }, [pagination.page, pagination.pageSize, isAuthenticated, hasBackofficeAccess]);
+  }, [isLoading, isAuthenticated, hasBackoffice, router]);
 
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, eventId: string) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedEventId(eventId);
-  };
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedEventId(null);
-  };
-
-  const handleCreateEvent = () => router.push('/admin/events/new');
-
-  const handleViewDetails = () => {
-    if (selectedEventId) router.push(`/admin/events/${selectedEventId}`);
-    handleMenuClose();
-  };
-  const handleViewAsClient = () => {
-    if (selectedEventId) router.push(`/events/${selectedEventId}`);
-    handleMenuClose();
-  };
-  const handleViewSales = () => {
-    if (selectedEventId) router.push(`/admin/events/${selectedEventId}/sales`);
-    handleMenuClose();
-  };
-  const handleValidateTickets = () => {
-    if (selectedEventId) router.push(`/admin/events/${selectedEventId}/validate`);
-    handleMenuClose();
-  };
-  const handleEditEvent = () => {
-    if (selectedEventId) router.push(`/admin/events/${selectedEventId}/edit`);
-    handleMenuClose();
-  };
-  const handleDeleteEvent = async () => {
-    if (!selectedEventId) return;
-    try {
-      setLoading(true);
-      await EventService.deleteEvent(selectedEventId);
-      const data = await EventService.getEvents(pagination.page, pagination.pageSize);
-      setEvents(data.events);
-      setPagination((prev) => ({ ...prev, total: data.total, totalPages: data.totalPages }));
-    } catch (err) {
-      console.error('Error deleting event:', err);
-      setError('Error al eliminar el evento. Por favor, inténtalo de nuevo.');
-    } finally {
-      setLoading(false);
-      handleMenuClose();
-    }
-  };
-
-  const handlePageChange = (newPage: number) => setPagination((prev) => ({ ...prev, page: newPage }));
-
-  if (isLoading || (loading && events.length === 0)) {
-    return <Loading label="Cargando eventos..." minHeight="60vh" />;
-  }
-
-  return (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4" component="h1">
-          Gestión de Eventos
-        </Typography>
-        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={handleCreateEvent} disabled={loading}>
-          Nuevo Evento
-        </Button>
-      </Box>
-
-      {error && (
-        <Box mb={3}>
-          <ErrorState message={error} onRetry={() => window.location.reload()} />
+  if (isLoading || loading) {
+    return (
+      <BackofficeLayout title="Eventos">
+        <Box display="flex" alignItems="center" justifyContent="center" minHeight="60vh">
+          <CircularProgress />
         </Box>
-      )}
-
-      <Card>
-        <CardContent>
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Fecha</TableCell>
-                  <TableCell>Ubicación</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {events.map((event) => (
-                  <TableRow key={event.id} hover>
-                    <TableCell>{event.name}</TableCell>
-                    <TableCell>{new Date(event.date).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' })}</TableCell>
-                    <TableCell>{event.location}</TableCell>
-                    <TableCell>
-                      <Box component="span" sx={{ color: getStatusColor(event.status, theme), fontWeight: 'medium' }}>
-                        {event.status === 'ACTIVE' && 'Activo'}
-                        {event.status === 'INACTIVE' && 'Inactivo'}
-                        {event.status === 'SOLD_OUT' && 'Agotado'}
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton aria-label="acciones" onClick={(e) => handleMenuOpen(e, event.id)} disabled={loading}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-
-                {events.length === 0 && !loading && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      <Empty title="Sin eventos" description="No hay eventos disponibles" />
-                    </TableCell>
-                  </TableRow>
-                )}
-
-                {loading && events.length > 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      <Loading label="" minHeight={0} size={24} />
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {pagination.totalPages > 1 && (
-            <Box display="flex" justifyContent="center" mt={3}>
-              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <Button
-                  key={pageNum}
-                  variant={pagination.page === pageNum ? 'contained' : 'outlined'}
-                  onClick={() => handlePageChange(pageNum)}
-                  disabled={loading || pagination.page === pageNum}
-                  sx={{ minWidth: 40, mx: 0.5 }}
-                >
-                  {pageNum}
-                </Button>
-              ))}
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      <EventActionsMenu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        onViewDetails={handleViewDetails}
-        onViewAsClient={handleViewAsClient}
-        onViewSales={handleViewSales}
-        onValidate={handleValidateTickets}
-        onEdit={handleEditEvent}
-        onDelete={handleDeleteEvent}
-      />
-    </Box>
-  );
-};
-
-function getStatusColor(status: 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT', theme: Theme) {
-  switch (status) {
-    case 'ACTIVE':
-      return theme.palette.success.main;
-    case 'INACTIVE':
-      return theme.palette.text.secondary;
-    case 'SOLD_OUT':
-      return theme.palette.warning.main;
-    default:
-      return theme.palette.text.primary;
+      </BackofficeLayout>
+    );
   }
-}
 
-export default function EventsPage() {
   return (
     <BackofficeLayout title="Eventos">
-      <EventsList />
+      <Container sx={{ py: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h4">Mis eventos</Typography>
+          <Button variant="contained" component={Link} href="/admin/events/new">
+            Nuevo evento
+          </Button>
+        </Box>
+
+        <Paper>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Título</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Estado</TableCell>
+                <TableCell align="right">Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((e) => (
+                <TableRow key={e.id} hover>
+                  <TableCell>{e.name}</TableCell>
+                  <TableCell>{new Date(e.date).toLocaleString('es-AR')}</TableCell>
+                  <TableCell>{statusChip(e.status)}</TableCell>
+                  <TableCell align="right">
+                    <Button component={Link} href={`/admin/events/${e.id}`} size="small">
+                      Ver
+                    </Button>
+                    <Button component={Link} href={`/admin/events/${e.id}/edit`} size="small">
+                      Editar
+                    </Button>
+                    <Button component={Link} href={`/admin/events/${e.id}/validate`} size="small">
+                      Validar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4}>No tienes eventos aún.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Paper>
+      </Container>
     </BackofficeLayout>
   );
 }
-

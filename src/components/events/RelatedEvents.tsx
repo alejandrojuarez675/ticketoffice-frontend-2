@@ -7,7 +7,12 @@ import { EventService } from '@/services/EventService';
 import type { SearchEvent } from '@/types/search-event';
 import { useRouter } from 'next/navigation';
 
-export default function RelatedEvents({ city }: { city?: string }) {
+interface RelatedEventsProps {
+  city?: string;
+  country: string;
+}
+
+export default function RelatedEvents({ city, country }: RelatedEventsProps) {
   const router = useRouter();
   const [events, setEvents] = useState<SearchEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +21,12 @@ export default function RelatedEvents({ city }: { city?: string }) {
     let active = true;
     (async () => {
       try {
-        const res = await EventService.searchEvents({ city, pageSize: 3, pageNumber: 1 });
+        const res = await EventService.searchEvents({ 
+          country,
+          city,
+          pageSize: 3, 
+          pageNumber: 1 
+        });
         if (!active) return;
         setEvents(res.events);
       } finally {
@@ -26,7 +36,7 @@ export default function RelatedEvents({ city }: { city?: string }) {
     return () => {
       active = false;
     };
-  }, [city]);
+  }, [city, country]);
 
   if (loading) {
     return (

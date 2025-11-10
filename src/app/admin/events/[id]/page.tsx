@@ -6,8 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { EventService } from '@/services/EventService';
 import type { EventDetail } from '@/types/Event';
-import { useAuth } from '@/hooks/useAuth';
-
+import { useAuth } from '@/app/contexts/AuthContext';
 import {
   Box,
   Button,
@@ -15,7 +14,6 @@ import {
   CardContent,
   Chip,
   Divider,
-  IconButton,
   List,
   ListItem,
   ListItemIcon,
@@ -23,6 +21,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
@@ -33,62 +32,62 @@ import {
   EventBusy as EventBusyIcon,
   LocationOn as LocationIcon,
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import Loading from '@/components/common/Loading';
 import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
+import Link from 'next/link';
+import { formatMoneyByCountry } from '@/utils/format';
 
-export default function EventDetailPage() {
+export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isAuthenticated, hasBackofficeAccess, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const hasBackoffice = !!user && (user.role === 'admin' || user.role === 'seller');
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Guards
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
       router.replace('/auth/login?next=' + encodeURIComponent(`/admin/events/${id}`));
       return;
     }
-    if (!hasBackofficeAccess) {
+    if (!hasBackoffice) {
       router.replace('/');
       return;
     }
-  }, [id, isAuthenticated, hasBackofficeAccess, isLoading, router]);
+  }, [id, isAuthenticated, hasBackoffice, isLoading, router]);
 
-  // Fetch
   useEffect(() => {
-    if (!id || !isAuthenticated || !hasBackofficeAccess) return;
-    const fetchEvent = async () => {
+    if (!id || !isAuthenticated || !hasBackoffice) return;
+    const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const eventData = await EventService.getEventById(id);
-        setEvent(eventData);
+        const data = await EventService.getEventById(id);
+        setEvent(data);
       } catch (err) {
-        console.error('Error fetching event:', err);
-        setError('Error al cargar los detalles del evento');
+         
+        console.error(err);
+        setError('Error al cargar el evento');
       } finally {
         setLoading(false);
       }
     };
-    fetchEvent();
-  }, [id, isAuthenticated, hasBackofficeAccess]);
+    load();
+  }, [id, isAuthenticated, hasBackoffice]);
 
   const handleBack = () => router.push('/admin/events');
-  const handleEdit = () => event && router.push(`/admin/events/${event.id}/edit`);
 
   if (isLoading || loading) {
     return (
       <BackofficeLayout title="Cargando...">
-        <Loading minHeight="60vh" />
+        <Box display="flex" alignItems="center" justifyContent="center" minHeight="60vh">
+          <CircularProgress />
+        </Box>
       </BackofficeLayout>
     );
   }
@@ -109,22 +108,15 @@ export default function EventDetailPage() {
     );
   }
 
-  const formattedDate = format(new Date(event.date), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
-  const formattedTime = format(new Date(event.date), "HH:mm 'hs'", { locale: es });
-
   return (
     <BackofficeLayout title={event.title || 'Detalles del Evento'}>
-      <Box sx={{ p: isMobile ? 2 : 3 }}>
+      <Box sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 200 }}>
-            <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography variant="h4" component="h1" noWrap>
-              {event.title || 'Detalles del Evento'}
-            </Typography>
-          </Box>
-          <Button variant="contained" onClick={handleEdit} startIcon={<EditIcon />} size={isMobile ? 'medium' : 'large'}>
+          <Button onClick={handleBack} startIcon={<ArrowBackIcon />} variant="text">
+            Volver
+          </Button>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button component={Link} href={`/admin/events/${event.id}/edit`} variant="contained" startIcon={<EditIcon />}>
             Editar Evento
           </Button>
         </Box>
@@ -139,16 +131,13 @@ export default function EventDetailPage() {
                   alt={event.title}
                   sx={{ width: '100%', height: 300, objectFit: 'cover', borderRadius: 1, mb: 2 }}
                 />
-
                 <Typography variant="h6" gutterBottom>
                   Descripción
                 </Typography>
                 <Typography component="p" sx={{ mb: 2 }}>
-                  {event.description || 'No hay descripción disponible para este evento.'}
+                  {event.description || 'Sin descripción.'}
                 </Typography>
-
                 <Divider sx={{ my: 2 }} />
-
                 <Typography variant="h6" gutterBottom>
                   Información del evento
                 </Typography>
@@ -160,7 +149,7 @@ export default function EventDetailPage() {
                         <ListItemIcon>
                           <CalendarIcon color="primary" />
                         </ListItemIcon>
-                        <ListItemText primary="Fecha y hora" secondary={`${formattedDate} a las ${formattedTime}`} />
+                        <ListItemText primary="Fecha y hora" secondary={new Date(event.date).toLocaleString('es-AR')} />
                       </ListItem>
                       <ListItem>
                         <ListItemIcon>
@@ -168,7 +157,11 @@ export default function EventDetailPage() {
                         </ListItemIcon>
                         <ListItemText
                           primary="Ubicación"
-                          secondary={event.location ? `${event.location.name}, ${event.location.city}` : 'Ubicación no especificada'}
+                          secondary={
+                            event.location
+                              ? `${event.location.name}, ${event.location.city}, ${event.location.country}`
+                              : 'Ubicación no especificada'
+                          }
                         />
                       </ListItem>
                     </List>
@@ -176,20 +169,18 @@ export default function EventDetailPage() {
 
                   <Grid size={{ xs: 12, md: 6 }}>
                     <List dense>
-                      {event.tickets?.map((ticket) => (
-                        <ListItem key={ticket.id}>
-                          <ListItemIcon>
-                            {ticket.stock > 0 ? <EventAvailableIcon color="success" /> : <EventBusyIcon color="error" />}
-                          </ListItemIcon>
+                      {event.tickets?.map((t) => (
+                        <ListItem key={t.id}>
+                          <ListItemIcon>{t.stock > 0 ? <EventAvailableIcon color="success" /> : <EventBusyIcon color="error" />}</ListItemIcon>
                           <ListItemText
-                            primary={ticket.type || 'Entrada general'}
+                            primary={t.type || 'Entrada'}
                             secondary={
                               <>
                                 <Box component="span" display="block">
-                                  {ticket.isFree ? 'Gratis' : `$${ticket.value.toFixed(2)} ${ticket.currency}`}
+                                  {t.isFree ? 'Gratis' : formatMoneyByCountry(t.value, event.location?.country)}
                                 </Box>
                                 <Box component="span" display="block">
-                                  {ticket.stock > 0 ? `${ticket.stock} entradas disponibles` : 'Agotado'}
+                                  {t.stock > 0 ? `${t.stock} disponibles` : 'Agotado'}
                                 </Box>
                               </>
                             }
@@ -207,8 +198,8 @@ export default function EventDetailPage() {
                       Información adicional
                     </Typography>
                     <List dense>
-                      {event.additionalInfo.map((info, index) => (
-                        <ListItem key={index}>
+                      {event.additionalInfo.map((info, i) => (
+                        <ListItem key={i}>
                           <ListItemText primary={info} />
                         </ListItem>
                       ))}
@@ -225,30 +216,19 @@ export default function EventDetailPage() {
                 <Typography variant="h6" gutterBottom>
                   Estado del evento
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Chip label={event.status === 'ACTIVE' ? 'Activo' : 'Inactivo'} color={event.status === 'ACTIVE' ? 'success' : 'default'} size="small" />
-                </Box>
-
+                <Chip
+                  label={event.status === 'ACTIVE' ? 'Activo' : event.status ?? '—'}
+                  color={event.status === 'ACTIVE' ? 'success' : 'default'}
+                  size="small"
+                />
                 <Divider sx={{ my: 2 }} />
-
                 <Typography variant="h6" gutterBottom>
                   Organizador
                 </Typography>
                 {event.organizer ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                    {event.organizer.logoUrl && (
-                      <Box component="img" src={event.organizer.logoUrl} alt={event.organizer.name} sx={{ width: 40, height: 40, borderRadius: '50%', mr: 1.5 }} />
-                    )}
-                    <Box>
-                      <Typography variant="subtitle1">{event.organizer.name}</Typography>
-                      {event.organizer.url && (
-                        <Typography variant="body2" color="text.secondary">
-                          <a href={event.organizer.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>
-                            {new URL(event.organizer.url).hostname}
-                          </a>
-                        </Typography>
-                      )}
-                    </Box>
+                  <Box>
+                    <Typography variant="subtitle1">{event.organizer.name}</Typography>
+                    {event.organizer.url && <Typography variant="body2" color="text.secondary">{event.organizer.url}</Typography>}
                   </Box>
                 ) : (
                   <Typography variant="body2" color="text.secondary">

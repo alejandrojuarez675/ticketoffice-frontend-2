@@ -1,183 +1,207 @@
+// src/app/admin/events/new/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Box, Button, Card, CardContent,
-  Grid, IconButton, TextField, Typography, 
-  useMediaQuery, useTheme, MenuItem, FormControl, 
-  InputLabel, Select, FormHelperText, Switch, CircularProgress,
-  FormControlLabel
+type EventStatus = 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  IconButton,
+  TextField,
+  Typography,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormHelperText,
+  Switch,
+  CircularProgress,
+  FormControlLabel,
+  Alert,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Save as SaveIcon, Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { es } from 'date-fns/locale';
-
+import {
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import { EventService } from '@/services/EventService';
 import type { EventDetail, Ticket } from '@/types/Event';
-import { AuthService } from '@/services/AuthService';
-import { randomUUID } from 'crypto';
+import { useAuth } from '@/app/contexts/AuthContext';
+
+function uuid() {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return Math.random().toString(36).slice(2);
+  }
+}
+
+function defaultCurrencyByCountry(country: string) {
+  return country === 'Colombia' ? 'COP' : 'ARS';
+}
 
 export default function NewEventPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const [formData, setFormData] = useState<Omit<EventDetail, 'id'>>({
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const hasBackoffice = !!user && (user.role === 'admin' || user.role === 'seller');
+
+  const [formData, setFormData] = useState<Omit<EventDetail, 'id'> & { status: EventStatus }>({
     title: '',
     date: new Date().toISOString(),
     image: { url: '', alt: '' },
-    tickets: [{
-      id: 'temp-1',
-      type: 'Entrada General',
-      value: 0,
-      currency: 'ARS',
-      isFree: false,
-      stock: 0
-    }],
+    tickets: [
+      {
+        id: 't-' + uuid(),
+        type: 'Entrada General',
+        value: 0,
+        currency: 'ARS',
+        isFree: false,
+        stock: 0,
+      },
+    ],
     description: '',
-    additionalInfo: [''],
+    additionalInfo: [],
     organizer: null,
     status: 'DRAFT',
     location: {
       name: '',
       address: '',
       city: '',
-      country: 'Argentina'
-    }
+      country: 'Argentina',
+    },
   });
-  
-  const [loading, setLoading] = useState(false);
+
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check authentication and admin status
-  React.useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push('/auth/login');
+  // Guards
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      router.replace('/auth/login?next=/admin/events/new');
       return;
     }
-    
-    if (!(AuthService.isAdmin() || AuthService.isSeller())) {
-      router.push('/');
+    if (!hasBackoffice) {
+      router.replace('/');
       return;
     }
-  }, [router]);
+  }, [isLoading, isAuthenticated, hasBackoffice, router]);
+
+  // Ajusta moneda según país automáticamente
+  useEffect(() => {
+    const cur = defaultCurrencyByCountry(formData.location.country);
+    setFormData((prev) => ({
+      ...prev,
+      tickets: prev.tickets.map((t) => ({ ...t, currency: t.isFree ? t.currency : cur })),
+    }));
+  }, [formData.location.country, formData.tickets]);
 
   const handleBack = () => router.push('/admin/events');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      location: {
-        ...prev.location,
-        [name]: value
-      }
-    }));
-  };
-
-  const handleDateChange = (date: Date | null) => {
-    if (date) {
-      setFormData(prev => ({
-        ...prev,
-        date: date.toISOString()
-      }));
-    }
+    setFormData((prev) => ({ ...prev, location: { ...prev.location, [name]: value } }));
   };
 
   const handleTicketChange = <K extends keyof Ticket>(index: number, field: K, value: unknown) => {
-    const updatedTickets = [...formData.tickets];
-    // Coerce incoming value based on target field type
-    const coerced: Ticket[K] = (
-      field === 'value' || field === 'stock'
-        ? Number(value)
-        : field === 'isFree'
-          ? Boolean(value)
-          : (String(value) as unknown)
-    ) as Ticket[K];
+    const updated = [...formData.tickets];
+    
+    // Type-safe coercion based on field type
+    let coerced: Ticket[K];
+    if (field === 'value' || field === 'stock') {
+      const numValue = Number(value);
+      coerced = (isNaN(numValue) ? 0 : numValue) as Ticket[K];
+    } else if (field === 'isFree') {
+      coerced = Boolean(value) as unknown as Ticket[K];
+    } else {
+      coerced = String(value) as unknown as Ticket[K];
+    }
 
-    updatedTickets[index] = {
-      ...updatedTickets[index],
-      [field]: coerced,
-    } as Ticket;
+    updated[index] = { ...updated[index], [field]: coerced };
 
-    setFormData(prev => ({
-      ...prev,
-      tickets: updatedTickets,
-    }));
+    if (field === 'isFree' && coerced === true) {
+      updated[index].value = 0 as unknown as number;
+    }
+
+    setFormData((prev) => ({ ...prev, tickets: updated }));
   };
 
   const addTicket = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       tickets: [
         ...prev.tickets,
         {
-          id: `temp-${Date.now()}`,
+          id: 't-' + uuid(),
           type: 'Nueva entrada',
           value: 0,
-          currency: 'ARS',
+          currency: defaultCurrencyByCountry(prev.location.country),
           isFree: false,
-          stock: 0
-        }
-      ]
+          stock: 0,
+        },
+      ],
     }));
   };
 
   const removeTicket = (index: number) => {
     if (formData.tickets.length <= 1) return;
-    
-    const updatedTickets = [...formData.tickets];
-    updatedTickets.splice(index, 1);
-    
-    setFormData(prev => ({
-      ...prev,
-      tickets: updatedTickets
-    }));
+    const updated = [...formData.tickets];
+    updated.splice(index, 1);
+    setFormData((prev) => ({ ...prev, tickets: updated }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
     try {
-      const eventData = {
-        ...formData,
+      const status = formData.status === 'PUBLISHED' ? 'ACTIVE' as const : formData.status;
+
+      const payload: Omit<EventDetail, 'id'> = {
+        title: formData.title,
         date: new Date(formData.date).toISOString(),
-        tickets: formData.tickets.map(ticket => ({
-          ...ticket,
-          id: ticket.id.startsWith('temp-') ? randomUUID() : ticket.id
+        image: formData.image,
+        tickets: formData.tickets.map((t) => ({
+          id: t.id,
+          type: t.type,
+          value: Number(t.value || 0),
+          currency: t.isFree ? defaultCurrencyByCountry(formData.location.country) : t.currency,
+          isFree: !!t.isFree,
+          stock: Number(t.stock || 0),
         })),
-        id: randomUUID()
+        description: formData.description || '',
+        additionalInfo: formData.additionalInfo || [],
+        location: formData.location,
+        status,
+        organizer: formData.organizer ?? null,
       };
-      
-      const createdEvent = await EventService.createEvent(eventData);
-      router.push(`/admin/events/${createdEvent.id}`);
-      
+
+      const created = await EventService.createEvent(payload);
+      router.replace(`/admin/events/${created.id}`);
     } catch (err) {
-      console.error('Error creating event:', err);
+       
+      console.error(err);
       setError('Error al crear el evento. Por favor, intente nuevamente.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
     <BackofficeLayout title="Nuevo Evento">
-      <Box sx={{ p: isMobile ? 2 : 3 }}>
+      <Box sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 2, flexWrap: 'wrap' }}>
           <IconButton onClick={handleBack} sx={{ mr: 1 }}>
             <ArrowBackIcon />
@@ -186,29 +210,27 @@ export default function NewEventPage() {
             Nuevo Evento
           </Typography>
           <Box sx={{ flexGrow: 1 }} />
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleSubmit}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-            disabled={loading}
+            startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+            disabled={saving}
           >
-            {loading ? 'Guardando...' : 'Guardar Evento'}
+            {saving ? 'Guardando...' : 'Guardar Evento'}
           </Button>
         </Box>
 
-        {error && (
-          <Box sx={{ mb: 3, p: 2, bgcolor: 'error.light', color: 'error.contrastText', borderRadius: 1 }}>
-            {error}
-          </Box>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 8 }}>
               <Card sx={{ mb: 3 }}>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>Información Básica</Typography>
-                  
+                  <Typography variant="h6" gutterBottom>
+                    Información Básica
+                  </Typography>
+
                   <TextField
                     fullWidth
                     label="Título del Evento"
@@ -218,7 +240,7 @@ export default function NewEventPage() {
                     margin="normal"
                     required
                   />
-                  
+
                   <TextField
                     fullWidth
                     label="Descripción"
@@ -230,33 +252,20 @@ export default function NewEventPage() {
                     rows={4}
                     required
                   />
-                  
-                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-                    <Grid container spacing={2} sx={{ mt: 1 }}>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <DatePicker
-                          label="Fecha del evento"
-                          value={new Date(formData.date)}
-                          onChange={handleDateChange}
-                          slotProps={{
-                            textField: { fullWidth: true, required: true, margin: 'normal' }
-                          }}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <TimePicker
-                          label="Hora del evento"
-                          value={new Date(formData.date)}
-                          onChange={handleDateChange}
-                          slotProps={{
-                            textField: { fullWidth: true, margin: 'normal' }
-                          }}
-                        />
-                      </Grid>
-                    </Grid>
-                  </LocalizationProvider>
 
-                  <Typography variant="subtitle1" sx={{ mt: 3, mb: 2 }}>Ubicación</Typography>
+                  <TextField
+                    fullWidth
+                    type="datetime-local"
+                    label="Fecha y hora"
+                    value={new Date(formData.date).toISOString().slice(0, 16)}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, date: new Date(e.target.value).toISOString() }))}
+                    margin="normal"
+                    InputLabelProps={{ shrink: true }}
+                  />
+
+                  <Typography variant="subtitle1" sx={{ mt: 3, mb: 2 }}>
+                    Ubicación
+                  </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12 }}>
                       <TextField
@@ -299,13 +308,12 @@ export default function NewEventPage() {
                         value={formData.location.country}
                         onChange={handleLocationChange}
                         margin="normal"
-                        disabled
                       />
                     </Grid>
                   </Grid>
                 </CardContent>
               </Card>
-              
+
               <Card sx={{ mb: 3 }}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -314,12 +322,12 @@ export default function NewEventPage() {
                       Agregar entrada
                     </Button>
                   </Box>
-                  
+
                   {formData.tickets.map((ticket, index) => (
                     <Card key={ticket.id} variant="outlined" sx={{ p: 2, mb: 2, position: 'relative' }}>
                       {formData.tickets.length > 1 && (
-                        <IconButton 
-                          size="small" 
+                        <IconButton
+                          size="small"
                           sx={{ position: 'absolute', top: 8, right: 8 }}
                           onClick={() => removeTicket(index)}
                           color="error"
@@ -327,7 +335,7 @@ export default function NewEventPage() {
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       )}
-                      
+
                       <Grid container spacing={2}>
                         <Grid size={{ xs: 12, md: 6 }}>
                           <TextField
@@ -341,17 +349,16 @@ export default function NewEventPage() {
                           />
                         </Grid>
                         <Grid size={{ xs: 12, md: 6 }}>
-                          <FormControl fullWidth margin="normal" size="small">
+                          <FormControl fullWidth margin="normal" size="small" disabled={ticket.isFree}>
                             <InputLabel>Moneda</InputLabel>
                             <Select
                               value={ticket.currency}
                               label="Moneda"
                               onChange={(e) => handleTicketChange(index, 'currency', e.target.value)}
-                              disabled={ticket.isFree}
                             >
                               <MenuItem value="ARS">ARS - Peso Argentino</MenuItem>
-                              <MenuItem value="USD">USD - Dólar Estadounidense</MenuItem>
-                              <MenuItem value="EUR">EUR - Euro</MenuItem>
+                              <MenuItem value="COP">COP - Peso Colombiano</MenuItem>
+                              <MenuItem value="USD">USD - Dólar</MenuItem>
                             </Select>
                           </FormControl>
                         </Grid>
@@ -394,50 +401,44 @@ export default function NewEventPage() {
                   ))}
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>Imagen del Evento</Typography>
-                  
+                  <Typography variant="h6" gutterBottom>
+                    Imagen del Evento
+                  </Typography>
                   <TextField
                     fullWidth
                     label="URL de la imagen"
                     name="url"
                     value={formData.image.url}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      image: { ...prev.image, url: e.target.value }
-                    }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, image: { ...prev.image, url: e.target.value } }))}
                     margin="normal"
                   />
-                  
                   <TextField
                     fullWidth
-                    label="Texto alternativo (para accesibilidad)"
+                    label="Texto alternativo"
                     name="alt"
                     value={formData.image.alt}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      image: { ...prev.image, alt: e.target.value }
-                    }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, image: { ...prev.image, alt: e.target.value } }))}
                     margin="normal"
-                    helperText="Describe la imagen para personas con discapacidad visual"
                   />
                 </CardContent>
               </Card>
             </Grid>
-            
+
             <Grid size={{ xs: 12, md: 4 }}>
-              <Card sx={{ mb: 3 }}>
+              <Card>
                 <CardContent>
-                  <Typography variant="h6" gutterBottom>Estado del Evento</Typography>
-                  
+                  <Typography variant="h6" gutterBottom>
+                    Estado del Evento
+                  </Typography>
                   <FormControl fullWidth margin="normal">
                     <InputLabel>Estado</InputLabel>
                     <Select
                       value={formData.status}
                       label="Estado"
-                      onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, status: e.target.value as EventStatus }))}
                     >
                       <MenuItem value="DRAFT">Borrador</MenuItem>
                       <MenuItem value="PUBLISHED">Publicado</MenuItem>
@@ -445,45 +446,10 @@ export default function NewEventPage() {
                     </Select>
                     <FormHelperText>
                       {formData.status === 'DRAFT' && 'El evento no es visible al público'}
-                      {formData.status === 'PUBLISHED' && 'El evento es visible al público'}
+                      {formData.status === 'PUBLISHED' && 'El evento será visible al público'}
                       {formData.status === 'CANCELLED' && 'El evento ha sido cancelado'}
                     </FormHelperText>
                   </FormControl>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>Organizador</Typography>
-                  
-                  <TextField
-                    fullWidth
-                    label="Nombre del organizador"
-                    value={formData.organizer?.name || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      organizer: {
-                        ...(prev.organizer || { id: '', name: '', url: '' }),
-                        name: e.target.value
-                      }
-                    }))}
-                    margin="normal"
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Sitio web del organizador"
-                    value={formData.organizer?.url || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      organizer: {
-                        ...(prev.organizer || { id: '', name: '', url: '' }),
-                        url: e.target.value
-                      }
-                    }))}
-                    margin="normal"
-                    placeholder="https://ejemplo.com"
-                  />
                 </CardContent>
               </Card>
             </Grid>

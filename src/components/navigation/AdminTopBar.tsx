@@ -1,20 +1,8 @@
+// src/components/navigation/AdminTopBar.tsx
 'use client';
 
 import { type FC, useState, useMemo, useCallback } from 'react';
-import {
-  AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
-  Box,
-  Avatar,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Tooltip,
-} from '@mui/material';
+import { AppBar, Toolbar, IconButton, Typography, Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Divider, Tooltip } from '@mui/material';
 import { Menu as MenuIcon, Logout as LogoutIcon, AccountCircle as AccountCircleIcon, Settings as SettingsIcon } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,7 +20,7 @@ const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick, topOffset = 0 }) => {
   const buttonId = 'account-button';
   const menuId = 'account-menu';
 
-  const handleMenu = useCallback((event: React.MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget), []);
+  const handleMenu = useCallback((e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget), []);
   const handleClose = useCallback(() => setAnchorEl(null), []);
   const handleProfile = useCallback(() => {
     handleClose();
@@ -50,7 +38,6 @@ const AdminTopBar: FC<AdminTopBarProps> = ({ onMenuClick, topOffset = 0 }) => {
 
   const avatarLetter = useMemo(() => (user?.name ? user.name.charAt(0).toUpperCase() : 'U'), [user?.name]);
 
-  // Normalize top offset to responsive values
   const topXs = typeof topOffset === 'number' ? topOffset : topOffset?.xs ?? 0;
   const topSm = typeof topOffset === 'number' ? topOffset : topOffset?.sm ?? topXs;
 

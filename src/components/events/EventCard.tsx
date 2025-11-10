@@ -1,3 +1,4 @@
+// src/components/events/EventCard.tsx
 'use client';
 
 import {
@@ -33,6 +34,7 @@ import { deriveCategory } from '@/utils/eventsFilters';
 import { EventService } from '@/services/EventService';
 import { CheckoutService } from '@/services/CheckoutService';
 import type { Ticket } from '@/types/Event';
+import { formatCurrency } from '@/utils/format';
 
 function statusColor(status: SearchEvent['status']): ChipProps['color'] {
   switch (status) {
@@ -75,7 +77,10 @@ export default function EventCard({ event }: { event: SearchEvent }) {
     month: 'long',
     day: 'numeric',
   });
-  const timeLabel = dateObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const timeLabel = dateObj.toLocaleTimeString('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
   const storageKey = `quickbuy:${event.id}`;
 
@@ -91,11 +96,7 @@ export default function EventCard({ event }: { event: SearchEvent }) {
 
   const savePrefs = (next?: Partial<{ selectedTicketId: string; quantity: number }>) => {
     try {
-      const data = {
-        selectedTicketId,
-        quantity,
-        ...next,
-      };
+      const data = { selectedTicketId, quantity, ...next };
       localStorage.setItem(storageKey, JSON.stringify(data));
     } catch {}
   };
@@ -103,7 +104,7 @@ export default function EventCard({ event }: { event: SearchEvent }) {
   return (
     <Card
       onClick={() => {
-        if (openBuy) return; // avoid navigating while quick-buy is open
+        if (openBuy) return;
         router.push(`/events/${event.id}`);
       }}
       sx={{
@@ -154,7 +155,7 @@ export default function EventCard({ event }: { event: SearchEvent }) {
         </Typography>
 
         <Typography variant="subtitle1" color="primary" sx={{ mt: 1.5 }}>
-          ${event.price.toLocaleString('es-AR')} {event.currency}
+          {formatCurrency(event.price, /^[A-Z]{3}$/.test(event.currency) ? event.currency : 'ARS', 'es-AR')}
         </Typography>
       </CardContent>
 
@@ -180,17 +181,13 @@ export default function EventCard({ event }: { event: SearchEvent }) {
           variant="contained"
           onClick={(e) => {
             e.stopPropagation();
-            // Telemetry
-            console.log('[quickbuy] open', { eventId: event.id });
-            // Quick-buy: open dialog and fetch tickets
             setOpenBuy(true);
             setLoadingTickets(true);
-            // Restore previous selection if any
             loadPrefs();
-            EventService.getEventById(event.id)
+            // Usar endpoint público (no requiere auth)
+            EventService.getPublicById(event.id)
               .then((evt) => {
                 setTickets(evt.tickets || []);
-                // preselect first available
                 if (!selectedTicketId) {
                   const firstAvailable = (evt.tickets || []).find((t) => t.stock > 0);
                   if (firstAvailable) setSelectedTicketId(firstAvailable.id);
@@ -205,7 +202,14 @@ export default function EventCard({ event }: { event: SearchEvent }) {
       </Box>
 
       {/* Quick Buy Dialog */}
-      <Dialog open={openBuy} onClose={() => { setOpenBuy(false); }} fullWidth maxWidth="xs">
+      <Dialog
+        open={openBuy}
+        onClose={() => {
+          setOpenBuy(false);
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>Comprar entradas</DialogTitle>
         <DialogContent dividers>
           {loadingTickets ? (
@@ -226,12 +230,13 @@ export default function EventCard({ event }: { event: SearchEvent }) {
                     const val = e.target.value;
                     setSelectedTicketId(val);
                     savePrefs({ selectedTicketId: val });
-                    console.log('[quickbuy] selectTicket', { eventId: event.id, ticketId: val });
                   }}
                 >
                   {tickets.map((t) => (
                     <MenuItem key={t.id} value={t.id} disabled={t.stock <= 0}>
-                      {t.type} {t.isFree ? '(Gratis)' : `- $${t.value.toLocaleString('es-AR')} ${t.currency}`} {t.stock <= 0 ? ' - Agotado' : ''}
+                      {t.type}{' '}
+                      {t.isFree ? '(Gratis)' : `- ${formatCurrency(t.value, /^[A-Z]{3}$/.test(t.currency) ? t.currency : 'ARS', 'es-AR')}`}{' '}
+                      {t.stock <= 0 ? ' - Agotado' : ''}
                     </MenuItem>
                   ))}
                 </Select>
@@ -243,17 +248,19 @@ export default function EventCard({ event }: { event: SearchEvent }) {
                 label="Cantidad"
                 margin="normal"
                 value={quantity}
-                inputProps={{ min: 1, max: (tickets.find(t => t.id === selectedTicketId)?.stock) ?? 1 }}
+                inputProps={{
+                  min: 1,
+                  max: tickets.find((t) => t.id === selectedTicketId)?.stock ?? 1,
+                }}
                 helperText={(() => {
-                  const stock = (tickets.find(t => t.id === selectedTicketId)?.stock) ?? 0;
+                  const stock = tickets.find((t) => t.id === selectedTicketId)?.stock ?? 0;
                   return stock > 0 ? `Disponibles: ${stock}` : 'Sin stock disponible';
                 })()}
                 onChange={(e) => {
-                  const max = (tickets.find(t => t.id === selectedTicketId)?.stock) ?? 1;
+                  const max = tickets.find((t) => t.id === selectedTicketId)?.stock ?? 1;
                   const val = Math.max(1, Math.min(parseInt(e.target.value || '1', 10), max));
                   setQuantity(val);
                   savePrefs({ quantity: val });
-                  console.log('[quickbuy] changeQuantity', { eventId: event.id, quantity: val });
                 }}
               />
             </>
@@ -263,7 +270,6 @@ export default function EventCard({ event }: { event: SearchEvent }) {
           <Button
             onClick={(e) => {
               e.stopPropagation();
-              console.log('[quickbuy] cancel', { eventId: event.id });
               setOpenBuy(false);
             }}
           >
@@ -279,13 +285,18 @@ export default function EventCard({ event }: { event: SearchEvent }) {
                 setCreatingSession(true);
                 const session = await CheckoutService.createSession(event.id, selectedTicketId, quantity);
                 if (session?.sessionId) {
-                  console.log('[quickbuy] createSession:success', { eventId: event.id, sessionId: session.sessionId });
+                  // Persistimos meta para reconstruir en /checkout/[sessionId]
+                  try {
+                    localStorage.setItem(
+                      `checkout:meta:${session.sessionId}`,
+                      JSON.stringify({ eventId: event.id, priceId: selectedTicketId, quantity })
+                    );
+                  } catch {}
                   setOpenBuy(false);
                   router.push(`/checkout/${session.sessionId}`);
                 }
               } catch (err) {
                 console.error(err);
-                console.log('[quickbuy] createSession:fail', { eventId: event.id, error: String(err) });
                 alert('No se pudo iniciar la compra. Inténtalo nuevamente.');
               } finally {
                 setCreatingSession(false);

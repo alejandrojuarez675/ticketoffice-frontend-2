@@ -10,6 +10,8 @@ import {
   Settings as SettingsIcon,
 } from '@mui/icons-material';
 
+import { FEATURES } from './featureFlags';
+
 export type BackofficeRole = 'admin' | 'seller';
 
 export type NavItem = {
@@ -39,3 +41,32 @@ export const navItems: NavItem[] = [
   { key: 'users', label: 'Vendedores', href: '/admin/users', icon: PeopleIcon, roles: ['admin'] },
   { key: 'settings', label: 'Configuración', href: '/admin/settings', icon: SettingsIcon, roles: ['admin'] },
 ];
+
+
+const featureGate = (key: string) => {
+  switch (key) {
+    case 'profile': return FEATURES.PROFILE;
+    case 'reports': return FEATURES.REPORTS;
+    case 'users': return FEATURES.USERS;
+    case 'settings': return FEATURES.SETTINGS;
+    case 'events': return FEATURES.EVENTS;
+    case 'validate': return FEATURES.VALIDATE;
+    default: return true;
+  }
+};
+
+export const getNavFor = (role: BackofficeRole) => {
+  const byRole = (item: NavItem) => item.roles.includes(role);
+  const byFeature = (item: NavItem) => featureGate(item.key);
+
+  const filterTree = (items: NavItem[]): NavItem[] =>
+    items
+      .filter((i) => byRole(i) && byFeature(i))
+      .map((i) => ({
+        ...i,
+        children: i.children ? filterTree(i.children) : undefined,
+      }))
+      .filter((i) => (i.children ? i.children.length > 0 : true));
+
+  return filterTree(navItems);
+};

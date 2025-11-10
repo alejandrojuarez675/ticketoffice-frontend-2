@@ -1,6 +1,23 @@
+// src/components/navigation/Navbar.tsx
 'use client';
 
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, useMediaQuery, useTheme, Avatar, Tooltip, Menu, MenuItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Box,
+  IconButton,
+  useMediaQuery,
+  useTheme,
+  Avatar,
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -25,7 +42,6 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
   const buttonId = 'navbar-account-button';
   const menuId = 'navbar-account-menu';
 
-  // Guest (unauthenticated) mobile menu
   const [guestAnchorEl, setGuestAnchorEl] = useState<null | HTMLElement>(null);
   const guestMenuOpen = Boolean(guestAnchorEl);
   const openGuestMenu = (e: React.MouseEvent<HTMLElement>) => setGuestAnchorEl(e.currentTarget);
@@ -47,31 +63,34 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
   const handleLogout = useCallback(async () => {
     handleClose();
     await logout();
-    if (pathname?.startsWith('/admin')) {
-      router.replace('/auth/login');
-    } else {
-      router.refresh();
-    }
+    if (pathname?.startsWith('/admin')) router.replace('/auth/login');
+    else router.refresh();
   }, [handleClose, logout, pathname, router]);
 
   const avatarLetter = useMemo(() => (user?.name ? user.name.charAt(0).toUpperCase() : 'U'), [user?.name]);
 
-  // Reference possibly provided prop to avoid unused var lint while keeping behavior unchanged
   useEffect(() => {
-    // no-op
+    // keep prop referenced
   }, [_onMenuClick]);
+
+  const isEventsActive = pathname?.startsWith('/events');
 
   return (
     <AppBar position="fixed" color="default" elevation={0}>
       <Toolbar>
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-          <Typography variant="h6" component={Link} href="/" sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold', mr: 2 }}>
+          <Typography
+            variant="h6"
+            component={Link}
+            href="/"
+            sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold', mr: 2 }}
+          >
             TicketOffice
           </Typography>
 
           {!isMobile && (
             <Box sx={{ display: 'flex', ml: 2 }}>
-              <Button component={Link} href="/events">
+              <Button component={Link} href="/events" color={isEventsActive ? 'primary' : 'inherit'}>
                 Eventos
               </Button>
               {isAuthenticated && hasBackofficeAccess && (
@@ -91,54 +110,42 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          {isMobile && (
+          {isMobile && !isAuthenticated && (
             <>
-              {/* Show hamburger only when not authenticated (guest) */}
-              {!isAuthenticated && (
-                <>
-                  <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 1 }} onClick={openGuestMenu}>
-                    <MenuIcon />
-                  </IconButton>
-                  <Menu
-                    anchorEl={guestAnchorEl}
-                    open={guestMenuOpen}
-                    onClose={closeGuestMenu}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                  >
-                    <MenuItem component={Link} href="/events" onClick={closeGuestMenu}>
-                      <ListItemText>Todos los eventos</ListItemText>
-                    </MenuItem>
-                    <Divider />
-                    <MenuItem component={Link} href="/auth/login" onClick={closeGuestMenu}>
-                      <ListItemText>Iniciar Sesión</ListItemText>
-                    </MenuItem>
-                    <MenuItem component={Link} href="/auth/register" onClick={closeGuestMenu}>
-                      <ListItemText>Registrarse</ListItemText>
-                    </MenuItem>
-                  </Menu>
-                </>
-              )}
-              {/* When authenticated, hide hamburger but keep quick-create action if allowed */}
-              {isAuthenticated && hasBackofficeAccess && (
-                <Tooltip title="Crear evento">
-                  <IconButton
-                    component={Link}
-                    href="/admin/events/new"
-                    size="large"
-                    color="primary"
-                    aria-label="Crear evento"
-                    sx={{ mr: 1 }}
-                  >
-                    <AddCircleOutlineIcon />
-                  </IconButton>
-                </Tooltip>
-              )}
+              <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 1 }} onClick={openGuestMenu}>
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                anchorEl={guestAnchorEl}
+                open={guestMenuOpen}
+                onClose={closeGuestMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+              >
+                <MenuItem component={Link} href="/events" onClick={closeGuestMenu}>
+                  <ListItemText>Todos los eventos</ListItemText>
+                </MenuItem>
+                <Divider />
+                <MenuItem component={Link} href="/auth/login" onClick={closeGuestMenu}>
+                  <ListItemText>Iniciar Sesión</ListItemText>
+                </MenuItem>
+                <MenuItem component={Link} href="/auth/register" onClick={closeGuestMenu}>
+                  <ListItemText>Registrarse</ListItemText>
+                </MenuItem>
+              </Menu>
             </>
           )}
 
           {isAuthenticated ? (
             <>
+              {isMobile && hasBackofficeAccess && (
+                <Tooltip title="Crear evento">
+                  <IconButton component={Link} href="/admin/events/new" size="large" color="primary" aria-label="Crear evento" sx={{ mr: 1 }}>
+                    <AddCircleOutlineIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
+
               <Tooltip title="Cuenta">
                 <IconButton
                   id={buttonId}
@@ -203,19 +210,16 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
               </Menu>
             </>
           ) : (
-            <>
-              {/* On desktop show inline auth buttons; hidden on mobile since they are in hamburger */}
-              {!isMobile && (
-                <>
-                  <Button component={Link} href="/auth/login" color="inherit">
-                    Iniciar Sesión
-                  </Button>
-                  <Button component={Link} href="/auth/register" variant="contained" color="primary" sx={{ ml: 1 }}>
-                    Registrarse
-                  </Button>
-                </>
-              )}
-            </>
+            !isMobile && (
+              <>
+                <Button component={Link} href="/auth/login" color="inherit">
+                  Iniciar Sesión
+                </Button>
+                <Button component={Link} href="/auth/register" variant="contained" color="primary" sx={{ ml: 1 }}>
+                  Registrarse
+                </Button>
+              </>
+            )
           )}
         </Box>
       </Toolbar>

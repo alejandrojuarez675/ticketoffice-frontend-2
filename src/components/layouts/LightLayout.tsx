@@ -1,4 +1,5 @@
-"use client";
+// src/components/layouts/LightLayout.tsx
+'use client';
 
 import { type ReactNode } from 'react';
 import { Box } from '@mui/material';
@@ -19,14 +20,8 @@ export default function LightLayout({ children, title = 'TicketOffice' }: LightL
         <meta name="description" content="TicketOffice - Your event ticketing platform" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100vh',
-        }}
-      >
+
+      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Navbar />
         <Box component="main" sx={{ flexGrow: 1, mt: { xs: '56px', sm: '64px' } }}>
           {children}

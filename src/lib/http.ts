@@ -1,4 +1,4 @@
-/* Centralized HTTP client with basic retries and typed JSON parsing */
+// src/lib/http.ts
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface FetchJsonOptions<B = unknown> {
@@ -7,6 +7,13 @@ export interface FetchJsonOptions<B = unknown> {
   body?: B;
   retries?: number; // default 0
   retryDelayMs?: number; // default 300
+  signal?: AbortSignal; // opcional: cancelar requests
+}
+
+// Provider global de token para Authorization
+let authTokenProvider: (() => string | null) | null = null;
+export function setAuthTokenProvider(provider: (() => string | null) | null) {
+  authTokenProvider = provider;
 }
 
 export class HttpError extends Error {
@@ -27,31 +34,26 @@ async function delay(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-export async function fetchJson<TResponse, B = unknown>(
-  url: string,
-  opts: FetchJsonOptions<B> = {}
-): Promise<TResponse> {
-  const {
-    method = 'GET',
-    headers = {},
-    body,
-    retries = 0,
-    retryDelayMs = 300,
-  } = opts;
+export async function fetchJson<TResponse, B = unknown>(url: string, opts: FetchJsonOptions<B> = {}): Promise<TResponse> {
+  const { method = 'GET', headers = {}, body, retries = 0, retryDelayMs = 300, signal } = opts;
+
+  const dynamicHeaders: Record<string, string> = {
+    accept: 'application/json',
+    'Content-Type': 'application/json',
+    ...headers,
+  };
+
+  const token = authTokenProvider?.();
+  if (token) dynamicHeaders.Authorization = `Bearer ${token}`;
 
   const init: RequestInit = {
     method,
-    headers: {
-      accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...headers,
-    },
+    headers: dynamicHeaders,
     body: body != null ? JSON.stringify(body) : undefined,
-    // credentials: 'include', // enable if using cookies
+    signal,
   };
 
   let attempt = 0;
-  // simple retry for idempotent methods or 5xx
   while (true) {
     try {
       const res = await fetch(url, init);
@@ -59,11 +61,14 @@ export async function fetchJson<TResponse, B = unknown>(
       if (!res.ok) {
         let details: unknown;
         if (isJson) {
-          try { details = await res.json(); } catch {}
+          try {
+            details = await res.json();
+          } catch {}
         } else {
-          try { details = await res.text(); } catch {}
+          try {
+            details = await res.text();
+          } catch {}
         }
-        // retry on 429/5xx
         if (attempt < retries && (res.status === 429 || (res.status >= 500 && res.status < 600))) {
           attempt++;
           await delay(retryDelayMs * attempt);
@@ -71,12 +76,8 @@ export async function fetchJson<TResponse, B = unknown>(
         }
         throw new HttpError(url, res.status, res.statusText, details);
       }
-      // happy path
       if (res.status === 204) return undefined as unknown as TResponse;
-      if (isJson) {
-        return (await res.json()) as TResponse;
-      }
-      // Fallback to text
+      if (isJson) return (await res.json()) as TResponse;
       return (await res.text()) as unknown as TResponse;
     } catch (err) {
       if (attempt < retries) {
@@ -90,14 +91,12 @@ export async function fetchJson<TResponse, B = unknown>(
 }
 
 export const http = {
-  get: <T>(url: string, options?: Omit<FetchJsonOptions, 'method' | 'body'>) =>
-    fetchJson<T>(url, { method: 'GET', ...(options || {}) }),
+  get: <T,>(url: string, options?: Omit<FetchJsonOptions, 'method' | 'body'>) => fetchJson<T>(url, { method: 'GET', ...(options || {}) }),
   post: <T, B = unknown>(url: string, body?: B, options?: Omit<FetchJsonOptions<B>, 'method' | 'body'>) =>
     fetchJson<T, B>(url, { method: 'POST', body, ...(options || {}) }),
   put: <T, B = unknown>(url: string, body?: B, options?: Omit<FetchJsonOptions<B>, 'method' | 'body'>) =>
     fetchJson<T, B>(url, { method: 'PUT', body, ...(options || {}) }),
   patch: <T, B = unknown>(url: string, body?: B, options?: Omit<FetchJsonOptions<B>, 'method' | 'body'>) =>
     fetchJson<T, B>(url, { method: 'PATCH', body, ...(options || {}) }),
-  delete: <T>(url: string, options?: Omit<FetchJsonOptions, 'method' | 'body'>) =>
-    fetchJson<T>(url, { method: 'DELETE', ...(options || {}) }),
+  delete: <T,>(url: string, options?: Omit<FetchJsonOptions, 'method' | 'body'>) => fetchJson<T>(url, { method: 'DELETE', ...(options || {}) }),
 };

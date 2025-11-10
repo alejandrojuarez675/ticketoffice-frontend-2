@@ -22,8 +22,9 @@ export interface SearchEventResponse {
 }
 
 export interface SearchEventParams {
-  country?: string;
+  country: string;
   city?: string;
+  query?: string;
   category?: string;
   dateFrom?: string;
   dateTo?: string;

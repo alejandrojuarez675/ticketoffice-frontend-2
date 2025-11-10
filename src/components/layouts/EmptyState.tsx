@@ -1,4 +1,6 @@
+// src/components/layouts/EmptyState.tsx
 'use client';
+
 import { Box, Typography, Button } from '@mui/material';
 
 export default function EmptyState({
@@ -23,7 +25,9 @@ export default function EmptyState({
         borderColor: 'divider',
       }}
     >
-      <Typography variant="h6" gutterBottom>{title}</Typography>
+      <Typography variant="h6" gutterBottom>
+        {title}
+      </Typography>
       {description && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {description}

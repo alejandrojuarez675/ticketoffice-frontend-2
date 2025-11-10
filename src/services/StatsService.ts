@@ -1,4 +1,3 @@
-// src/services/StatsService.ts
 import { ConfigService } from './ConfigService';
 
 export type SellerSummary = {

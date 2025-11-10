@@ -1,13 +1,8 @@
+// src/components/forms/PasswordField.tsx
 'use client';
 
 import { useState } from 'react';
-import {
-  TextField,
-  IconButton,
-  InputAdornment,
-  Tooltip,
-  Fade,
-} from '@mui/material';
+import { TextField, IconButton, InputAdornment, Tooltip, Fade } from '@mui/material';
 import { Visibility, VisibilityOff, KeyboardCapslock } from '@mui/icons-material';
 
 type Props = React.ComponentProps<typeof TextField> & {
@@ -27,20 +22,10 @@ export default function PasswordField({ onCapsChange, slotProps, onKeyUp, ...pro
 
   const adornment = (
     <InputAdornment position="end" sx={{ gap: 0.5 }}>
-      <Tooltip
-        title={caps ? 'Bloq Mayús activado' : ''}
-        open={caps}
-        slots={{ transition: Fade }}
-        slotProps={{ transition: { timeout: 200 } }}
-      >
+      <Tooltip title={caps ? 'Bloq Mayús activado' : ''} open={caps} slots={{ transition: Fade }} slotProps={{ transition: { timeout: 200 } }}>
         <span>{caps ? <KeyboardCapslock color="warning" fontSize="small" /> : null}</span>
       </Tooltip>
-      <IconButton
-        aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-        onClick={() => setShow((s) => !s)}
-        edge="end"
-        size="small"
-      >
+      <IconButton aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'} onClick={() => setShow((s) => !s)} edge="end" size="small">
         {show ? <VisibilityOff /> : <Visibility />}
       </IconButton>
     </InputAdornment>
@@ -54,12 +39,5 @@ export default function PasswordField({ onCapsChange, slotProps, onKeyUp, ...pro
     },
   };
 
-  return (
-    <TextField
-      {...props}
-      type={show ? 'text' : 'password'}
-      slotProps={mergedSlotProps}
-      onKeyUp={handleKeyUp}
-    />
-  );
+  return <TextField {...props} type={show ? 'text' : 'password'} slotProps={mergedSlotProps} onKeyUp={handleKeyUp} />;
 }

@@ -51,7 +51,8 @@ function EventsListInner() {
     [searchParams, savedOnly, adultOnly, minPrice, maxPrice, vendorsParam]
   );
 
-  // Carga de catálogo completo y única (mock). Con BE real, migrar a server-side paging con endpoints de conteo.
+  console.log('API_BASE', process.env.NEXT_PUBLIC_API_BASE_URL);
+  
   useEffect(() => {
     let active = true;
     (async () => {

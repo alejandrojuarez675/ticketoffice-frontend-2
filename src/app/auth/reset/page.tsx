@@ -1,3 +1,4 @@
+// src/app/auth/reset/page.tsx
 'use client';
 
 import React, { Suspense, useMemo, useState } from 'react';
@@ -29,16 +30,6 @@ const Schema = z
   .refine((d) => d.password === d.confirmPassword, { message: 'Las contraseñas no coinciden', path: ['confirmPassword'] });
 
 type Data = z.infer<typeof Schema>;
-
-const inputSx = {
-  '& .MuiInputBase-input': { color: 'common.white', WebkitTextFillColor: 'white' },
-  '& .MuiOutlinedInput-input': { color: 'common.white' },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.75)' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.35)' },
-  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.6)' },
-  '& .Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: 'primary.light' },
-  '& .MuiInputLabel-root.Mui-focused': { color: 'primary.light' },
-};
 
 function ResetPasswordContent() {
   const sp = useSearchParams();
@@ -74,7 +65,9 @@ function ResetPasswordContent() {
       showSnack({ message: 'Contraseña restablecida. Inicia sesión.', severity: 'success' });
       router.replace('/auth/login');
     } catch {
-      showSnack({ message: 'No se pudo restablecer la contraseña', severity: 'error' });
+      // MVP: función no disponible en BE; notificamos y llevamos a login
+      showSnack({ message: 'Función no disponible en el MVP. Usa el inicio de sesión.', severity: 'info' });
+      router.replace('/auth/login');
     }
   };
 
@@ -82,10 +75,17 @@ function ResetPasswordContent() {
     <LightLayout title="Restablecer contraseña - TicketOffice">
       <AuthShell
         title="Restablecer contraseña"
-        textColor="common.white"
-        footer={<MuiLink component={Link} href="/auth/login" underline="hover" sx={{ color: 'primary.light' }}>Volver a iniciar sesión</MuiLink>}
+        footer={
+          <MuiLink component={Link} href="/auth/login" underline="hover">
+            Volver a iniciar sesión
+          </MuiLink>
+        }
       >
-        {!token && <Alert severity="error" sx={{ mb: 2 }}>Token inválido.</Alert>}
+        {!token && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Token inválido.
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <Controller
@@ -105,15 +105,14 @@ function ResetPasswordContent() {
                   }}
                   error={!!fieldState.error}
                   helperText={showHints ? fieldState.error?.message ?? 'Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.' : ' '}
-                  disabled={isSubmitting}
-                  sx={inputSx}
+                  disabled={isSubmitting || !token}
                 />
                 {showHints && (
                   <>
                     <PasswordStrengthBar strength={strength} />
                     <Box sx={{ mt: 1 }}>
                       {rules.map((r) => (
-                        <Typography key={r.label} variant="caption" sx={{ display: 'block', color: r.ok ? 'success.main' : 'rgba(255,255,255,0.7)' }}>
+                        <Typography key={r.label} variant="caption" sx={{ display: 'block', color: r.ok ? 'success.main' : 'text.secondary' }}>
                           • {r.label}
                         </Typography>
                       ))}
@@ -131,8 +130,7 @@ function ResetPasswordContent() {
             {...register('confirmPassword')}
             error={!!errors.confirmPassword}
             helperText={errors.confirmPassword?.message ?? ' '}
-            disabled={isSubmitting}
-            sx={inputSx}
+            disabled={isSubmitting || !token}
           />
 
           <SubmitButton type="submit" fullWidth variant="contained" loading={isSubmitting} disabled={!token}>

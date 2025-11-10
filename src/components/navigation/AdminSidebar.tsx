@@ -1,22 +1,15 @@
+// src/components/navigation/AdminSidebar.tsx
 'use client';
 
 import { type FC, useMemo, useState } from 'react';
-import {
-  Drawer,
-  List,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  ListItemButton,
-  Box,
-  Typography,
-  Collapse,
-} from '@mui/material';
+import { Drawer, List, ListItemIcon, ListItemText, Divider, ListItemButton, Box, Typography, Collapse } from '@mui/material';
+import type { SvgIconComponent } from '@mui/icons-material';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { navItems, type BackofficeRole, type NavItem } from '@/config/backofficeNav';
+import { type BackofficeRole } from '@/config/backofficeNav';
+import { getNavFor, type NavItem } from '@/config/backofficeNav';
 import { useAuth } from '@/hooks/useAuth';
 
 type AdminSidebarProps = { mobileOpen: boolean; isMobile: boolean; onClose: () => void };
@@ -26,20 +19,18 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
   const pathname = usePathname();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({ events: true });
 
-  const { isAdmin, isSeller } = useAuth();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isSeller = user?.role === 'seller';
   const role: BackofficeRole | null = isAdmin ? 'admin' : isSeller ? 'seller' : null;
 
+  // Usa feature flags + roles
   const items = useMemo<NavItem[]>(() => {
     if (!role) return [];
-    const filterByRole = (list: NavItem[]): NavItem[] =>
-      list
-        .filter((i) => i.roles.includes(role))
-        .map((i) => (i.children ? { ...i, children: filterByRole(i.children) } : i));
-    return filterByRole(navItems);
+    return getNavFor(role);
   }, [role]);
 
   const toggle = (key: string) => setOpenMap((m) => ({ ...m, [key]: !m[key] }));
-
 
   const drawer = (
     <div>
@@ -51,8 +42,9 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
       <Divider />
       <List onClick={onClose} sx={{ px: 0.5 }}>
         {items.map((it) => {
-          const Icon = it.icon;
+          const Icon = it.icon as SvgIconComponent;
           const selected = it.href ? pathname === it.href : false;
+
           if (it.children && it.children.length > 0) {
             const open = openMap[it.key] ?? false;
             return (
@@ -68,35 +60,33 @@ const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
                 </ListItemButton>
                 <Collapse in={open} timeout="auto" unmountOnExit>
                   <List component="div" disablePadding>
-                    {it.children.map((child) => (
-                      <ListItemButton
-                        key={child.key}
-                        component={Link}
-                        href={child.href!}
-                        selected={pathname === child.href}
-                        sx={{ pl: 3, mx: 0.5, my: 0.25, borderRadius: 1 }}
-                      >
-                        {child.icon && (
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <child.icon />
-                          </ListItemIcon>
-                        )}
-                        <ListItemText primary={child.label} />
-                      </ListItemButton>
-                    ))}
+                    {it.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <ListItemButton
+                          key={child.key}
+                          component={Link}
+                          href={child.href!}
+                          selected={pathname === child.href}
+                          sx={{ pl: 3, mx: 0.5, my: 0.25, borderRadius: 1 }}
+                        >
+                          {ChildIcon && (
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                              <ChildIcon />
+                            </ListItemIcon>
+                          )}
+                          <ListItemText primary={child.label} />
+                        </ListItemButton>
+                      );
+                    })}
                   </List>
                 </Collapse>
               </Box>
             );
           }
+
           return (
-            <ListItemButton
-              key={it.key}
-              component={Link}
-              href={it.href!}
-              selected={selected}
-              sx={{ mx: 0.5, my: 0.25, borderRadius: 1 }}
-            >
+            <ListItemButton key={it.key} component={Link} href={it.href!} selected={selected} sx={{ mx: 0.5, my: 0.25, borderRadius: 1 }}>
               {Icon && (
                 <ListItemIcon sx={{ minWidth: 36 }}>
                   <Icon />

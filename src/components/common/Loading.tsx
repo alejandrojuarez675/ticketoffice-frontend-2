@@ -1,4 +1,5 @@
-"use client";
+// src/components/common/Loading.tsx
+'use client';
 
 import React from 'react';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -21,3 +22,4 @@ export default function Loading({ label = 'Cargando...', minHeight = '40vh', siz
     </Box>
   );
 }
+

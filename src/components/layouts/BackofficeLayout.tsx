@@ -1,3 +1,4 @@
+// src/components/layouts/BackofficeLayout.tsx
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
@@ -43,7 +44,6 @@ export default function BackofficeLayout({ children, title = 'Admin - TicketOffi
 
       <Box sx={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
         <CssBaseline />
-        {/* Public Navbar on top, with mobile menu controlling the admin sidebar */}
         <Navbar onMenuClick={handleDrawerToggle} />
 
         <Box sx={{ display: 'flex', flex: 1 }}>

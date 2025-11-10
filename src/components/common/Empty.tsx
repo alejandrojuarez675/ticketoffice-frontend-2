@@ -1,4 +1,5 @@
-"use client";
+// src/components/common/Empty.tsx
+'use client';
 
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
@@ -23,7 +24,7 @@ export default function Empty({
       <Typography variant="h6" gutterBottom>
         {title}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, maxWidth: 520 }}>
         {description}
       </Typography>
       {actionLabel && onAction && (
@@ -34,3 +35,4 @@ export default function Empty({
     </Box>
   );
 }
+

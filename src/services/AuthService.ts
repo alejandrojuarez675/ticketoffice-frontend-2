@@ -1,5 +1,18 @@
-import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
+// src/services/AuthService.ts
+import { http, setAuthTokenProvider } from '@/lib/http';
+import { logger } from '@/lib/logger';
 import { ConfigService } from './ConfigService';
+import type { BackofficeRole } from '@/config/backofficeNav';
+import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
+
+type ApiLoginResponse = { token: string; expiresIn: number };
+type ApiUserResponse = {
+  id: string;
+  username: string;
+  email: string;
+  role?: string[];           // e.g. ['ADMIN'] | ['SELLER'] | ['USER']
+  organizer?: unknown;
+};
 
 const MOCK_USERS: User[] = [
   { id: 1, username: 'admin',   password: 'Admin123',  role: 'admin',  name: 'Administrador', email: 'admin@example.com' },
@@ -11,88 +24,171 @@ class AuthService {
   private static BASE_URL = ConfigService.getApiBase();
   private static TOKEN_KEY = 'auth_token';
   private static USER_KEY = 'user_data';
-  private static AUTH_PREFIX = '/api/public/v1/auth';
+
+  // Helpers
+
+  private static mapRolesToBackofficeRole(serverRoles?: string[]): BackofficeRole | 'user' {
+    const r = (serverRoles || []).map((x) => x.toUpperCase());
+    if (r.includes('ADMIN') || r.includes('SUPER_ADMIN')) return 'admin';
+    if (r.includes('SELLER') || r.includes('ORGANIZER')) return 'seller';
+    return 'user';
+    }
+
+  private static toAppUser(api: ApiUserResponse): User {
+    const role = this.mapRolesToBackofficeRole(api.role);
+    return {
+      id: api.id as unknown as number, // ajusta tu tipo User si id es string
+      username: api.username,
+      email: api.email,
+      name: api.username,
+      role,
+    } as User;
+  }
+
+  private static setRoleCookie(role: BackofficeRole | 'user' | null, remember?: boolean) {
+    if (typeof document === 'undefined') return;
+    const base = 'path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+    if (role) {
+      const max = remember ? `; Max-Age=${60 * 60 * 24 * 30}` : '';
+      document.cookie = `role=${role}; ${base}${max}`;
+    } else {
+      document.cookie = `role=; Max-Age=0; ${base}`;
+    }
+  }
+
+  private static storage(remember?: boolean) {
+    if (typeof window === 'undefined') {
+      // fallback no-op en SSR
+      return {
+        getItem: (_: string) => null,
+        setItem: (_: string, __: string) => {},
+        removeItem: (_: string) => {},
+        other: { removeItem: (_: string) => {} },
+      };
+    }
+    const primary = remember ? localStorage : sessionStorage;
+    const secondary = remember ? sessionStorage : localStorage;
+    return { ...primary, other: secondary } as unknown as Storage & { other: Storage };
+  }
+
+  private static persistToken(token: string, remember?: boolean) {
+    const store = this.storage(remember);
+    store.setItem(this.TOKEN_KEY, token);
+    store.other.removeItem(this.TOKEN_KEY);
+    // Inyecta token en http client globalmente
+    setAuthTokenProvider(() => {
+      if (typeof window === 'undefined') return null;
+      return localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
+    });
+  }
+
+  private static persistUser(user: User, remember?: boolean) {
+    const store = this.storage(remember);
+    store.setItem(this.USER_KEY, JSON.stringify(user));
+    store.other.removeItem(this.USER_KEY);
+  }
+
+  private static clearPersisted() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.USER_KEY);
+    setAuthTokenProvider(null);
+    this.setRoleCookie(null);
+  }
+
+  // API
 
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     if (ConfigService.isMockedEnabled()) {
-      await new Promise((r) => setTimeout(r, 350));
+      await new Promise((r) => setTimeout(r, 250));
       const u = MOCK_USERS.find(
         (x) => x.username.toLowerCase() === credentials.username.toLowerCase() && x.password === credentials.password
       );
       if (!u) throw new Error('Usuario o contraseña incorrectos');
       const token = `mock_${Date.now()}`;
       const { password, ...safeUser } = u;
-      this.setAuthData({ token, user: safeUser }, credentials.remember);
-      return { token, user: safeUser };
+      this.persistToken(token, credentials.remember);
+      this.persistUser(safeUser, credentials.remember);
+      this.setRoleCookie(safeUser.role, credentials.remember);
+      return { token, user: safeUser } as LoginResponse;
     }
 
-    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
+    const loginUrl = `${this.BASE_URL}/auth/login`;
+    const { token } = await http.post<ApiLoginResponse, Omit<LoginCredentials, 'remember'>>(loginUrl, {
+      username: credentials.username,
+      password: credentials.password,
     });
-    if (!res.ok) throw new Error('Usuario o contraseña incorrectos');
-    const data = (await res.json()) as LoginResponse;
-    this.setAuthData(data, credentials.remember);
-    return data;
+
+    // Guardar token e inyectarlo antes de llamar /users/me
+    this.persistToken(token, credentials.remember);
+
+    const meUrl = `${this.BASE_URL}/users/me`;
+    const apiUser = await http.get<ApiUserResponse>(meUrl);
+    const user = this.toAppUser(apiUser);
+
+    this.persistUser(user, credentials.remember);
+    this.setRoleCookie(user.role, credentials.remember);
+
+    logger.info('login successful', { role: user.role, username: user.username });
+    return { token, user } as LoginResponse;
   }
 
-  static async register(payload: RegisterCredentials & { captchaToken?: string }): Promise<void> {
-    if (ConfigService.isMockedEnabled()) {
-      await new Promise((r) => setTimeout(r, 400));
-      // Mock: no persistimos, el BE real debe crear con role "user" por defecto
-      return;
-    }
-    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || 'No se pudo registrar');
-    }
-  }
-
-  static async verifyEmail(token: string): Promise<void> {
+  static async register(payload: RegisterCredentials & { captchaToken?: string; remember?: boolean }): Promise<void> {
     if (ConfigService.isMockedEnabled()) {
       await new Promise((r) => setTimeout(r, 300));
-      if (!token) throw new Error('Token inválido');
       return;
     }
-    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/verify?token=${encodeURIComponent(token)}`, { method: 'GET' });
-    if (!res.ok) throw new Error('No se pudo verificar el correo');
+    const url = `${this.BASE_URL}/auth/signup`;
+    const res = await http.post<ApiLoginResponse, RegisterCredentials>(url, {
+      username: payload.username,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      password: payload.password,
+      confirmPassword: payload.confirmPassword,
+      acceptTerms: payload.acceptTerms
+    });
+
+    // Autologin tras signup (el BE retorna token)
+    if (res?.token) {
+      this.persistToken(res.token, payload.remember);
+      const meUrl = `${this.BASE_URL}/users/me`;
+      const apiUser = await http.get<ApiUserResponse>(meUrl);
+      const user = this.toAppUser(apiUser);
+      this.persistUser(user, payload.remember);
+      this.setRoleCookie(user.role, payload.remember);
+    }
   }
 
-  static async checkAvailability(params: { username?: string; email?: string }): Promise<{ usernameAvailable?: boolean; emailAvailable?: boolean }> {
-    if (ConfigService.isMockedEnabled()) {
-      await new Promise((r) => setTimeout(r, 300));
-      const takenUsers = MOCK_USERS.map(u => u.username.toLowerCase());
-      const takenEmails = MOCK_USERS.map(u => u.email.toLowerCase());
-      return {
-        usernameAvailable: params.username ? !takenUsers.includes((params.username || '').toLowerCase()) : undefined,
-        emailAvailable: params.email ? !takenEmails.includes((params.email || '').toLowerCase()) : undefined,
-      };
+  static async me(): Promise<User | null> {
+    try {
+      const meUrl = `${this.BASE_URL}/users/me`;
+      const apiUser = await http.get<ApiUserResponse>(meUrl);
+      const user = this.toAppUser(apiUser);
+      // Mantener storage existente (por si remember difiere, usamos donde ya esté)
+      if (typeof window !== 'undefined') {
+        const remember = !!localStorage.getItem(this.TOKEN_KEY);
+        this.persistUser(user, remember);
+        this.setRoleCookie(user.role, remember);
+      }
+      return user;
+    } catch (e) {
+      logger.warn('me() failed, clearing session');
+      this.clearPersisted();
+      return null;
     }
-    const qs = new URLSearchParams(params as any).toString();
-    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/availability?${qs}`, { headers: { 'Content-Type': 'application/json' } });
-    if (!res.ok) throw new Error('No se pudo verificar disponibilidad');
-    return res.json();
   }
 
   static logout() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.USER_KEY);
-      sessionStorage.removeItem(this.TOKEN_KEY);
-      sessionStorage.removeItem(this.USER_KEY);
-    }
+    this.clearPersisted();
   }
 
   static getCurrentUser(): User | null {
     if (typeof window === 'undefined') return null;
     const raw = localStorage.getItem(this.USER_KEY) ?? sessionStorage.getItem(this.USER_KEY);
-    return raw ? JSON.parse(raw) : null;
+    return raw ? (JSON.parse(raw) as User) : null;
   }
 
   static getToken(): string | null {
@@ -114,59 +210,23 @@ class AuthService {
     const u = this.getCurrentUser();
     return u?.role ?? null;
   }
+  static isUser(): boolean { return this.getRole() === 'user'; }
+  static isSeller(): boolean { return this.getRole() === 'seller'; }
+  static isAdmin(): boolean { return this.getRole() === 'admin'; }
+  static hasBackofficeAccess(): boolean { return ['seller', 'admin'].includes(this.getRole() || ''); }
 
-  static isUser(): boolean {
-    return this.getRole() === 'user';
+  // No-MVP: stubs claros para evitar llamadas accidentales
+  static async verifyEmail(_: string): Promise<void> {
+    throw new Error('Función no disponible en el MVP');
   }
-
-  static isSeller(): boolean {
-    return this.getRole() === 'seller';
+  static async checkAvailability(_: { username?: string; email?: string }): Promise<{ usernameAvailable?: boolean; emailAvailable?: boolean }> {
+    throw new Error('Función no disponible en el MVP');
   }
-
-  static isAdmin(): boolean {
-    const r = this.getRole();
-    return r === 'admin' ;
+  static async requestPasswordReset(_: string): Promise<void> {
+    throw new Error('Función no disponible en el MVP');
   }
-
-  static hasBackofficeAccess(): boolean {
-    const r = this.getRole();
-    return r === 'seller' || r === 'admin';
-  }
-
-  private static setAuthData(data: { token: string; user: User }, remember?: boolean) {
-    if (typeof window === 'undefined') return;
-    const storage = remember ? localStorage : sessionStorage;
-    const other = remember ? sessionStorage : localStorage;
-    storage.setItem(this.TOKEN_KEY, data.token);
-    storage.setItem(this.USER_KEY, JSON.stringify(data.user));
-    other.removeItem(this.TOKEN_KEY);
-    other.removeItem(this.USER_KEY);
-  }
-
-  static async requestPasswordReset(email: string): Promise<void> {
-    if (ConfigService.isMockedEnabled()) {
-      await new Promise((r) => setTimeout(r, 500));
-      return;
-    }
-    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/forgot`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    });
-    if (!res.ok) throw new Error('No se pudo procesar la solicitud');
-  }
-
-  static async resetPassword(token: string, newPassword: string): Promise<void> {
-    if (ConfigService.isMockedEnabled()) {
-      await new Promise((r) => setTimeout(r, 500));
-      return;
-    }
-    const res = await fetch(`${this.BASE_URL}${this.AUTH_PREFIX}/reset`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, newPassword }),
-    });
-    if (!res.ok) throw new Error('No se pudo restablecer la contraseña');
+  static async resetPassword(_: string, __: string): Promise<void> {
+    throw new Error('Función no disponible en el MVP');
   }
 }
 

@@ -1,3 +1,4 @@
+// src/components/ThemeProvider/ThemeProvider.tsx
 'use client';
 
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
@@ -21,9 +22,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       return prevInsert(...args);
     };
     const flush = () => {
-      const prevInserted = inserted;
+      const prev = inserted;
       inserted = [];
-      return prevInserted;
+      return prev;
     };
     return { cache, flush };
   });

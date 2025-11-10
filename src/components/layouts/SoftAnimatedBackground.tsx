@@ -1,3 +1,4 @@
+// src/components/layouts/SoftAnimatedBackground.tsx
 'use client';
 
 import { Box } from '@mui/material';

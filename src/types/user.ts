@@ -26,10 +26,10 @@ export interface LoginResponse {
 
 export interface RegisterCredentials {
   username: string;
-  firstName: string;
-  lastName: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
+  firstName?: string;
+  lastName?: string;
+  confirmPassword?: string;
+  acceptTerms?: boolean;
 }

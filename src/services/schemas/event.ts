@@ -82,5 +82,23 @@ export const SearchEventResponseSchema = z.object({
   pageSize: z.number().int().positive(),
 });
 
+export const personalDataSchema = z.object({
+  name: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  nationality: z.string().optional(),
+  documentType: z.string().optional(),
+  document: z.string().optional(),
+});
+
+export const buySchema = z.object({
+  mainEmail: z.string().email(),
+  buyer: z.array(personalDataSchema).min(1).max(5),
+});
+
+export const PublicEventDetailSchema = EventDetailSchema; // alias por ahora
+export type PublicEventDetail = z.infer<typeof PublicEventDetailSchema>;
+
 export type SearchEventDTO = z.infer<typeof SearchEventSchema>;
 export type SearchEventResponseDTO = z.infer<typeof SearchEventResponseSchema>;

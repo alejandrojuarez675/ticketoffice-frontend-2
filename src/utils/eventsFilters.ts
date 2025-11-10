@@ -7,7 +7,7 @@ export type Filters = {
   city?: string;
   category?: string;
   dateFrom?: string; // YYYY-MM-DD
-  dateTo?: string;   // YYYY-MM-DD
+  dateTo?: string; // YYYY-MM-DD
   savedOnly?: boolean;
   minPrice?: number;
   maxPrice?: number;
@@ -60,12 +60,16 @@ export function buildFacets(events: SearchEvent[]) {
   };
 }
 
+function isAllCountry(val?: string) {
+  const s = (val || '').toLowerCase();
+  return s === 'all' || s === 'todos' || s === '';
+}
+
 export function applyFilters(list: SearchEvent[], filters: Filters, favoriteIds?: Set<string>) {
   const fromTime = filters.dateFrom ? Date.parse(filters.dateFrom) : undefined;
   const toTimeExclusive = filters.dateTo ? Date.parse(filters.dateTo) + 24 * 60 * 60 * 1000 - 1 : undefined;
 
   return list.filter((e) => {
-    // No mostrar inactivos
     if (e.status === 'INACTIVE') return false;
 
     if (filters.savedOnly && favoriteIds && !favoriteIds.has(e.id)) return false;
@@ -75,7 +79,7 @@ export function applyFilters(list: SearchEvent[], filters: Filters, favoriteIds?
 
     if (filters.adultOnly && !(e.minAge !== undefined && e.minAge >= 18)) return false;
 
-    // Vendors (seller) filter: accept if event vendorId is in selected list.
+    // Vendors
     if (filters.vendors && filters.vendors.length > 0) {
       const vid = e.vendorId ?? '';
       const vname = (e.vendorName ?? '').toLowerCase();
@@ -84,7 +88,7 @@ export function applyFilters(list: SearchEvent[], filters: Filters, favoriteIds?
     }
 
     const { city, country } = parseLocation(e.location);
-    if (filters.country && country !== filters.country) return false;
+    if (filters.country && !isAllCountry(filters.country) && country !== filters.country) return false;
     if (filters.city && city !== filters.city) return false;
 
     const category = deriveCategory(e.name);
@@ -120,11 +124,5 @@ export function paginate<T>(list: T[], page: number, pageSize: number) {
   const safePage = Math.min(Math.max(1, page), totalPages);
   const start = (safePage - 1) * pageSize;
   const end = start + pageSize;
-  return {
-    slice: list.slice(start, end),
-    total,
-    totalPages,
-    page: safePage,
-    pageSize,
-  };
+  return { slice: list.slice(start, end), total, totalPages, page: safePage, pageSize };
 }

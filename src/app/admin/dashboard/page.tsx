@@ -1,163 +1,85 @@
+// src/app/admin/dashboard/page.tsx
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import BackofficeLayout from '@/components/layouts/BackofficeLayout';
-import { Box, Typography, Card, CardContent, CircularProgress, useTheme, useMediaQuery } from '@mui/material';
-import { styled } from '@mui/material/styles';
-import { useAuth } from '@/hooks/useAuth';
+import LightLayout from '@/components/layouts/LightLayout';
+import { Box, Container, Grid, Paper, Typography, Button, CircularProgress } from '@mui/material';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { EventService } from '@/services/EventService';
+import type { EventForList } from '@/types/Event';
+import Link from 'next/link';
 
-// Estilos existentes (conservados)
-const DashboardContainer = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3),
-  [theme.breakpoints.down('sm')]: { padding: theme.spacing(2) },
-}));
-const StatsContainer = styled(Box)(({ theme }) => ({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-  gap: theme.spacing(3),
-  marginTop: theme.spacing(3),
-  [theme.breakpoints.down('sm')]: { gridTemplateColumns: '1fr' },
-}));
-const StatCard = styled(Card)(({ theme }) => ({
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  transition: 'transform 0.2s, box-shadow 0.2s',
-  '&:hover': { transform: 'translateY(-4px)', boxShadow: theme.shadows[8] },
-}));
-const StatCardContent = styled(CardContent)(({ theme }) => ({
-  flexGrow: 1,
-  display: 'flex',
-  flexDirection: 'column',
-  '&:last-child': { paddingBottom: theme.spacing(2) },
-}));
+export default function AdminDashboard() {
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-const fetchDashboardStats = async () =>
-  new Promise<{ totalEvents: number; ticketsSold: number; totalRevenue: number; activeUsers: number }>((resolve) =>
-    setTimeout(() => resolve({ totalEvents: 15, ticketsSold: 250, totalRevenue: 5000, activeUsers: 100 }), 500)
-  );
-
-function DashboardContent() {
-  const theme = useTheme();
-  useMediaQuery(theme.breakpoints.down('sm'));
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalEvents: 0, ticketsSold: 0, totalRevenue: 0, activeUsers: 0 });
-  const [error, setError] = useState<string | null>(null);
+  const [events, setEvents] = useState<EventForList[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/auth/login?next=/admin/dashboard');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    let active = true;
     (async () => {
       try {
-        setLoading(true);
-        const s = await fetchDashboardStats();
-        setStats(s);
-      } catch {
-        setError('Error al cargar las estadísticas del panel');
+        if (!isAuthenticated) return;
+        setLoadingData(true);
+        const res = await EventService.getEvents(1, 20);
+        if (!active) return;
+        setEvents(res.events || []);
       } finally {
-        setLoading(false);
+        if (active) setLoadingData(false);
       }
     })();
-  }, []);
+    return () => { active = false; };
+  }, [isAuthenticated]);
 
-  if (loading) {
+  if (isLoading || (!isAuthenticated && !isLoading)) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box p={3}>
-        <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <DashboardContainer>
-      <Typography
-        variant="h4"
-        component="h1"
-        gutterBottom
-        sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 4, [theme.breakpoints.down('sm')]: { fontSize: '1.75rem' } }}
-      >
-        Panel de Control
-      </Typography>
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 4 }}>
-        Resumen general de las actividades y estadísticas
-      </Typography>
-
-      <StatsContainer>
-        <StatCard>
-          <StatCardContent>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 'medium' }}>
-              Eventos Totales
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mt: 'auto' }}>
-              {stats.totalEvents.toLocaleString()}
-            </Typography>
-          </StatCardContent>
-        </StatCard>
-
-        <StatCard>
-          <StatCardContent>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 'medium' }}>
-              Boletos Vendidos
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', color: theme.palette.success.main, mt: 'auto' }}>
-              {stats.ticketsSold.toLocaleString()}
-            </Typography>
-          </StatCardContent>
-        </StatCard>
-
-        <StatCard>
-          <StatCardContent>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 'medium' }}>
-              Ingresos Totales
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', color: theme.palette.info.main, mt: 'auto' }}>
-              ${stats.totalRevenue.toLocaleString()}
-            </Typography>
-          </StatCardContent>
-        </StatCard>
-
-        <StatCard>
-          <StatCardContent>
-            <Typography variant="subtitle2" color="text.secondary" gutterBottom sx={{ fontWeight: 'medium' }}>
-              Usuarios Activos
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', color: theme.palette.warning.main, mt: 'auto' }}>
-              {stats.activeUsers.toLocaleString()}
-            </Typography>
-          </StatCardContent>
-        </StatCard>
-      </StatsContainer>
-    </DashboardContainer>
-  );
-}
-
-export default function DashboardPage() {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated && !isAdmin) {
-      router.replace('/admin/profile');
-    }
-  }, [isLoading, isAuthenticated, isAdmin, router]);
-
-  return (
-    <BackofficeLayout title="Panel de Control">
-      {isLoading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="40vh">
+      <LightLayout title="Panel - TicketOffice">
+        <Box display="flex" alignItems="center" justifyContent="center" minHeight="60vh">
           <CircularProgress />
         </Box>
-      ) : isAuthenticated && isAdmin ? (
-        <DashboardContent />
-      ) : null}
-    </BackofficeLayout>
+      </LightLayout>
+    );
+  }
+
+  const upcoming = events.filter((e) => new Date(e.date).getTime() >= Date.now()).length;
+
+  return (
+    <LightLayout title="Panel - TicketOffice">
+      <Container sx={{ py: 4 }}>
+        <Typography variant="h4" gutterBottom>Bienvenido{user ? `, ${user.username}` : ''}</Typography>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6">Eventos</Typography>
+              <Typography variant="h3">{loadingData ? '—' : events.length}</Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6">Próximos</Typography>
+              <Typography variant="h3">{loadingData ? '—' : upcoming}</Typography>
+            </Paper>
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6">Ventas</Typography>
+              <Typography variant="h3">—</Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+        <Box sx={{ mt: 3 }}>
+          <Button variant="contained" component={Link} href="/admin/events/new">Crear evento</Button>
+          <Button variant="text" component={Link} href="/admin/events" sx={{ ml: 2 }}>Ver eventos</Button>
+        </Box>
+      </Container>
+    </LightLayout>
   );
 }

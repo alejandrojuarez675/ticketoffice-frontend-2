@@ -1,14 +1,15 @@
+// src/app/admin/page.tsx
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Box, CircularProgress } from '@mui/material';
-import { useAuth } from '@/hooks/useAuth';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function AdminIndexRedirect() {
   const router = useRouter();
-  const { isLoading, isAuthenticated, isAdmin, hasBackofficeAccess } = useAuth();
+  const { isLoading, isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     if (isLoading) return;
@@ -18,14 +19,16 @@ export default function AdminIndexRedirect() {
       return;
     }
 
+    const isAdmin = user?.role === 'admin';
+    const hasBackofficeAccess = user?.role === 'admin' || user?.role === 'seller';
+
     if (!hasBackofficeAccess) {
       router.replace('/');
       return;
     }
 
-    // admin -> dashboard, seller -> profile
     router.replace(isAdmin ? '/admin/dashboard' : '/admin/profile');
-  }, [isLoading, isAuthenticated, isAdmin, hasBackofficeAccess, router]);
+  }, [isLoading, isAuthenticated, user, router]);
 
   return (
     <BackofficeLayout title="Redirigiendo...">

@@ -1,4 +1,3 @@
-// src/services/ReportService.ts
 import { ConfigService } from './ConfigService';
 
 export type ReportSale = {
@@ -50,9 +49,9 @@ export const ReportService = {
       const items = data.slice(start, start + pageSize);
       return { items, total, page, pageSize, totalPages };
     }
-    // Real
+
     const base = ConfigService.getApiBase();
-    const qs = new URLSearchParams({ ...filters, page: String(page), pageSize: String(pageSize) } as any).toString();
+    const qs = new URLSearchParams({ ...filters, page: String(page), pageSize: String(pageSize) }).toString();
     const res = await fetch(`${base}/api/private/v1/reports/sales?${qs}`, { headers: { 'Content-Type': 'application/json' } });
     if (!res.ok) throw new Error('No se pudieron cargar los reportes');
     return res.json();

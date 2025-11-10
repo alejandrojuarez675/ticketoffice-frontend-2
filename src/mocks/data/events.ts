@@ -116,7 +116,7 @@ const feriaDeLasFlores: EventDetail = {
   ],
 };
 
-let mockEventsList: EventForList[] = [
+const mockEventsList: EventForList[] = [
   { id: '1', name: 'Concierto en Vivo', date: '2025-12-31T22:00:00', location: 'Buenos Aires, Argentina', status: 'ACTIVE' },
   { id: '2', name: 'Festival de Música', date: '2025-11-15T18:00:00', location: 'Córdoba, Argentina', status: 'ACTIVE' },
   { id: '3', name: 'Obra de Teatro', date: '2025-10-20T20:30:00', location: 'Buenos Aires, Argentina', status: 'INACTIVE' },

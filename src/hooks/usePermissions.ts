@@ -1,19 +1,16 @@
+// src/hooks/usePermissions.ts
 'use client';
 
-import { useCallback, useMemo } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { permissionsForRole, can as _can, canAny as _canAny } from '@/lib/permissions';
-import type { BackofficeRole } from '@/config/backofficeNav';
-import type { Permission } from '@/lib/permissions';
+import { useAuth } from '../app/contexts/AuthContext';
 
-export function usePermissions() {
-  const { isAdmin, isSeller } = useAuth();
-  const role: BackofficeRole | null = isAdmin ? 'admin' : isSeller ? 'seller' : null;
+export const usePermissions = () => {
+  const { user } = useAuth();
 
-  const permissions = useMemo(() => permissionsForRole(role), [role]);
+  const hasRole = (role: string) => user?.role === role;
+  const hasAnyRole = (roles: string[]) => (user?.role ? roles.includes(user.role) : false);
 
-  const can = useCallback((perm: Permission) => _can(permissions, perm), [permissions]);
-  const canAny = useCallback((list: Permission[]) => _canAny(permissions, list), [permissions]);
+  // MVP: siempre true; ajusta cuando tengas permisos finos
+  const hasPermission = (_permission: string) => true;
 
-  return { role, permissions, can, canAny };
-}
+  return { hasRole, hasAnyRole, hasPermission };
+};

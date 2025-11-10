@@ -23,19 +23,27 @@ import {
   CircularProgress,
   Menu,
   MenuItem,
+  Snackbar,
+  Alert,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { VendorService, type Vendor } from '@/services/VendorService';
-import { useAuth } from '@/hooks/useAuth';
+import { AuthService } from '@/services/AuthService';
 import { useRouter } from 'next/navigation';
+import { ConfigService } from '@/services/ConfigService';
+
+function isValidEmail(s: string) {
+  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(s);
+}
 
 export default function UsersPage() {
-  const { isLoading, isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
 
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({ name: '', email: '' });
@@ -43,26 +51,44 @@ export default function UsersPage() {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const [toast, setToast] = useState<{ open: boolean; msg: string; sev: 'success' | 'error' | 'info' }>({
+    open: false,
+    msg: '',
+    sev: 'success',
+  });
+
+  // Guard
   useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) {
+    if (!AuthService.isAuthenticated()) {
       router.replace('/auth/login?next=/admin/users');
       return;
     }
-    if (!isAdmin) {
+    if (!AuthService.isAdmin()) {
       router.replace('/');
       return;
     }
+  }, [router]);
+
+  useEffect(() => {
+    let active = true;
     (async () => {
       try {
         setLoading(true);
+        setErr(null);
         const list = await VendorService.list();
+        if (!active) return;
         setVendors(list);
+      } catch {
+        if (!active) return;
+        setErr('No se pudo cargar la lista de vendedores');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     })();
-  }, [isLoading, isAuthenticated, isAdmin, router]);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const openMenu = (e: React.MouseEvent<HTMLElement>, id: string) => {
     setAnchorEl(e.currentTarget);
@@ -75,20 +101,37 @@ export default function UsersPage() {
 
   const toggleActive = async () => {
     if (!selectedId) return;
-    const v = vendors.find((x) => x.id === selectedId);
-    if (!v) return;
-    await VendorService.setActive(selectedId, v.status !== 'active');
-    setVendors((prev) =>
-      prev.map((x) => (x.id === selectedId ? { ...x, status: v.status === 'active' ? 'disabled' : 'active' } : x))
-    );
-    closeMenu();
+    try {
+      const current = vendors.find((x) => x.id === selectedId);
+      if (!current) return;
+      await VendorService.setActive(selectedId, current.status !== 'active');
+      setVendors((prev) =>
+        prev.map((x) => (x.id === selectedId ? { ...x, status: current.status === 'active' ? 'disabled' : 'active' } : x))
+      );
+      setToast({ open: true, msg: 'Estado actualizado', sev: 'success' });
+    } catch {
+      setToast({ open: true, msg: 'No se pudo actualizar el estado', sev: 'error' });
+    } finally {
+      closeMenu();
+    }
   };
 
   const invite = async () => {
-    const v = await VendorService.invite(inviteForm.name.trim(), inviteForm.email.trim());
-    setVendors((prev) => [v, ...prev]);
-    setInviteForm({ name: '', email: '' });
-    setInviteOpen(false);
+    const name = inviteForm.name.trim();
+    const email = inviteForm.email.trim();
+    if (!name || !isValidEmail(email)) {
+      setToast({ open: true, msg: 'Completa un nombre y email válido', sev: 'error' });
+      return;
+    }
+    try {
+      const v = await VendorService.invite(name, email);
+      setVendors((prev) => [v, ...prev]);
+      setInviteForm({ name: '', email: '' });
+      setInviteOpen(false);
+      setToast({ open: true, msg: ConfigService.isMockedEnabled() ? 'Invitación creada (mock)' : 'Invitación enviada', sev: 'success' });
+    } catch {
+      setToast({ open: true, msg: 'No se pudo invitar al vendedor', sev: 'error' });
+    }
   };
 
   return (
@@ -105,6 +148,13 @@ export default function UsersPage() {
           {loading ? (
             <Box display="flex" alignItems="center" justifyContent="center" minHeight="40vh">
               <CircularProgress />
+            </Box>
+          ) : err ? (
+            <Box>
+              <Typography color="error" sx={{ mb: 2 }}>
+                {err}
+              </Typography>
+              <Button onClick={() => router.refresh()}>Reintentar</Button>
             </Box>
           ) : (
             <Table>
@@ -156,29 +206,44 @@ export default function UsersPage() {
       <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>Invitar vendedor</DialogTitle>
         <DialogContent>
-          <TextField
-            fullWidth
-            label="Nombre"
-            sx={{ mt: 1 }}
-            value={inviteForm.name}
-            onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
-          />
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            sx={{ mt: 2 }}
-            value={inviteForm.email}
-            onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
-          />
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Nombre"
+                value={inviteForm.name}
+                onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                label="Email"
+                type="email"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+              />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setInviteOpen(false)}>Cancelar</Button>
-          <Button onClick={invite} variant="contained" disabled={!inviteForm.name.trim() || !inviteForm.email.trim()}>
+          <Button onClick={invite} variant="contained" disabled={!inviteForm.name.trim() || !isValidEmail(inviteForm.email)}>
             Enviar invitación
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3500}
+        onClose={() => setToast((t) => ({ ...t, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={toast.sev} variant="filled" onClose={() => setToast((t) => ({ ...t, open: false }))}>
+          {toast.msg}
+        </Alert>
+      </Snackbar>
     </BackofficeLayout>
   );
 }

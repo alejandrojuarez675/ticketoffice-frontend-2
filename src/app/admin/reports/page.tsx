@@ -1,210 +1,118 @@
+// src/app/admin/reports/page.tsx
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
-
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  IconButton,
-  Menu,
-  MenuItem,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  CircularProgress,
-  InputAdornment,
+  Box, Card, CardContent, TextField, Button, Table, TableHead, TableRow, TableCell, TableBody,
+  CircularProgress, InputAdornment, Typography,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import SearchIcon from '@mui/icons-material/Search';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import { SalesService, type SalesFilters, type SaleRecord } from '@/services/SalesService';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useAuth } from '@/hooks/useAuth';
+import { SalesService } from '@/services/SalesService';
+
+type Row = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  ticketType: string;
+  price: number;
+  validated: boolean;
+};
 
 export default function ReportsPage() {
-  const router = useRouter();
-  const { can } = usePermissions();
-  const { isAdmin, user, isAuthenticated, isLoading, hasBackofficeAccess } = useAuth();
-
-  const [filters, setFilters] = React.useState<SalesFilters>(() => {
-    const today = new Date();
-    const iso = (d: Date) => d.toISOString().slice(0, 10);
-    const start = new Date(today);
-    start.setDate(today.getDate() - 7);
-    return {
-      from: iso(start),
-      to: iso(today),
-      sellerId: isAdmin ? undefined : String(user?.id || 'me'), // scope por rol
-      query: '',
-    };
-  });
-
-  const [rows, setRows] = React.useState<SaleRecord[]>([]);
+  const [eventId, setEventId] = React.useState<string>('');
+  const [query, setQuery] = React.useState<string>('');
+  const [rows, setRows] = React.useState<Row[]>([]);
   const [loading, setLoading] = React.useState(false);
 
-  // Auth/backoffice guard
-  React.useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) {
-      router.replace('/auth/login?next=' + encodeURIComponent('/admin/reports'));
-      return;
-    }
-    if (!hasBackofficeAccess) {
-      router.replace('/');
-      return;
-    }
-  }, [isLoading, isAuthenticated, hasBackofficeAccess, router]);
-
-  const load = React.useCallback(async () => {
+  const load = async () => {
+    if (!eventId) return;
     setLoading(true);
     try {
-      const data = await SalesService.list(filters);
-      setRows(data);
+      const sales = await SalesService.listByEvent(eventId);
+      const list = sales
+        .filter((sale) => {
+          if (!query.trim()) return true;
+          const q = query.toLowerCase();
+          return (
+            sale.buyerEmail.toLowerCase().includes(q) ||
+            (sale.eventName || '').toLowerCase().includes(q) ||
+            (sale.sellerName || '').toLowerCase().includes(q)
+          );
+        })
+        .map((sale) => {
+          // Extract first and last name from sellerName
+          const [firstName = '', lastName = ''] = (sale.sellerName || '').split(' ');
+          
+          return {
+            id: sale.id,
+            firstName: firstName,
+            lastName: lastName,
+            email: sale.buyerEmail,
+            ticketType: sale.eventName,
+            price: sale.total,
+            validated: sale.paymentStatus === 'paid',
+          } satisfies Row;
+        });
+      
+      setRows(list);
+    } catch (error) {
+      console.error('Error loading sales:', error);
+      // Optionally show error to user
     } finally {
       setLoading(false);
     }
-  }, [filters]);
-
-  React.useEffect(() => {
-    load();
-  }, [load]);
-
-  // Menú de acciones por fila (fix al bug de los "tres puntos")
-  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
-  const openMenu = (e: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(e.currentTarget);
-  };
-  const closeMenu = () => {
-    setAnchorEl(null);
   };
 
   const downloadCSV = () => {
-    const csv = SalesService.toCSV(rows);
+    const header = ['id', 'firstName', 'lastName', 'email', 'ticketType', 'price', 'validated'];
+    const lines = rows.map((r) =>
+      [r.id, r.firstName, r.lastName, r.email, r.ticketType, r.price, r.validated ? 'true' : 'false']
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(',')
+    );
+    const csv = [header.join(','), ...lines].join('\\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const from = filters.from || 'all';
-    const to = filters.to || 'all';
-    a.download = `ventas_${from}_a_${to}.csv`;
+    a.download = `reporte_evento_${eventId}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  // Mock de sellers y eventos mientras el BE no está listo
-  const mockSellers = [
-    { id: 'v1', name: 'Vendedor Uno' },
-    { id: 'v2', name: 'Vendedor Dos' },
-  ];
-  const mockEvents = [
-    { id: 'e1', name: 'Concierto Central' },
-    { id: 'e2', name: 'Festival Playa' },
-  ];
-
   return (
-    <BackofficeLayout title="Reportes de ventas">
+    <BackofficeLayout title="Reportes (MVP)">
       <Card sx={{ mb: 2 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            {isAdmin && (
-              <Grid size={{ xs: 12, sm: 3 }}>
-                <TextField
-                  select
-                  fullWidth
-                  label="Vendedor"
-                  value={filters.sellerId || ''}
-                  onChange={(e) => setFilters((f) => ({ ...f, sellerId: e.target.value || undefined }))}
-                  SelectProps={{ native: true }}
-                >
-                  <option value="">Todos</option>
-                  {mockSellers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </TextField>
-              </Grid>
-            )}
-
-            <Grid size={{ xs: 12, sm: 3 }}>
-              <TextField
-                select
-                fullWidth
-                label="Evento"
-                value={filters.eventId || ''}
-                onChange={(e) => setFilters((f) => ({ ...f, eventId: e.target.value || undefined }))}
-                SelectProps={{ native: true }}
-              >
-                <option value="">Todos</option>
-                {mockEvents.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.name}
-                  </option>
-                ))}
-              </TextField>
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 3 }}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
-                label="Desde"
-                type="date"
-                value={filters.from || ''}
-                onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value || undefined }))}
-                InputLabelProps={{ shrink: true }}
+                label="ID de evento"
+                placeholder="e.g. cbb46e0f-..."
+                value={eventId}
+                onChange={(e) => setEventId(e.target.value)}
               />
             </Grid>
-
-            <Grid size={{ xs: 12, sm: 3 }}>
-              <TextField
-                fullWidth
-                label="Hasta"
-                type="date"
-                value={filters.to || ''}
-                onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value || undefined }))}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="Buscar"
-                placeholder="Evento, comprador, cupón, código vendedor, orden..."
-                value={filters.query || ''}
-                onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value || undefined }))}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <SearchIcon fontSize="small" />
-                    </InputAdornment>
-                  ),
-                }}
+                placeholder="Comprador, email, tipo..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                InputProps={{ endAdornment: <InputAdornment position="end"><SearchIcon fontSize="small" /></InputAdornment> }}
               />
             </Grid>
-
-            <Grid size="grow" />
-
             <Grid size={{ xs: 12, sm: 'auto' }}>
-              <Button variant="outlined" onClick={load} disabled={loading}>
-                Aplicar filtros
-              </Button>
+              <Button variant="outlined" onClick={load} disabled={!eventId || loading}>Aplicar</Button>
             </Grid>
             <Grid size={{ xs: 12, sm: 'auto' }}>
-              <Button
-                startIcon={<FileDownloadIcon />}
-                variant="contained"
-                onClick={downloadCSV}
-                disabled={!(can('sales.read_all') || can('sales.read_self')) || rows.length === 0 || loading}
-              >
+              <Button startIcon={<FileDownloadIcon />} variant="contained" onClick={downloadCSV} disabled={rows.length === 0 || loading}>
                 Descargar CSV
               </Button>
             </Grid>
@@ -218,71 +126,36 @@ export default function ReportsPage() {
             <Box display="flex" alignItems="center" justifyContent="center" minHeight="40vh">
               <CircularProgress />
             </Box>
+          ) : !eventId ? (
+            <Typography color="text.secondary">Ingresa un ID de evento para ver sus ventas.</Typography>
           ) : (
-            <>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Fecha</TableCell>
-                    <TableCell>Evento</TableCell>
-                    <TableCell>Vendedor</TableCell>
-                    <TableCell>Comprador</TableCell>
-                    <TableCell align="right">Cant.</TableCell>
-                    <TableCell align="right">P. Unit.</TableCell>
-                    <TableCell align="right">Total</TableCell>
-                    <TableCell>Cupón</TableCell>
-                    <TableCell>Cod. vendedor</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell align="right">Acciones</TableCell>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Comprador</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Ticket</TableCell>
+                  <TableCell align="right">Precio</TableCell>
+                  <TableCell>Validado</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((r) => (
+                  <TableRow key={r.id} hover>
+                    <TableCell>{`${r.firstName || ''} ${r.lastName || ''}`.trim() || '—'}</TableCell>
+                    <TableCell>{r.email}</TableCell>
+                    <TableCell>{r.ticketType}</TableCell>
+                    <TableCell align="right">{r.price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}</TableCell>
+                    <TableCell>{r.validated ? 'Sí' : 'No'}</TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {rows.map((r) => (
-                    <TableRow key={r.id} hover>
-                      <TableCell>{new Date(r.date).toLocaleString()}</TableCell>
-                      <TableCell>{r.eventName}</TableCell>
-                      <TableCell>{r.sellerName}</TableCell>
-                      <TableCell>{r.buyerEmail}</TableCell>
-                      <TableCell align="right">{r.quantity}</TableCell>
-                      <TableCell align="right">${r.unitPrice.toFixed(2)}</TableCell>
-                      <TableCell align="right">${r.total.toFixed(2)}</TableCell>
-                      <TableCell>{r.couponCode || '-'}</TableCell>
-                      <TableCell>{r.vendorCode || '-'}</TableCell>
-                      <TableCell>{r.paymentStatus}</TableCell>
-                      <TableCell align="right">
-                        <IconButton onClick={(e) => openMenu(e)}>
-                          <MoreVertIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {rows.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={11} align="center">
-                        Sin resultados para los filtros aplicados.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
-              <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={closeMenu}>
-                <MenuItem
-                  onClick={() => {
-                    // Navegación a detalle de orden (pendiente)
-                    closeMenu();
-                  }}
-                >
-                  Ver orden
-                </MenuItem>
-                <MenuItem disabled onClick={closeMenu}>
-                  Descargar comprobante
-                </MenuItem>
-                <MenuItem disabled onClick={closeMenu}>
-                  Reembolsar
-                </MenuItem>
-              </Menu>
-            </>
+                ))}
+                {rows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">Sin resultados para los filtros aplicados.</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

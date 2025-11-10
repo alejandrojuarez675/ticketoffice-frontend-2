@@ -1,7 +1,13 @@
+// src/components/events/AppliedFiltersChips.tsx
 'use client';
 
 import { Box, Chip } from '@mui/material';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+function isAllCountry(v?: string | null) {
+  const s = (v || '').toLowerCase();
+  return s === 'all' || s === 'todos';
+}
 
 export default function AppliedFiltersChips() {
   const router = useRouter();
@@ -19,9 +25,11 @@ export default function AppliedFiltersChips() {
   const savedOnly = sp.get('savedOnly') === 'true';
   const adultOnly = sp.get('adultOnly') === 'true';
   const vendorsParam = sp.get('vendors');
+  const q = sp.get('q');
 
-  if (country) items.push({ key: 'country', label: `País: ${country}` });
+  if (country) items.push({ key: 'country', label: `País: ${isAllCountry(country) ? 'Todos' : country}` });
   if (city) items.push({ key: 'city', label: `Ciudad: ${city}` });
+  if (q) items.push({ key: 'q', label: `Buscar: ${q}` });
   if (category) items.push({ key: 'category', label: `Categoría: ${category}` });
   if (dateFrom || dateTo) items.push({ key: 'date', label: `Fecha: ${dateFrom ?? ''}${dateTo ? ` → ${dateTo}` : ''}` });
   if (minPrice || maxPrice) items.push({ key: 'price', label: `Precio: ${minPrice ?? '0'} - ${maxPrice ?? '∞'}` });
@@ -36,10 +44,14 @@ export default function AppliedFiltersChips() {
     const next = new URLSearchParams(sp.toString());
     switch (k) {
       case 'country':
-        next.delete('country');
+        // En MVP, si quitamos país, dejamos "Todos" (all) para que la vista siga mostrando resultados
+        next.set('country', 'all');
         break;
       case 'city':
         next.delete('city');
+        break;
+      case 'q':
+        next.delete('q');
         break;
       case 'category':
         next.delete('category');
