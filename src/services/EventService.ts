@@ -74,7 +74,7 @@ export class EventService {
       .join('&');
 
     const raw = await http.get<unknown>(
-      `${this.BASE_URL}/api/public/v1/event/search?${queryString}`,
+      `${this.BASE_URL}/api/public/v1/event/search?country=Argentina&city=Buenos%20Aires`,
       { retries: 1 }
     );
     const parsed = SearchEventResponseSchema.parse(raw);
