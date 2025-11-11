@@ -1,167 +1,135 @@
-import { FC } from 'react';
-import { 
-  Drawer, 
-  List, 
-  ListItem, 
-  ListItemIcon, 
-  ListItemText, 
-  Divider, 
-  Toolbar, 
-  ListItemButton,
-  useTheme,
-  Box,
-  Typography,
-  Collapse
-} from '@mui/material';
-import {
-  Dashboard as DashboardIcon,
-  Event as EventIcon,
-  People as PeopleIcon,
-  Receipt as ReceiptIcon,
-  Settings as SettingsIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ExpandLess as ExpandLessIcon,
-  ExpandMore as ExpandMoreIcon,
-  QrCodeScanner as QrCodeScannerIcon
-} from '@mui/icons-material';
+// src/components/navigation/AdminSidebar.tsx
+'use client';
+
+import { type FC, useMemo, useState } from 'react';
+import { Drawer, List, ListItemIcon, ListItemText, Divider, ListItemButton, Box, Typography, Collapse } from '@mui/material';
+import type { SvgIconComponent } from '@mui/icons-material';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { type BackofficeRole } from '@/config/backofficeNav';
+import { getNavFor, type NavItem } from '@/config/backofficeNav';
+import { useAuth } from '@/hooks/useAuth';
 
-type AdminSidebarProps = {
-  mobileOpen: boolean;
-  isMobile: boolean;
-  onClose: () => void;
-};
+type AdminSidebarProps = { mobileOpen: boolean; isMobile: boolean; onClose: () => void };
 
-const drawerWidth = 240;
-
-const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, isMobile, onClose }) => {
-  const theme = useTheme();
+const AdminSidebar: FC<AdminSidebarProps> = ({ mobileOpen, onClose }) => {
+  const drawerWidth = 240;
   const pathname = usePathname();
-  const [openEvents, setOpenEvents] = useState(true);
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({ events: true });
 
-  const handleEventsClick = () => {
-    setOpenEvents(!openEvents);
-  };
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isSeller = user?.role === 'seller';
+  const role: BackofficeRole | null = isAdmin ? 'admin' : isSeller ? 'seller' : null;
+
+  // Usa feature flags + roles
+  const items = useMemo<NavItem[]>(() => {
+    if (!role) return [];
+    return getNavFor(role);
+  }, [role]);
+
+  const toggle = (key: string) => setOpenMap((m) => ({ ...m, [key]: !m[key] }));
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold' }}>
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>
           Admin Panel
         </Typography>
-      </Toolbar>
+      </Box>
       <Divider />
-      <List>
-        <ListItemButton 
-          component={Link} 
-          href="/admin/dashboard"
-          selected={pathname === '/admin/dashboard'}
-        >
-          <ListItemIcon>
-            <DashboardIcon />
-          </ListItemIcon>
-          <ListItemText primary="Dashboard" />
-        </ListItemButton>
+      <List onClick={onClose} sx={{ px: 0.5 }}>
+        {items.map((it) => {
+          const Icon = it.icon as SvgIconComponent;
+          const selected = it.href ? pathname === it.href : false;
 
-        <ListItemButton onClick={handleEventsClick}>
-          <ListItemIcon>
-            <EventIcon />
-          </ListItemIcon>
-          <ListItemText primary="Eventos" />
-          {openEvents ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-        </ListItemButton>
-        
-        <Collapse in={openEvents} timeout="auto" unmountOnExit>
-          <List component="div" disablePadding>
-            <ListItemButton 
-              component={Link} 
-              href="/admin/events"
-              selected={pathname === '/admin/events'}
-              sx={{ pl: 4 }}
-            >
-              <ListItemText primary="Todos los eventos" />
+          if (it.children && it.children.length > 0) {
+            const open = openMap[it.key] ?? false;
+            return (
+              <Box key={it.key}>
+                <ListItemButton onClick={() => toggle(it.key)} sx={{ mx: 0.5, my: 0.25, borderRadius: 1 }}>
+                  {Icon && (
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      <Icon />
+                    </ListItemIcon>
+                  )}
+                  <ListItemText primary={it.label} />
+                  {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </ListItemButton>
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                  <List component="div" disablePadding>
+                    {it.children.map((child) => {
+                      const ChildIcon = child.icon;
+                      return (
+                        <ListItemButton
+                          key={child.key}
+                          component={Link}
+                          href={child.href!}
+                          selected={pathname === child.href}
+                          sx={{ pl: 3, mx: 0.5, my: 0.25, borderRadius: 1 }}
+                        >
+                          {ChildIcon && (
+                            <ListItemIcon sx={{ minWidth: 36 }}>
+                              <ChildIcon />
+                            </ListItemIcon>
+                          )}
+                          <ListItemText primary={child.label} />
+                        </ListItemButton>
+                      );
+                    })}
+                  </List>
+                </Collapse>
+              </Box>
+            );
+          }
+
+          return (
+            <ListItemButton key={it.key} component={Link} href={it.href!} selected={selected} sx={{ mx: 0.5, my: 0.25, borderRadius: 1 }}>
+              {Icon && (
+                <ListItemIcon sx={{ minWidth: 36 }}>
+                  <Icon />
+                </ListItemIcon>
+              )}
+              <ListItemText primary={it.label} />
             </ListItemButton>
-            <ListItemButton 
-              component={Link} 
-              href="/admin/events/new"
-              selected={pathname === '/admin/events/new'}
-              sx={{ pl: 4 }}
-            >
-              <ListItemText primary="Nuevo evento" />
-            </ListItemButton>
-          </List>
-        </Collapse>
-
-        <ListItemButton 
-          component={Link} 
-          href="/admin/validate"
-          selected={pathname?.startsWith('/admin/validate')}
-        >
-          <ListItemIcon>
-            <QrCodeScannerIcon />
-          </ListItemIcon>
-          <ListItemText primary="Validar Entradas" />
-        </ListItemButton>
-
-        <ListItemButton 
-          component={Link} 
-          href="/admin/users"
-          selected={pathname === '/admin/users'}
-        >
-          <ListItemIcon>
-            <PeopleIcon />
-          </ListItemIcon>
-          <ListItemText primary="Vendedores" />
-        </ListItemButton>
-      </List>
-      
-      <Divider sx={{ my: 1 }} />
-      
-      <List>
-        <ListItemButton 
-          component={Link} 
-          href="/admin/settings"
-          selected={pathname === '/admin/settings'}
-        >
-          <ListItemIcon>
-            <SettingsIcon />
-          </ListItemIcon>
-          <ListItemText primary="Configuración" />
-        </ListItemButton>
+          );
+        })}
       </List>
     </div>
   );
 
   return (
-    <Box
-      component="nav"
-      sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
-      aria-label="mailbox folders"
-    >
-      {/* Mobile drawer */}
+    <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }} aria-label="admin navigation">
       <Drawer
         variant="temporary"
         open={mobileOpen}
         onClose={onClose}
-        ModalProps={{
-          keepMounted: true, // Better open performance on mobile.
-        }}
+        ModalProps={{ keepMounted: true }}
         sx={{
-          display: { xs: 'block', sm: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            top: { xs: 56, sm: 64 },
+            height: { xs: 'calc(100% - 56px)', sm: 'calc(100% - 64px)' },
+          },
         }}
       >
         {drawer}
       </Drawer>
-      
-      {/* Desktop drawer */}
+
       <Drawer
         variant="permanent"
         sx={{
-          display: { xs: 'none', sm: 'block' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+            top: 64,
+            height: 'calc(100% - 64px)',
+          },
         }}
         open
       >

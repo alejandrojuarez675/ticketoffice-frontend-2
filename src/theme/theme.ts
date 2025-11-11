@@ -1,4 +1,4 @@
-import { createTheme, ThemeOptions, Components } from '@mui/material/styles';
+import { createTheme, type ThemeOptions, type Components } from '@mui/material/styles';
 
 const themeOptions: ThemeOptions = {
   palette: {
@@ -83,7 +83,6 @@ const themeOptions: ThemeOptions = {
       styleOverrides: {
         root: {
           '&.MuiCard-root': {
-            // This will target the main content box that has the margin-left
             '&[style*="margin-left: 240px"]': {
               marginLeft: '0 !important',
               width: '100% !important',

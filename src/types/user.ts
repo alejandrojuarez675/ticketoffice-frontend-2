@@ -1,9 +1,10 @@
+
 export interface User {
   id: number;
   username: string;
-  password?: string; // Optional since we might not want to expose it everywhere
+  password?: string;
   email: string;
-  role: 'admin' | 'user';
+  role: 'user' | 'seller' | 'admin';
   name: string;
   avatar?: string;
   firstName?: string;
@@ -15,6 +16,7 @@ export interface User {
 export interface LoginCredentials {
   username: string;
   password: string;
+  remember?: boolean; 
 }
 
 export interface LoginResponse {
@@ -24,17 +26,10 @@ export interface LoginResponse {
 
 export interface RegisterCredentials {
   username: string;
-  firstName: string;
-  lastName: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  acceptTerms: boolean;
-}
-
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  loading: boolean;
-  error: string | null;
+  firstName?: string;
+  lastName?: string;
+  confirmPassword?: string;
+  acceptTerms?: boolean;
 }

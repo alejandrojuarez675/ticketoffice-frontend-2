@@ -16,6 +16,7 @@ export interface BuyerData {
 export interface SessionDataRequest {
   mainEmail: string;
   buyer: BuyerData[];
+  couponCode?: string;
 }
 
 export interface SessionInfoResponse {

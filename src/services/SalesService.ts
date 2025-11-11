@@ -1,115 +1,92 @@
-import { Sale, SalesResponse } from '@/types/Sales';
+// src/services/SalesService.ts
+import { AuthService } from './AuthService';
 import { ConfigService } from './ConfigService';
+import { http } from '@/lib/http';
+import { logger } from '@/lib/logger';
+import { SalesListResponseSchema } from './schemas/sales';
 
-// Mock data for development
-const mockSales: Sale[] = [
-  {
-    id: '1',
-    firstName: 'Juan',
-    lastName: 'Pérez',
-    email: 'juan@example.com',
-    ticketType: 'General',
-    price: 5000,
-    validated: true
-  },
-  {
-    id: '2',
-    firstName: 'María',
-    lastName: 'García',
-    email: 'maria@example.com',
-    ticketType: 'VIP',
-    price: 10000,
-    validated: false
-  },
-  {
-    id: '3',
-    firstName: 'Carlos',
-    lastName: 'López',
-    email: 'carlos@example.com',
-    ticketType: 'General',
-    price: 5000,
-    validated: true
-  }
-];
-
-const mockSalesResponse = (): SalesResponse => {
-  return {
-    sales: [...mockSales]
-  };
+// Tipos locales sólo para CSV/mock
+export type SaleRecord = {
+  id: string;
+  date: string;
+  eventId: string;
+  eventName: string;
+  sellerId: string;
+  sellerName: string;
+  buyerEmail: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  couponCode?: string;
+  vendorCode?: string;
+  paymentStatus: 'paid' | 'refunded' | 'failed' | 'pending';
+  orderId: string;
 };
 
-export class SalesService {
-  private static instance: SalesService;
-  private baseUrl: string;
+export type SalesFilters = {
+  from?: string;
+  to?: string;
+  eventId?: string;
+  sellerId?: string;
+  query?: string;
+};
 
-  private constructor() {
-    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    this.baseUrl = `${BASE_URL}/api/sales`;
-  }
+// mockSales omitido por brevedad
 
-  public static getInstance(): SalesService {
-    if (!SalesService.instance) {
-      SalesService.instance = new SalesService();
-    }
-    return SalesService.instance;
-  }
-
-  public async getSaleById(eventId: string, saleId: string): Promise<Sale> {
+export const SalesService = {
+  // Mock legacy
+  async list(_filters: SalesFilters = {}): Promise<SaleRecord[]> {
     if (ConfigService.isMockedEnabled()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const sale = mockSales.find(s => s.id === saleId);
-      if (!sale) {
-        throw new Error('Sale not found');
-      }
-      return sale;
+      return []; // si necesitas mock real, reusa el array omitido arriba
     }
+    // En BE real no existe endpoint global; evita romper
+    return [];
+  },
 
-    try {
-      const response = await fetch(`${this.baseUrl}/${eventId}/${saleId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+  // MVP: lista por evento (GET /api/v1/events/{id}/sales)
+  async listByEvent(eventId: string) {
+    const base = ConfigService.getApiBase();
+    const raw = await http.get<unknown>(
+      `${base}/api/v1/events/${encodeURIComponent(eventId)}/sales`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
+    );
+    const parsed = SalesListResponseSchema.parse(raw); // -> { sales: [...] }
+    logger.debug('SalesService.listByEvent parsed', { count: parsed.sales.length, eventId });
+    return parsed;
+  },
 
-      if (!response.ok) {
-        throw new Error('Error fetching sale');
-      }
+  // MVP: validar entrada
+  async validate(eventId: string, saleId: string) {
+    const base = ConfigService.getApiBase();
+    await http.post<void, void>(
+      `${base}/api/v1/events/${encodeURIComponent(eventId)}/sales/${encodeURIComponent(saleId)}/validate`,
+      undefined,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
+    );
+    logger.info('SalesService.validate ok', { eventId, saleId });
+  },
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error in getSaleById:', error);
-      throw error;
-    }
-  }
-
-  public async getEventSales(eventId: string): Promise<SalesResponse> {
-    if (ConfigService.isMockedEnabled()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockSalesResponse();
-    }
-
-    try {
-      const response = await fetch(`${this.baseUrl}/event/${eventId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error fetching event sales');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error in getEventSales:', error);
-      throw error;
-    }
-  }
-}
+  toCSV(rows: SaleRecord[]): string {
+    const headers = [
+      'Fecha','Evento','Vendedor','Email comprador','Cantidad','Precio unitario','Total',
+      'Cupón','Código vendedor','Estado pago','Orden',
+    ];
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = rows.map((r) =>
+      [
+        new Date(r.date).toISOString(),
+        r.eventName,
+        r.sellerName,
+        r.buyerEmail,
+        r.quantity,
+        r.unitPrice.toFixed(2),
+        r.total.toFixed(2),
+        r.couponCode || '',
+        r.vendorCode || '',
+        r.paymentStatus,
+        r.orderId,
+      ].map(escape).join(',')
+    );
+    return [headers.map(escape).join(','), ...lines].join('\\n');
+  },
+};

@@ -1,125 +1,125 @@
+// src/app/admin/events/[id]/sales/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
-  Paper,
+import type { SaleLightDTO } from '@/services/schemas/sales';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
   IconButton,
   Menu,
   MenuItem,
-  Box,
-  CircularProgress,
-  Button,
-  useTheme,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
   useMediaQuery,
-  Chip,
-  Grid,
+  useTheme,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import { SalesService } from '@/services/SalesService';
-import { SalesResponse } from '@/types/Sales';
-import { AuthService } from '@/services/AuthService';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+import Loading from '@/components/common/Loading';
+import ErrorState from '@/components/common/ErrorState';
+import Empty from '@/components/common/Empty';
+import { SalesService } from '@/services/SalesService';
+import { logger } from '@/lib/logger';
 
-const EventSalesPage = () => {
+type Row = {
+  id: string;
+  name: string;
+  email: string;
+  ticketType: string;
+  price: number;
+  validated: boolean;
+};
+
+export default function EventSalesPage() {
+  return (
+    <BackofficeLayout title="Ventas del Evento">
+      <EventSalesPageInner />
+    </BackofficeLayout>
+  );
+}
+
+function EventSalesPageInner() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const [salesData, setSalesData] = useState<SalesResponse | null>(null);
+
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const selectedSaleId = useRef<string | null>(null);
   const open = Boolean(anchorEl);
 
-  // Check authentication and admin status
   useEffect(() => {
-    if (!AuthService.isAuthenticated()) {
-      router.push('/auth/login');
-      return;
-    }
-    
-    if (!AuthService.isAdmin()) {
-      router.push('/');
-      return;
-    }
-
-    const fetchSales = async () => {
+    let active = true;
+    (async () => {
       if (!id) return;
-      
       try {
         setLoading(true);
         setError(null);
-        const sales = await SalesService.getInstance().getEventSales(id as string);
-        setSalesData(sales);
+        // BE real: GET /api/v1/events/{id}/sales
+        const res = await SalesService.listByEvent(String(id)); // { sales: SaleLightDTO[] }
+        if (!active) return;
+        setRows(
+          (res?.sales || []).map((s: SaleLightDTO) => ({
+            id: s.id,
+            name: `${s.firstName} ${s.lastName}`,
+            email: s.email,
+            ticketType: s.ticketType,
+            price: s.price,
+            validated: s.validated,
+          }))
+        );
       } catch (err) {
-        console.error('Error fetching sales:', err);
-        setError('Error al cargar las ventas del evento');
+        logger.error('sales_load_failed', err);
+        if (active) setError('Error al cargar las ventas del evento');
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
+    })();
+    return () => {
+      active = false;
     };
+  }, [id]);
 
-    fetchSales();
-  }, [id, router]);
+  const handleBack = () => router.push(`/admin/events/${id}`);
 
-  const handleBack = () => {
-    router.push(`/admin/events/${id}`);
-  };
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>, saleId: string) => {
-    setAnchorEl(event.currentTarget);
+  const handleClick = (e: React.MouseEvent<HTMLElement>, saleId: string) => {
+    setAnchorEl(e.currentTarget);
     selectedSaleId.current = saleId;
   };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
+  const handleClose = () => setAnchorEl(null);
 
   const handleValidate = () => {
-    if (selectedSaleId.current && id) {
-      router.push(`/admin/validate/${selectedSaleId.current}`);
+    if (selectedSaleId.current) {
+      router.push(`/admin/events/${id}/validate?saleId=${encodeURIComponent(selectedSaleId.current)}`);
     }
     handleClose();
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
+  const statusChip = (v: boolean) => (
+    <Chip label={v ? 'Validado' : 'Pendiente'} color={v ? 'success' : 'warning'} size="small" />
+  );
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress />
+      <Box sx={{ p: 3 }}>
+        <Loading label="Cargando ventas..." minHeight="60vh" />
       </Box>
     );
   }
@@ -127,29 +127,19 @@ const EventSalesPage = () => {
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography color="error" variant="h6">{error}</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={handleBack}
-          startIcon={<ArrowBackIcon />}
-          sx={{ mt: 2 }}
-        >
+        <ErrorState message={error} onRetry={() => router.refresh()} />
+        <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
           Volver al evento
         </Button>
       </Box>
     );
   }
 
-  if (!salesData) {
+  if (!rows.length) {
     return (
       <Box sx={{ p: 3 }}>
-        <Typography variant="h6">No se encontraron datos de ventas</Typography>
-        <Button 
-          variant="outlined" 
-          onClick={handleBack}
-          startIcon={<ArrowBackIcon />}
-          sx={{ mt: 2 }}
-        >
+        <Empty title="Sin ventas" description="No se encontraron ventas para este evento." />
+        <Button variant="outlined" onClick={handleBack} startIcon={<ArrowBackIcon />} sx={{ mt: 2 }}>
           Volver al evento
         </Button>
       </Box>
@@ -162,53 +152,40 @@ const EventSalesPage = () => {
         <IconButton onClick={handleBack} sx={{ mr: 1 }}>
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h4" component="h1">
-          Ventas del Evento
-        </Typography>
+        <Typography variant="h4">Ventas del Evento</Typography>
         <Box sx={{ flexGrow: 1 }} />
       </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid size={{ xs: 12 }}>
           <Card>
-            <CardContent>              
+            <CardContent>
               <TableContainer component={Paper} sx={{ maxHeight: '70vh', overflow: 'auto' }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
                       <TableCell>Comprador</TableCell>
-                      <TableCell>Tipo de entrada</TableCell>
+                      <TableCell>Email</TableCell>
+                      <TableCell>Ticket</TableCell>
                       <TableCell align="right">Precio</TableCell>
                       <TableCell>Estado</TableCell>
                       <TableCell align="center">Acciones</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {salesData.sales.map((sale) => (
-                      <TableRow key={sale.id} hover>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {sale.firstName + ' ' + sale.lastName}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {sale.email}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">{sale.ticketType}</TableCell>
+                    {rows.map((r) => (
+                      <TableRow key={r.id} hover>
+                        <TableCell>{r.name || '—'}</TableCell>
+                        <TableCell>{r.email}</TableCell>
+                        <TableCell>{r.ticketType}</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(sale.price)}
+                          {r.price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
                         </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={sale.validated ? 'Validada' : 'No validada'} 
-                            color={sale.validated ? 'success' : 'error'}
-                            size="small"
-                          />
-                        </TableCell>
+                        <TableCell>{statusChip(r.validated)}</TableCell>
                         <TableCell align="center">
                           <IconButton
                             size="small"
-                            onClick={(e) => handleClick(e, sale.id)}
+                            onClick={(e) => handleClick(e, r.id)}
                             aria-label="more"
                             aria-controls="sale-actions-menu"
                             aria-haspopup="true"
@@ -224,51 +201,18 @@ const EventSalesPage = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Filtros
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                <Chip label="Todas" color="primary" variant="outlined" />
-                <Chip label="Completadas" variant="outlined" />
-                <Chip label="Pendientes" variant="outlined" />
-                <Chip label="Canceladas" variant="outlined" />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
       </Grid>
 
-      {/* Actions Menu */}
       <Menu
         id="sale-actions-menu"
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <MenuItem onClick={handleValidate}>Validar Entrada</MenuItem>
       </Menu>
     </Box>
-  );
-};
-
-export default function EventSalesPageWrapper() {
-  const { id } = useParams<{ id: string }>();
-  
-  return (
-    <BackofficeLayout title="Ventas del Evento">
-      <EventSalesPage />
-    </BackofficeLayout>
   );
 }

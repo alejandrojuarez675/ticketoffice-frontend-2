@@ -1,92 +1,20 @@
-import { SearchEventParams, SearchEventResponse } from '@/types/search-event';
-import { EventDetail, EventForList } from '@/types/Event';
+import type { SearchEventParams, SearchEventResponse } from '@/types/search-event';
+import type { EventDetail, EventForList } from '@/types/Event';
+
+type EventRecommendation = Pick<EventForList, 'id' | 'name' | 'date' | 'location'>;
 import { ConfigService } from './ConfigService';
-
-// Mock data for development
-const mockEventDetail: EventDetail = {
-  id: '1',
-  title: 'Concierto en Vivo',
-  date: '2025-12-31T22:00:00',
-  image: {
-    url: 'https://sanangel.edu.mx/wp-content/uploads/2024/06/obra-de-teatro.webp',
-    alt: 'Concierto en Vivo',
-  },
-  description: 'Un increíble concierto con los mejores artistas del momento. ¡No te lo pierdas!',
-  additionalInfo: [
-    'Entrada general',
-    'Mayores de 18 años',
-    'Se permiten cámaras sin flash',
-  ],
-  organizer: {
-    id: 'org1',
-    name: 'Productora de Eventos',
-    url: 'https://example.com/organizer',
-    logoUrl: 'https://via.placeholder.com/100x50?text=Organizer',
-  },
-  status: 'ACTIVE',
-  location: {
-    name: 'Estadio Monumental',
-    address: 'Av. Pres. Figueroa Alcorta 7597',
-    city: 'Buenos Aires',
-    country: 'Argentina',
-  },
-  tickets: [
-    {
-      id: 'ticket1',
-      type: 'General',
-      value: 5000,
-      currency: 'ARS',
-      isFree: false,
-      stock: 100,
-    },
-    {
-      id: 'ticket2',
-      type: 'VIP',
-      value: 10000,
-      currency: 'ARS',
-      isFree: false,
-      stock: 50,
-    },
-  ],
-};
-
-// Mock data for development
-const mockEvents: EventForList[] = [
-  {
-    id: '1',
-    name: 'Concierto en Vivo',
-    date: '2025-12-31T22:00:00',
-    location: 'Estadio Monumental, Buenos Aires',
-    status: 'ACTIVE',
-  },
-  {
-    id: '2',
-    name: 'Festival de Música',
-    date: '2025-11-15T18:00:00',
-    location: 'Parque Sarmiento, Córdoba',
-    status: 'ACTIVE',
-  },
-  {
-    id: '3',
-    name: 'Obra de Teatro',
-    date: '2025-10-20T20:30:00',
-    location: 'Teatro Colón, Buenos Aires',
-    status: 'INACTIVE',
-  },
-];
-
-const mockSearchEvents: SearchEventResponse = {
-  events: mockEvents.map(event => ({
-    ...event,
-    bannerUrl: 'https://sanangel.edu.mx/wp-content/uploads/2024/06/obra-de-teatro.webp',
-    price: Math.floor(Math.random() * 5000) + 1000,
-    currency: 'ARS',
-  })),
-  hasEventsInYourCity: true,
-  totalPages: 1,
-  currentPage: 1,
-  pageSize: 10,
-};
+import { AuthService } from './AuthService';
+import { http } from '@/lib/http';
+import { logger } from '@/lib/logger';
+import { EventDetailSchema, EventListResponseSchema, SearchEventResponseSchema } from './schemas/event';
+import {
+  mockGetEvents,
+  mockSearchEvents,
+  mockGetEventById,
+  mockCreateEvent,
+  mockUpdateEvent,
+  mockDeleteEvent,
+} from '@/mocks';
 
 export interface EventListResponse {
   events: EventForList[];
@@ -97,223 +25,159 @@ export interface EventListResponse {
 }
 
 export class EventService {
-  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  private static BASE_URL = ConfigService.getApiBase();
 
   private static isMocked(): boolean {
     return ConfigService.isMockedEnabled();
   }
 
-  static async getEvents(page: number = 1, pageSize: number = 10): Promise<EventListResponse> {
-    if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const start = (page - 1) * pageSize;
-      const end = start + pageSize;
-      const paginatedEvents = mockEvents.slice(start, end);
-      
-      return {
-        events: paginatedEvents,
-        total: mockEvents.length,
-        page,
-        pageSize,
-        totalPages: Math.ceil(mockEvents.length / pageSize),
-      };
-    }
-
-    try {
-      const response = await fetch(
-        `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch events');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      throw error;
-    }
+  // Public endpoints (MVP)
+  static async search(params: SearchEventParams): Promise<SearchEventResponse> {
+    // alias para compatibilidad con los componentes del MVP
+    return this.searchEvents(params);
   }
 
   static async searchEvents(params: SearchEventParams): Promise<SearchEventResponse> {
+    // MODO MOCK: no exigimos country y ajustamos pageNumber a 1-based si viene 0
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockSearchEvents;
-    }
-
-    try {
-      const queryString = Object.entries(params)
-        .filter(([_, value]) => value !== undefined)
-        .map(([key, value]) => `${key}=${encodeURIComponent(String(value))}`)
-        .join('&');
-
-      const response = await fetch(
-        `${this.BASE_URL}/api/public/v1/event/search?${queryString}`,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to search events');
+      const p: SearchEventParams = {
+        ...params,
+        // muchos mocks usan 1-based; si recibimos 0, lo subimos a 1
+        pageNumber: Math.max(1, Number(params.pageNumber ?? 0)),
+      };
+      // Permitir "Todos" (all) pero mantener el parámetro country
+      if (params.country === 'all' || params.country === 'Todos') {
+        return mockSearchEvents({ ...p, country: 'all' });
       }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error searching events:', error);
-      throw error;
+      return mockSearchEvents(p);
     }
+
+    // BE REAL: country obligatorio (evitamos golpear el API con 'all' o vacío)
+    if (!params.country || !params.country.trim() || params.country.toLowerCase() === 'all') {
+      return {
+        events: [],
+        currentPage: 0,
+        pageSize: params.pageSize ?? 9,
+        totalPages: 0,
+        hasEventsInYourCity: false,
+      };
+    }
+
+    const safeParams: SearchEventParams = {
+      ...params,
+      pageNumber: Math.max(0, Number(params.pageNumber ?? 0)), // 0-based para BE
+    };
+
+    const queryString = Object.entries(safeParams)
+      .filter(([, value]) => value !== undefined && value !== '')
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join('&');
+
+    const raw = await http.get<unknown>(
+      `${this.BASE_URL}/api/public/v1/event/search?country=Argentina&city=Buenos%20Aires`,
+      { retries: 1 }
+    );
+    const parsed = SearchEventResponseSchema.parse(raw);
+    logger.debug('searchEvents parsed', { count: parsed.events.length, page: parsed.currentPage, pageSize: parsed.pageSize });
+    return parsed;
+  }
+
+
+  static async getPublicById(id: string): Promise<EventDetail> {
+    if (this.isMocked()) {
+      // Reutilizamos el mock privado por ahora
+      return mockGetEventById(id);
+    }
+    const raw = await http.get<unknown>(`${this.BASE_URL}/api/public/v1/event/${encodeURIComponent(id)}`, { retries: 1 });
+    // El esquema público y privado comparten forma para MVP (title, date, location, image, tickets...)
+    const parsed = EventDetailSchema.parse(raw);
+    logger.debug('getPublicById parsed', { id: parsed.id });
+    return parsed;
+  }
+
+  static async getRecommendations(id: string): Promise<EventRecommendation[]> {
+    if (this.isMocked()) {
+      return []; // opcional: podrías mockear
+    }
+    const response = await http.get<EventRecommendation[]>(
+      `${this.BASE_URL}/api/public/v1/event/${encodeURIComponent(id)}/recommendations`,
+      { retries: 1 }
+    );
+    return response;
+  }
+
+  // Private/backoffice endpoints (se mantienen)
+  static async getEvents(page: number = 1, pageSize: number = 10): Promise<EventListResponse> {
+    if (this.isMocked()) {
+      return mockGetEvents(page, pageSize);
+    }
+    const currentUser = AuthService.getCurrentUser();
+    const sellerScope = AuthService.isSeller() && currentUser ? `&sellerId=${encodeURIComponent(String(currentUser.id))}` : '';
+    const raw = await http.get<unknown>(
+      `${this.BASE_URL}/api/v1/events?page=${page}&pageSize=${pageSize}${sellerScope}`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
+    );
+    const parsed = EventListResponseSchema.parse(raw);
+    logger.debug('getEvents parsed', { page, pageSize, total: parsed.total });
+    return parsed;
   }
 
   static async getEventById(id: string): Promise<EventDetail> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return { ...mockEventDetail, id };
+      return mockGetEventById(id);
     }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch event details');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error fetching event details:', error);
-      throw error;
-    }
+    const raw = await http.get<unknown>(`${this.BASE_URL}/api/v1/events/${id}`,
+      { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
+    );
+    const parsed = EventDetailSchema.parse(raw);
+    logger.debug('getEventById parsed', { id: parsed.id });
+    return parsed;
   }
-
-  static async createEvent(event: EventDetail): Promise<EventDetail> {
+  
+  static async createEvent(event: Omit<EventDetail, 'id'>): Promise<EventDetail> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const newEvent = {
-        ...event,
-        id: Math.random().toString(36).substr(2, 9),
-      };
-      mockEvents.push({
-        id: newEvent.id,
-        name: newEvent.title,
-        date: newEvent.date,
-        location: newEvent.location?.name || 'Sin ubicación',
-        status: 'ACTIVE',
-      });
-      return newEvent;
+      return mockCreateEvent(event as EventDetail);
     }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(event),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create event');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error creating event:', error);
-      throw error;
-    }
+    // Mapea a EventCrudRequest (BE)
+    const payload = {
+      title: event.title,
+      date: event.date,
+      location: event.location,
+      image: event.image,
+      tickets: event.tickets,
+      description: event.description,
+      additionalInfo: event.additionalInfo,
+    };
+    const raw = await http.post<unknown>(`${this.BASE_URL}/api/v1/events`, payload, {
+      headers: { ...AuthService.getAuthHeader() },
+      retries: 0,
+    });
+    const parsed = EventDetailSchema.parse(raw);
+    logger.info('createEvent success', { id: parsed.id });
+    return parsed;
   }
 
   static async updateEvent(id: string, event: Partial<EventDetail>): Promise<EventDetail> {
     if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const index = mockEvents.findIndex(e => e.id === id);
-      if (index === -1) {
-        throw new Error('Event not found');
-      }
-      
-      const updatedEvent = {
-        ...mockEventDetail,
-        ...event,
-        id,
-      };
-      
-      // Update the mock data
-      mockEvents[index] = {
-        id,
-        name: event.title || mockEvents[index].name,
-        date: event.date || mockEvents[index].date,
-        location: event.location?.name || mockEvents[index].location,
-        status: (event.status as 'ACTIVE' | 'INACTIVE' | 'SOLD_OUT') || mockEvents[index].status,
-      };
-      
-      return updatedEvent;
+      return mockUpdateEvent(id, event);
     }
+    // Mapea sólo campos permitidos
+    const payload: Partial<Pick<EventDetail, 'title' | 'date' | 'location' | 'image' | 'tickets' | 'description' | 'additionalInfo'>> = {};
+    if (event.title !== undefined) payload.title = event.title;
+    if (event.date !== undefined) payload.date = event.date;
+    if (event.location !== undefined) payload.location = event.location;
+    if (event.image !== undefined) payload.image = event.image;
+    if (event.tickets !== undefined) payload.tickets = event.tickets;
+    if (event.description !== undefined) payload.description = event.description;
+    if (event.additionalInfo !== undefined) payload.additionalInfo = event.additionalInfo;
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(event),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update event');
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error updating event:', error);
-      throw error;
-    }
+    const raw = await http.put<unknown>(`${this.BASE_URL}/api/v1/events/${id}`, payload, {
+      headers: { ...AuthService.getAuthHeader() },
+      retries: 0,
+    });
+    const parsed = EventDetailSchema.parse(raw);
+    logger.info('updateEvent success', { id: parsed.id });
+    return parsed;
   }
 
-  static async deleteEvent(id: string): Promise<void> {
-    if (this.isMocked()) {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const index = mockEvents.findIndex(e => e.id === id);
-      if (index !== -1) {
-        mockEvents.splice(index, 1);
-      }
-      return;
-    }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/v1/events/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete event');
-      }
-    } catch (error) {
-      console.error('Error deleting event:', error);
-      throw error;
-    }
-  }
 }

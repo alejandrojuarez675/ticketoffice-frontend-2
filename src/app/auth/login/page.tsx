@@ -1,174 +1,104 @@
+// src/app/auth/login/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState } from 'react';
 import LightLayout from '@/components/layouts/LightLayout';
-import { useRouter } from 'next/navigation';
-import {
-  Box,
-  Container,
-  Paper,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-  Link as MuiLink,
-} from '@mui/material';
-import Link from 'next/link';
-import { AuthService } from '@/services/AuthService';
+import { Box, Button, Container, TextField, Typography, Alert, Checkbox, FormControlLabel, Paper, CircularProgress } from '@mui/material';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
+// This component is wrapped in Suspense as a workaround for the useSearchParams()
+// https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
 function LoginForm() {
   const router = useRouter();
+  const sp = useSearchParams();
+  const next = sp.get('next') || '/admin/dashboard';
+
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [remember, setRemember] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // If user is already logged in, redirect to dashboard
-    if (AuthService.isAuthenticated()) {
-      router.push('/admin/dashboard');
-    }
-  }, [router]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    
+    setError(null);
     if (!username || !password) {
-      setError('Por favor, complete todos los campos');
+      setError('Completa usuario y contraseña');
       return;
     }
-
     try {
       setLoading(true);
-      await AuthService.login({ username, password });
-      
-      // Redirect to dashboard on successful login
-      router.push('/admin/dashboard');
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+      await login({ username, password, remember });
+      router.replace(next);
+    } catch {
+      setError('Credenciales inválidas');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-        }}
-      >
-        <Paper 
-          elevation={3} 
-          sx={{ 
-            p: 4, 
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          <Typography component="h1" variant="h5" gutterBottom>
-            Iniciar Sesión
+    <LightLayout title="Iniciar sesión - TicketOffice">
+      <Container maxWidth="sm" sx={{ py: 6 }}>
+        <Paper sx={{ p: 3, borderRadius: 2 }}>
+          <Typography variant="h4" gutterBottom>
+            Iniciar sesión
           </Typography>
-          
           {error && (
-            <Alert 
-              severity="error" 
-              sx={{ 
-                width: '100%',
-                mb: 3,
-                '& .MuiAlert-message': {
-                  width: '100%',
-                }
-              }}
-            >
+            <Alert severity="error" sx={{ mb: 2 }}>
               {error}
             </Alert>
           )}
-          
-          <Box 
-            component="form" 
-            onSubmit={handleSubmit} 
-            sx={{ 
-              mt: 1,
-              width: '100%',
-            }}
-          >
+          <Box component="form" onSubmit={onSubmit}>
             <TextField
-              margin="normal"
-              required
               fullWidth
-              id="username"
               label="Usuario"
-              name="username"
-              autoComplete="username"
-              autoFocus
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              disabled={loading}
+              margin="normal"
+              autoComplete="username"
             />
             <TextField
-              margin="normal"
-              required
               fullWidth
-              name="password"
-              label="Contraseña"
               type="password"
-              id="password"
-              autoComplete="current-password"
+              label="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
+              margin="normal"
+              autoComplete="current-password"
             />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Iniciar Sesión'
-              )}
-            </Button>
-            
-            <Box sx={{ textAlign: 'center', mt: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                ¿No tienes una cuenta?{' '}
-                <MuiLink 
-                  component={Link} 
-                  href="/auth/register" 
-                  sx={{ 
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                    }
-                  }}
-                >
-                  Regístrate aquí
-                </MuiLink>
-              </Typography>
+            <FormControlLabel
+              control={<Checkbox checked={remember} onChange={(e) => setRemember(e.target.checked)} />}
+              label="Recordarme"
+              sx={{ mt: 1 }}
+            />
+            <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+              <Button type="submit" variant="contained" disabled={loading}>
+                {loading ? 'Ingresando...' : 'Ingresar'}
+              </Button>
+              <Button color="inherit" variant="text" href="/auth/forgot">
+                Olvidé mi contraseña
+              </Button>
             </Box>
           </Box>
         </Paper>
-      </Box>
-    </Container>
+      </Container>
+    </LightLayout>
   );
 }
 
 export default function LoginPage() {
   return (
-    <LightLayout title="Iniciar Sesión - TicketOffice">
+    <Suspense fallback={
+      <LightLayout title="Cargando...">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+          <CircularProgress />
+        </Box>
+      </LightLayout>
+    }>
       <LoginForm />
-    </LightLayout>
+    </Suspense>
   );
 }

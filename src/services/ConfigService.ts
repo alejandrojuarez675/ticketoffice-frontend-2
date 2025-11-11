@@ -1,12 +1,16 @@
+// src/services/ConfigService.ts
 export class ConfigService {
-  private static isMocked: boolean = true; // Default to mocked for now
-
-  static setMocked(value: boolean) {
-    this.isMocked = value;
+    static {
+    console.log(process.env);
   }
-
-  static isMockedEnabled(): boolean {
-    // In Next.js, we can also check environment variables
-    return this.isMocked || process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+  static getApiBase() {
+    return process.env.NEXT_PUBLIC_API_BASE_URL || '<http://localhost:8080>';
+  }
+  static isMockedEnabled() {
+    const v = (process.env.NEXT_PUBLIC_USE_MOCKS || 'false').toLowerCase();
+    return v === 'true' || v === '1';
+  }
+  static getAppUrl() {
+    return process.env.NEXT_PUBLIC_APP_URL || '<http://localhost:3000>';
   }
 }

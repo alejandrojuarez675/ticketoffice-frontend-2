@@ -101,7 +101,7 @@ function HomeContent() {
               </Typography>
               <Button
                 component={Link}
-                href="/register"
+                href="/auth/register"
                 variant="contained"
                 size="large"
                 sx={{

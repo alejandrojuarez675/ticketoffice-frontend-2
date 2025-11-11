@@ -1,196 +1,66 @@
+// src/services/CheckoutService.ts
 import { ConfigService } from './ConfigService';
-import { 
-  CheckoutSessionResponse, 
-  SessionDataRequest, 
-  SessionInfoResponse 
-} from '@/types/checkout';
+import { http } from '@/lib/http';
+import { logger } from '@/lib/logger';
+
+import type { CheckoutSessionResponse, SessionDataRequest, SessionInfoResponse, ProcessPaymentResponse, BuyerData } from '@/types/checkout';
+import { CheckoutSessionResponseSchema } from './schemas/checkout';
+import { mockCreateSession } from '@/mocks';
+
+type CreateSessionRequest = {
+  eventId: string;
+  priceId: string;
+  quantity: number;
+};
+
+type BuyTicketsRequest = {
+  mainEmail: string;
+  buyer: BuyerData[];
+  couponCode?: string;
+};
 
 export class CheckoutService {
-  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  private static BASE_URL = ConfigService.getApiBase();
 
-  /**
-   * Creates a new checkout session for ticket purchase
-   * @param eventId The ID of the event
-   * @param ticketId The ID of the ticket to purchase
-   * @param quantity Number of tickets to purchase
-   * @returns Promise with the checkout session details
-   */
-  static async createSession(
-    eventId: string,
-    ticketId: string,
-    quantity: number
-  ): Promise<CheckoutSessionResponse> {
-    if (this.isMocked()) {
-      return this.getMockSession();
+  // Firma 1: (eventId, ticketId, quantity)
+  static async createSession(eventId: string, ticketId: string, quantity: number): Promise<CheckoutSessionResponse>;
+  // Firma 2: ({ eventId, priceId, quantity })
+  static async createSession(payload: CreateSessionRequest): Promise<CheckoutSessionResponse>;
+
+  static async createSession(a: string | CreateSessionRequest, b?: string, c?: number): Promise<CheckoutSessionResponse> {
+    if (ConfigService.isMockedEnabled()) {
+      return mockCreateSession();
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session`, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          eventId,
-          priceId: ticketId,
-          quantity
-        })
-      });
+    const body: CreateSessionRequest =
+      typeof a === 'string'
+        ? { eventId: a, priceId: String(b), quantity: Number(c) }
+        : a;
 
-      if (!response.ok) {
-        throw new Error(`Failed to create checkout session: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      throw error;
-    }
+    const raw = await http.post<unknown>(`${this.BASE_URL}/api/public/v1/checkout/session`, body, { retries: 1 });
+    const parsed = CheckoutSessionResponseSchema.parse(raw);
+    logger.debug('createSession ok', parsed);
+    return parsed;
   }
 
-  private static isMocked(): boolean {
-    return ConfigService.isMockedEnabled();
+  // MVP: finalizar compra
+  static async buy(sessionId: string, payload: BuyTicketsRequest): Promise<void> {
+    await http.post<void, BuyTicketsRequest>(
+      `${this.BASE_URL}/api/public/v1/checkout/session/${encodeURIComponent(sessionId)}/buy`,
+      payload,
+      { retries: 0 }
+    );
+    logger.info('buy ok', { sessionId });
   }
 
-  /**
-   * Retrieves session information by session ID
-   * @param sessionId The ID of the session to retrieve
-   * @returns Promise with the session details
-   */
-  static async getSession(sessionId: string): Promise<SessionInfoResponse> {
-    if (this.isMocked()) {
-      return this.getMockSessionInfo(sessionId);
-    }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}`, {
-        method: 'GET',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get session: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error getting session:', error);
-      throw error;
-    }
+  // No disponible en MVP (los dejamos para no romper imports)
+  static async getSession(_sessionId: string): Promise<SessionInfoResponse> {
+    throw new Error('getSession no disponible en el MVP');
   }
-
-  private static getMockSession(): Promise<CheckoutSessionResponse> {
-    return Promise.resolve({
-      sessionId: `mock-session-${Math.random().toString(36).substring(2, 15)}`,
-      expiredIn: 10540
-    });
+  static async addSessionData(_sessionId: string, _data: SessionDataRequest): Promise<SessionInfoResponse> {
+    throw new Error('addSessionData no disponible en el MVP');
   }
-
-  /**
-   * Adds or updates data for a specific session
-   * @param sessionId The ID of the session to update
-   * @param data The data to add to the session
-   * @returns Promise with the updated session details
-   */
-  static async addSessionData(
-    sessionId: string, 
-    data: SessionDataRequest
-  ): Promise<SessionInfoResponse> {
-    if (this.isMocked()) {
-      return this.getMockSessionInfoWithData(sessionId, data);
-    }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/session/${sessionId}/data`, {
-        method: 'PUT',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to update session data: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error updating session data:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Processes the payment for a session
-   * @param sessionId The ID of the session to process payment for
-   * @returns Promise with the payment processing result
-   */
-  static async processPayment(sessionId: string): Promise<{ success: boolean; redirectUrl?: string }> {
-    if (this.isMocked()) {
-      return Promise.resolve({
-        success: true,
-        redirectUrl: `/congrats?sessionId=${sessionId}`
-      });
-    }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/public/v1/checkout/process-payment`, {
-        method: 'POST',
-        headers: {
-          'accept': 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ sessionId })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to process payment: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error('Error processing payment:', error);
-      throw error;
-    }
-  }
-
-  // Mock data generators
-  private static getMockSessionInfo(sessionId: string): Promise<SessionInfoResponse> {
-    return Promise.resolve({
-      sessionId,
-      eventId: `event-${Math.random().toString(36).substring(2, 10)}`,
-      priceId: `ticket-${Math.random().toString(36).substring(2, 10)}`,
-      quantity: 1,
-      mainEmail: 'test@example.com',
-      buyer: [
-        {
-          name: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@example.com',
-          phone: '1234567890',
-          nationality: 'Argentina',
-          documentType: 'DNI',
-          document: '12345678'
-        }
-      ]
-    });
-  }
-
-  private static getMockSessionInfoWithData(
-    sessionId: string, 
-    data: SessionDataRequest
-  ): Promise<SessionInfoResponse> {
-    return Promise.resolve({
-      sessionId,
-      eventId: `event-${Math.random().toString(36).substring(2, 10)}`,
-      priceId: `ticket-${Math.random().toString(36).substring(2, 10)}`,
-      quantity: 1,
-      ...data
-    });
+  static async processPayment(_sessionId: string): Promise<ProcessPaymentResponse> {
+    throw new Error('processPayment no disponible en el MVP');
   }
 }

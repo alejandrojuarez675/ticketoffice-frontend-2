@@ -1,200 +1,211 @@
-import { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
+// src/services/AuthService.ts
+import { http, setAuthTokenProvider } from '@/lib/http';
+import { logger } from '@/lib/logger';
 import { ConfigService } from './ConfigService';
+import type { BackofficeRole } from '@/config/backofficeNav';
+import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from '@/types/user';
 
-// Mock data for development
-const mockUsers: User[] = [
-  {
-    id: 1,
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Administrador',
-    email: 'admin@example.com'
-  },
-  {
-    id: 2,
-    username: 'user',
-    password: 'user123',
-    role: 'user',
-    name: 'Usuario',
-    email: 'user@example.com'
-  },
+type ApiLoginResponse = { token: string; expiresIn: number };
+type ApiUserResponse = {
+  id: string | number;
+  username: string;
+  email: string;
+  role?: string[]; // ['ADMIN'] | ['SELLER'] | ['USER']
+  organizer?: unknown;
+};
+
+const MOCK_USERS: User[] = [
+  { id: 1, username: 'admin',   password: 'Admin123',  role: 'admin',  name: 'Administrador', email: 'admin@example.com' },
+  { id: 2, username: 'seller1', password: 'Seller123', role: 'seller', name: 'Vendedor Uno',  email: 'seller1@example.com' },
+  { id: 3, username: 'user1',   password: 'User1234',  role: 'user',   name: 'Usuario Uno',   email: 'user1@example.com'  },
 ];
 
 class AuthService {
-  private static BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  private static BASE_URL = ConfigService.getApiBase();
   private static TOKEN_KEY = 'auth_token';
   private static USER_KEY = 'user_data';
 
-  /**
-   * Logs in a user with the provided credentials
-   */
+  private static mapRolesToBackofficeRole(serverRoles?: string[]): BackofficeRole | 'user' {
+    const r = (serverRoles || []).map((x) => x.toUpperCase());
+    if (r.includes('ADMIN') || r.includes('SUPER_ADMIN')) return 'admin';
+    if (r.includes('SELLER') || r.includes('ORGANIZER')) return 'seller';
+    return 'user';
+  }
+
+  private static toAppUser(api: ApiUserResponse): User {
+    const role = this.mapRolesToBackofficeRole(api.role);
+    return {
+      id: api.id,
+      username: api.username,
+      email: api.email,
+      name: api.username,
+      role,
+    } as User;
+  }
+
+  private static setRoleCookie(role: BackofficeRole | 'user' | null, remember?: boolean) {
+    if (typeof document === 'undefined') return;
+    const base = 'path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+    if (role) {
+      const max = remember ? `; Max-Age=${60 * 60 * 24 * 30}` : '';
+      document.cookie = `role=${role}; ${base}${max}`;
+    } else {
+      document.cookie = `role=; Max-Age=0; ${base}`;
+    }
+  }
+
+  private static storage(remember?: boolean) {
+    if (typeof window === 'undefined') {
+      return {
+        getItem: (_: string) => null,
+        setItem: (_: string, __: string) => {},
+        removeItem: (_: string) => {},
+        other: { removeItem: (_: string) => {} },
+      } as unknown as Storage & { other: Storage };
+    }
+    const primary = remember ? localStorage : sessionStorage;
+    const secondary = remember ? sessionStorage : localStorage;
+    return { ...primary, other: secondary } as unknown as Storage & { other: Storage };
+  }
+
+  private static persistToken(token: string, remember?: boolean) {
+    const store = this.storage(remember);
+    store.setItem(this.TOKEN_KEY, token);
+    store.other.removeItem(this.TOKEN_KEY);
+    setAuthTokenProvider(() => {
+      if (typeof window === 'undefined') return null;
+      return localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
+    });
+  }
+
+  private static persistUser(user: User, remember?: boolean) {
+    const store = this.storage(remember);
+    store.setItem(this.USER_KEY, JSON.stringify(user));
+    store.other.removeItem(this.USER_KEY);
+  }
+
+  private static clearPersisted() {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.USER_KEY);
+    setAuthTokenProvider(null);
+    this.setRoleCookie(null);
+  }
+
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     if (ConfigService.isMockedEnabled()) {
-      return this.mockLogin(credentials);
+      await new Promise((r) => setTimeout(r, 250));
+      const u = MOCK_USERS.find(
+        (x) => x.username.toLowerCase() === credentials.username.toLowerCase() && x.password === credentials.password
+      );
+      if (!u) throw new Error('Usuario o contraseña incorrectos');
+      const token = `mock_${Date.now()}`;
+      const { password, ...safeUser } = u;
+      this.persistToken(token, credentials.remember);
+      this.persistUser(safeUser, credentials.remember);
+      this.setRoleCookie(safeUser.role, credentials.remember);
+      return { token, user: safeUser } as LoginResponse;
     }
 
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
+    const loginUrl = `${this.BASE_URL}/auth/login`;
+    const { token } = await http.post<ApiLoginResponse, Omit<LoginCredentials, 'remember'>>(loginUrl, {
+      username: credentials.username,
+      password: credentials.password,
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al iniciar sesión');
-      }
+    this.persistToken(token, credentials.remember);
 
-      const data = await response.json();
-      this.setAuthData(data);
-      return data;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
+    const user = this.toAppUser(apiUser);
+
+    this.persistUser(user, credentials.remember);
+    this.setRoleCookie(user.role, credentials.remember);
+
+    logger.info('login successful', { role: user.role, username: user.username });
+    return { token, user } as LoginResponse;
   }
 
-  /**
-   * Registers a new user
-   */
-  static async register(credentials: RegisterCredentials): Promise<void> {
+  static async register(payload: RegisterCredentials & { remember?: boolean }): Promise<void> {
     if (ConfigService.isMockedEnabled()) {
-      return this.mockRegister(credentials);
+      await new Promise((r) => setTimeout(r, 300));
+      return;
     }
+    const url = `${this.BASE_URL}/auth/signup`;
+    // BE espera: { username, password, email }
+    const res = await http.post<ApiLoginResponse, { username: string; password: string; email: string }>(url, {
+      username: payload.username,
+      password: payload.password,
+      email: payload.email,
+    });
 
+    if (res?.token) {
+      this.persistToken(res.token, payload.remember);
+      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
+      const user = this.toAppUser(apiUser);
+      this.persistUser(user, payload.remember);
+      this.setRoleCookie(user.role, payload.remember);
+    }
+  }
+
+  static async me(): Promise<User | null> {
     try {
-      const response = await fetch(`${this.BASE_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(credentials),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al registrar el usuario');
+      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
+      const user = this.toAppUser(apiUser);
+      if (typeof window !== 'undefined') {
+        const remember = !!localStorage.getItem(this.TOKEN_KEY);
+        this.persistUser(user, remember);
+        this.setRoleCookie(user.role, remember);
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
+      return user;
+    } catch {
+      logger.warn('me() failed, clearing session');
+      this.clearPersisted();
+      return null;
     }
   }
 
-  /**
-   * Logs out the current user
-   */
-  static logout(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.TOKEN_KEY);
-      localStorage.removeItem(this.USER_KEY);
-    }
+  static logout() {
+    this.clearPersisted();
   }
 
-  /**
-   * Gets the current authenticated user
-   */
   static getCurrentUser(): User | null {
     if (typeof window === 'undefined') return null;
-    
-    const userData = localStorage.getItem(this.USER_KEY);
-    return userData ? JSON.parse(userData) : null;
+    const raw = localStorage.getItem(this.USER_KEY) ?? sessionStorage.getItem(this.USER_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
   }
 
-  /**
-   * Gets the current authentication token
-   */
   static getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem(this.TOKEN_KEY);
+    return localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
   }
 
-  /**
-   * Checks if the user is authenticated
-   */
   static isAuthenticated(): boolean {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem(this.TOKEN_KEY);
+    return !!this.getToken();
   }
 
-  /**
-   * Checks if the current user has admin role
-   */
-  static isAdmin(): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === 'admin';
+  static getAuthHeader(): Record<string, string> {
+    const t = this.getToken();
+    return t ? { Authorization: `Bearer ${t}` } : {};
   }
 
-  // Private helper methods
-  private static setAuthData(data: { token: string; user: User }): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.TOKEN_KEY, data.token);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(data.user));
-    }
+  static getRole(): User['role'] | null {
+    const u = this.getCurrentUser();
+    return u?.role ?? null;
   }
+  static isUser(): boolean { return this.getRole() === 'user'; }
+  static isSeller(): boolean { return this.getRole() === 'seller'; }
+  static isAdmin(): boolean { return this.getRole() === 'admin'; }
+  static hasBackofficeAccess(): boolean { return ['seller', 'admin'].includes(this.getRole() || ''); }
 
-  // Mock implementation for development
-  private static async mockLogin(credentials: LoginCredentials): Promise<LoginResponse> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const user = mockUsers.find(
-          (u) => u.username === credentials.username && u.password === credentials.password
-        );
-
-        if (!user) {
-          reject(new Error('Credenciales inválidas'));
-          return;
-        }
-
-        const token = `mock_token_${Date.now()}`;
-        const { password, ...userWithoutPassword } = user;
-        const response = {
-          token,
-          user: userWithoutPassword,
-        };
-
-        this.setAuthData(response);
-        resolve(response);
-      }, 500); // Simulate network delay
-    });
+  // No-MVP stubs
+  static async verifyEmail(_: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
+  static async checkAvailability(_: { username?: string; email?: string }): Promise<{ usernameAvailable?: boolean; emailAvailable?: boolean }> {
+    throw new Error('Función no disponible en el MVP');
   }
-
-  // Mock implementation for development
-  private static async mockRegister(credentials: RegisterCredentials): Promise<void> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (credentials.password !== credentials.confirmPassword) {
-          reject(new Error('Las contraseñas no coinciden'));
-          return;
-        }
-
-        if (mockUsers.some(user => user.username === credentials.username)) {
-          reject(new Error('El nombre de usuario ya está en uso'));
-          return;
-        }
-
-        if (mockUsers.some(user => user.email === credentials.email)) {
-          reject(new Error('El correo electrónico ya está en uso'));
-          return;
-        }
-
-        const newUser: User = {
-          id: mockUsers.length + 1,
-          username: credentials.username,
-          password: credentials.password,
-          email: credentials.email,
-          role: 'user',
-          name: credentials.firstName || credentials.username,
-        };
-
-        mockUsers.push(newUser);
-        resolve();
-      }, 500); // Simulate network delay
-    });
-  }
+  static async requestPasswordReset(_: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
+  static async resetPassword(_: string, __: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
 }
 
 export { AuthService };
