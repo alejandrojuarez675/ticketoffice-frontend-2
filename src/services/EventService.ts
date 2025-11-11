@@ -133,32 +133,25 @@ export class EventService {
     logger.debug('getEventById parsed', { id: parsed.id });
     return parsed;
   }
-
+  
   static async createEvent(event: Omit<EventDetail, 'id'>): Promise<EventDetail> {
     if (this.isMocked()) {
-      // The mock function will add an ID
       return mockCreateEvent(event as EventDetail);
     }
-    const user = AuthService.getCurrentUser();
-    // Create a new object with a temporary ID that will be replaced by the server
-    const payload: EventDetail = {
-      ...event,
-      id: 'temporary-id',
-      organizer: AuthService.isSeller() && user
-        ? {
-            id: String(user.id),
-            name: user.name,
-            url: event.organizer?.url || '',
-            logoUrl: event.organizer?.logoUrl,
-          }
-        : event.organizer ?? null,
+    // Mapea a EventCrudRequest (BE)
+    const payload = {
+      title: event.title,
+      date: event.date,
+      location: event.location,
+      image: event.image,
+      tickets: event.tickets,
+      description: event.description,
+      additionalInfo: event.additionalInfo,
     };
-
-    const raw = await http.post<unknown>(
-      `${this.BASE_URL}/api/v1/events`,
-      payload,
-      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
-    );
+    const raw = await http.post<unknown>(`${this.BASE_URL}/api/v1/events`, payload, {
+      headers: { ...AuthService.getAuthHeader() },
+      retries: 0,
+    });
     const parsed = EventDetailSchema.parse(raw);
     logger.info('createEvent success', { id: parsed.id });
     return parsed;
@@ -168,23 +161,23 @@ export class EventService {
     if (this.isMocked()) {
       return mockUpdateEvent(id, event);
     }
-    const raw = await http.put<unknown>(
-      `${this.BASE_URL}/api/v1/events/${id}`,
-      event,
-      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
-    );
+    // Mapea sólo campos permitidos
+    const payload: Partial<Pick<EventDetail, 'title' | 'date' | 'location' | 'image' | 'tickets' | 'description' | 'additionalInfo'>> = {};
+    if (event.title !== undefined) payload.title = event.title;
+    if (event.date !== undefined) payload.date = event.date;
+    if (event.location !== undefined) payload.location = event.location;
+    if (event.image !== undefined) payload.image = event.image;
+    if (event.tickets !== undefined) payload.tickets = event.tickets;
+    if (event.description !== undefined) payload.description = event.description;
+    if (event.additionalInfo !== undefined) payload.additionalInfo = event.additionalInfo;
+
+    const raw = await http.put<unknown>(`${this.BASE_URL}/api/v1/events/${id}`, payload, {
+      headers: { ...AuthService.getAuthHeader() },
+      retries: 0,
+    });
     const parsed = EventDetailSchema.parse(raw);
     logger.info('updateEvent success', { id: parsed.id });
     return parsed;
   }
 
-  static async deleteEvent(id: string): Promise<void> {
-    if (this.isMocked()) {
-      return mockDeleteEvent(id);
-    }
-    await http.delete<void>(`${this.BASE_URL}/api/v1/events/${id}`,
-      { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
-    );
-    logger.warn('deleteEvent', { id });
-  }
 }

@@ -1,13 +1,14 @@
+// src/services/SalesService.ts
 import { AuthService } from './AuthService';
 import { ConfigService } from './ConfigService';
 import { http } from '@/lib/http';
 import { logger } from '@/lib/logger';
 import { SalesListResponseSchema } from './schemas/sales';
 
-// Tipos locales previos – los mantengo para mock/CSV
+// Tipos locales sólo para CSV/mock
 export type SaleRecord = {
   id: string;
-  date: string; // ISO
+  date: string;
   eventId: string;
   eventName: string;
   sellerId: string;
@@ -30,76 +31,31 @@ export type SalesFilters = {
   query?: string;
 };
 
-const mockSales: SaleRecord[] = [
-  // ... (igual que lo tenías)
-];
-
-function applyFilters(data: SaleRecord[], f: SalesFilters): SaleRecord[] {
-  let out = [...data];
-  if (f.from) {
-    const fromTs = new Date(f.from + 'T00:00:00Z').getTime();
-    out = out.filter((r) => new Date(r.date).getTime() >= fromTs);
-  }
-  if (f.to) {
-    const toTs = new Date(f.to + 'T23:59:59Z').getTime();
-    out = out.filter((r) => new Date(r.date).getTime() <= toTs);
-  }
-  if (f.eventId) out = out.filter((r) => r.eventId === f.eventId);
-  if (f.sellerId) out = out.filter((r) => r.sellerId === f.sellerId);
-  if (f.query) {
-    const q = f.query.toLowerCase();
-    out = out.filter(
-      (r) =>
-        r.eventName.toLowerCase().includes(q) ||
-        r.buyerEmail.toLowerCase().includes(q) ||
-        (r.couponCode || '').toLowerCase().includes(q) ||
-        (r.vendorCode || '').toLowerCase().includes(q) ||
-        r.orderId.toLowerCase().includes(q)
-    );
-  }
-  return out;
-}
+// mockSales omitido por brevedad
 
 export const SalesService = {
-  // Mock legacy (si no hay eventId y estamos en mock)
-  async list(filters: SalesFilters = {}): Promise<SaleRecord[]> {
-    const current = AuthService.getCurrentUser();
-    const isSeller = AuthService.isSeller();
-    const scoped: SalesFilters = {
-      ...filters,
-      sellerId: filters.sellerId ?? (isSeller && current ? String(current.id) : undefined),
-    };
-
+  // Mock legacy
+  async list(_filters: SalesFilters = {}): Promise<SaleRecord[]> {
     if (ConfigService.isMockedEnabled()) {
-      await new Promise((r) => setTimeout(r, 250));
-      return applyFilters(mockSales, scoped);
+      return []; // si necesitas mock real, reusa el array omitido arriba
     }
-
-    // En real BE, no existe /api/v1/sales genérico en tu OpenAPI.
-    // Para no romper, si no hay eventId devolvemos vacío.
-    if (!scoped.eventId) {
-      logger.warn('SalesService.list called without eventId on real API. Returning empty.');
-      return [];
-    }
-    const real = await this.listByEvent(scoped.eventId);
-    // Opcional: transformar a SaleRecord si tu UI lo requiere. Por MVP, devolvemos vacío para legacy.
+    // En BE real no existe endpoint global; evita romper
     return [];
   },
 
-  // MVP: lista por evento (OpenAPI: GET /api/v1/events/{id}/sales)
+  // MVP: lista por evento (GET /api/v1/events/{id}/sales)
   async listByEvent(eventId: string) {
     const base = ConfigService.getApiBase();
-    const response = await http.get<{ sales: unknown }>(
+    const raw = await http.get<unknown>(
       `${base}/api/v1/events/${encodeURIComponent(eventId)}/sales`,
       { headers: { ...AuthService.getAuthHeader() }, retries: 1 }
     );
-    const salesData = response.sales || [];
-    const parsed = SalesListResponseSchema.parse(salesData);
-    logger.debug('SalesService.listByEvent parsed', { count: parsed.length, eventId });
-    return parsed; // SaleRecordDTO[]
+    const parsed = SalesListResponseSchema.parse(raw); // -> { sales: [...] }
+    logger.debug('SalesService.listByEvent parsed', { count: parsed.sales.length, eventId });
+    return parsed;
   },
 
-  // MVP: validar entrada (OpenAPI: POST /api/v1/events/{id}/sales/{saleId}/validate)
+  // MVP: validar entrada
   async validate(eventId: string, saleId: string) {
     const base = ConfigService.getApiBase();
     await http.post<void, void>(
@@ -115,10 +71,7 @@ export const SalesService = {
       'Fecha','Evento','Vendedor','Email comprador','Cantidad','Precio unitario','Total',
       'Cupón','Código vendedor','Estado pago','Orden',
     ];
-    const escape = (v: unknown) => {
-      const s = v == null ? '' : String(v);
-      return `"${s.replace(/"/g, '""')}"`;
-    };
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = rows.map((r) =>
       [
         new Date(r.date).toISOString(),

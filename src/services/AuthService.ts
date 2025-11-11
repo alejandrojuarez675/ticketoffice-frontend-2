@@ -7,10 +7,10 @@ import type { User, LoginCredentials, LoginResponse, RegisterCredentials } from 
 
 type ApiLoginResponse = { token: string; expiresIn: number };
 type ApiUserResponse = {
-  id: string;
+  id: string | number;
   username: string;
   email: string;
-  role?: string[];           // e.g. ['ADMIN'] | ['SELLER'] | ['USER']
+  role?: string[]; // ['ADMIN'] | ['SELLER'] | ['USER']
   organizer?: unknown;
 };
 
@@ -25,19 +25,17 @@ class AuthService {
   private static TOKEN_KEY = 'auth_token';
   private static USER_KEY = 'user_data';
 
-  // Helpers
-
   private static mapRolesToBackofficeRole(serverRoles?: string[]): BackofficeRole | 'user' {
     const r = (serverRoles || []).map((x) => x.toUpperCase());
     if (r.includes('ADMIN') || r.includes('SUPER_ADMIN')) return 'admin';
     if (r.includes('SELLER') || r.includes('ORGANIZER')) return 'seller';
     return 'user';
-    }
+  }
 
   private static toAppUser(api: ApiUserResponse): User {
     const role = this.mapRolesToBackofficeRole(api.role);
     return {
-      id: api.id as unknown as number, // ajusta tu tipo User si id es string
+      id: api.id,
       username: api.username,
       email: api.email,
       name: api.username,
@@ -58,13 +56,12 @@ class AuthService {
 
   private static storage(remember?: boolean) {
     if (typeof window === 'undefined') {
-      // fallback no-op en SSR
       return {
         getItem: (_: string) => null,
         setItem: (_: string, __: string) => {},
         removeItem: (_: string) => {},
         other: { removeItem: (_: string) => {} },
-      };
+      } as unknown as Storage & { other: Storage };
     }
     const primary = remember ? localStorage : sessionStorage;
     const secondary = remember ? sessionStorage : localStorage;
@@ -75,7 +72,6 @@ class AuthService {
     const store = this.storage(remember);
     store.setItem(this.TOKEN_KEY, token);
     store.other.removeItem(this.TOKEN_KEY);
-    // Inyecta token en http client globalmente
     setAuthTokenProvider(() => {
       if (typeof window === 'undefined') return null;
       return localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
@@ -98,8 +94,6 @@ class AuthService {
     this.setRoleCookie(null);
   }
 
-  // API
-
   static async login(credentials: LoginCredentials): Promise<LoginResponse> {
     if (ConfigService.isMockedEnabled()) {
       await new Promise((r) => setTimeout(r, 250));
@@ -121,11 +115,9 @@ class AuthService {
       password: credentials.password,
     });
 
-    // Guardar token e inyectarlo antes de llamar /users/me
     this.persistToken(token, credentials.remember);
 
-    const meUrl = `${this.BASE_URL}/users/me`;
-    const apiUser = await http.get<ApiUserResponse>(meUrl);
+    const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
     const user = this.toAppUser(apiUser);
 
     this.persistUser(user, credentials.remember);
@@ -135,27 +127,22 @@ class AuthService {
     return { token, user } as LoginResponse;
   }
 
-  static async register(payload: RegisterCredentials & { captchaToken?: string; remember?: boolean }): Promise<void> {
+  static async register(payload: RegisterCredentials & { remember?: boolean }): Promise<void> {
     if (ConfigService.isMockedEnabled()) {
       await new Promise((r) => setTimeout(r, 300));
       return;
     }
     const url = `${this.BASE_URL}/auth/signup`;
-    const res = await http.post<ApiLoginResponse, RegisterCredentials>(url, {
+    // BE espera: { username, password, email }
+    const res = await http.post<ApiLoginResponse, { username: string; password: string; email: string }>(url, {
       username: payload.username,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      email: payload.email,
       password: payload.password,
-      confirmPassword: payload.confirmPassword,
-      acceptTerms: payload.acceptTerms
+      email: payload.email,
     });
 
-    // Autologin tras signup (el BE retorna token)
     if (res?.token) {
       this.persistToken(res.token, payload.remember);
-      const meUrl = `${this.BASE_URL}/users/me`;
-      const apiUser = await http.get<ApiUserResponse>(meUrl);
+      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
       const user = this.toAppUser(apiUser);
       this.persistUser(user, payload.remember);
       this.setRoleCookie(user.role, payload.remember);
@@ -164,17 +151,15 @@ class AuthService {
 
   static async me(): Promise<User | null> {
     try {
-      const meUrl = `${this.BASE_URL}/users/me`;
-      const apiUser = await http.get<ApiUserResponse>(meUrl);
+      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
       const user = this.toAppUser(apiUser);
-      // Mantener storage existente (por si remember difiere, usamos donde ya esté)
       if (typeof window !== 'undefined') {
         const remember = !!localStorage.getItem(this.TOKEN_KEY);
         this.persistUser(user, remember);
         this.setRoleCookie(user.role, remember);
       }
       return user;
-    } catch (e) {
+    } catch {
       logger.warn('me() failed, clearing session');
       this.clearPersisted();
       return null;
@@ -205,7 +190,6 @@ class AuthService {
     return t ? { Authorization: `Bearer ${t}` } : {};
   }
 
-  // Helpers de rol
   static getRole(): User['role'] | null {
     const u = this.getCurrentUser();
     return u?.role ?? null;
@@ -215,19 +199,13 @@ class AuthService {
   static isAdmin(): boolean { return this.getRole() === 'admin'; }
   static hasBackofficeAccess(): boolean { return ['seller', 'admin'].includes(this.getRole() || ''); }
 
-  // No-MVP: stubs claros para evitar llamadas accidentales
-  static async verifyEmail(_: string): Promise<void> {
-    throw new Error('Función no disponible en el MVP');
-  }
+  // No-MVP stubs
+  static async verifyEmail(_: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
   static async checkAvailability(_: { username?: string; email?: string }): Promise<{ usernameAvailable?: boolean; emailAvailable?: boolean }> {
     throw new Error('Función no disponible en el MVP');
   }
-  static async requestPasswordReset(_: string): Promise<void> {
-    throw new Error('Función no disponible en el MVP');
-  }
-  static async resetPassword(_: string, __: string): Promise<void> {
-    throw new Error('Función no disponible en el MVP');
-  }
+  static async requestPasswordReset(_: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
+  static async resetPassword(_: string, __: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
 }
 
 export { AuthService };

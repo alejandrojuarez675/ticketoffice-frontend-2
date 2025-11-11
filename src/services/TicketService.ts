@@ -1,3 +1,4 @@
+// src/services/TicketService.ts
 import { ConfigService } from './ConfigService';
 
 export type Ticket = {
@@ -15,6 +16,7 @@ const mockTickets: Record<string, Ticket> = {};
 
 function ensureMockTicket(id: string): Ticket {
   if (mockTickets[id]) return mockTickets[id];
+  const appUrl = ConfigService.getAppUrl();
   const t: Ticket = {
     id,
     orderId: 'ord_' + id,
@@ -22,7 +24,7 @@ function ensureMockTicket(id: string): Ticket {
     eventName: 'VIP Experience',
     buyerName: 'Juan Pérez',
     buyerEmail: 'buyer@example.com',
-    qrLink: `${process.env.NEXT_PUBLIC_APP_URL ?? '<http://localhost:3000>'}/tickets/${id}`,
+    qrLink: `${appUrl}/tickets/${id}`,
     issuedAt: new Date().toISOString(),
   };
   mockTickets[id] = t;
@@ -34,13 +36,10 @@ export const TicketService = {
     if (ConfigService.isMockedEnabled()) {
       return ensureMockTicket(id);
     }
-    // Cuando el BE exponga GET /api/public/v1/tickets/{id}, cámbialo a:
-    // const base = ConfigService.getApiBase();
-    // return http.get<Ticket>(`${base}/api/public/v1/tickets/${encodeURIComponent(id)}`);
+    // A la espera del endpoint público
     return ensureMockTicket(id);
   },
 
-  // Usado en versiones previas; no se usa en el flujo MVP actual
   async issueTicketsForSession(sessionId: string): Promise<Ticket[]> {
     if (ConfigService.isMockedEnabled()) {
       const ids = [sessionId + '-1', sessionId + '-2'];
@@ -49,8 +48,7 @@ export const TicketService = {
     return [ensureMockTicket(sessionId + '-1')];
   },
 
-  // Preparado para BE futuro
   async getPublic(id: string): Promise<Ticket> {
     return this.getTicketById(id);
-  }
+  },
 };
