@@ -3,6 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import type { SaleLightDTO } from '@/services/schemas/sales';
 import {
   Box,
   Button,
@@ -75,13 +76,13 @@ function EventSalesPageInner() {
         const res = await SalesService.listByEvent(String(id)); // { sales: SaleLightDTO[] }
         if (!active) return;
         setRows(
-          (res || []).map((s) => ({
+          (res?.sales || []).map((s: SaleLightDTO) => ({
             id: s.id,
-            name: s.sellerName,
-            email: s.buyerEmail,
-            ticketType: 'General', // Default value since ticketType is not in SaleRecord
-            price: s.unitPrice,
-            validated: s.paymentStatus === 'paid',
+            name: `${s.firstName} ${s.lastName}`,
+            email: s.email,
+            ticketType: s.ticketType,
+            price: s.price,
+            validated: s.validated,
           }))
         );
       } catch (err) {
