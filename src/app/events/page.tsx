@@ -28,17 +28,52 @@ function EventsListInner() {
 
   const sort: SortKey = (searchParams.get('sort') as SortKey) || 'dateAsc';
   const page = Number(searchParams.get('page') || 1);
+<<<<<<< HEAD
+  const pageSize = Number(searchParams.get('pageSize') || 9);
+=======
   const pageSize = Number(searchParams.get('pageSize') || 6);
+>>>>>>> main
   const savedOnly = searchParams.get('savedOnly') === 'true';
   const adultOnly = searchParams.get('adultOnly') === 'true';
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
   const vendorsParam = searchParams.get('vendors');
+<<<<<<< HEAD
+  const q = searchParams.get('q') || '';
+
+  const countryParam = (() => {
+    const v = (searchParams.get('country') || '').toLowerCase();
+    if (!v || v === 'all' || v === 'todos') return 'all';
+    if (v === 'colombia') return 'Colombia';
+    if (v === 'argentina') return 'Argentina';
+    return 'all';
+  })();
+
+  const city = searchParams.get('city') || '';
+
+  // Normaliza URL canónica si falta país
+  useEffect(() => {
+    if (!searchParams.get('country')) {
+      const sp = new URLSearchParams(searchParams.toString());
+      sp.set('country', 'all');
+      if (!sp.get('page')) sp.set('page', '1');
+      if (!sp.get('pageSize')) sp.set('pageSize', String(pageSize));
+      router.replace(`/events?${sp.toString()}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const filters: Filters = useMemo(
+    () => ({
+      country: countryParam === 'all' ? undefined : countryParam,
+      city: city || undefined,
+=======
 
   const filters: Filters = useMemo(
     () => ({
       country: searchParams.get('country') || undefined,
       city: searchParams.get('city') || undefined,
+>>>>>>> main
       category: searchParams.get('category') || undefined,
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
@@ -48,23 +83,84 @@ function EventsListInner() {
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       vendors: vendorsParam ? vendorsParam.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     }),
+<<<<<<< HEAD
+    [countryParam, city, searchParams, savedOnly, adultOnly, minPrice, maxPrice, vendorsParam]
+  );
+
+=======
     [searchParams, savedOnly, adultOnly, minPrice, maxPrice, vendorsParam]
   );
 
   console.log('API_BASE', process.env.NEXT_PUBLIC_API_BASE_URL);
   
+>>>>>>> main
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         setLoading(true);
         setError(null);
+<<<<<<< HEAD
+
+        // Caso "Todos": mezclar CO + AR y paginar en cliente
+        if (countryParam === 'all') {
+          const targets = ['Colombia', 'Argentina'];
+          const settled = await Promise.allSettled(
+            targets.map((c) =>
+              EventService.search({
+                country: c,
+                city: city || undefined,
+                query: q || undefined,
+                pageSize: 50, // traemos varias para construir facetas y paginar en cliente
+                pageNumber: 0, // 0-based
+              })
+            )
+          );
+
+          const merged: SearchEvent[] = [];
+          for (const r of settled) {
+            if (r.status === 'fulfilled') {
+              const events = (r.value.events || []) as SearchEvent[];
+              merged.push(...events);
+            }
+          }
+          // De-duplicar por id y ordenar por fecha
+          const seen = new Set<string>();
+          const dedup = merged.filter((e) => {
+            if (!e?.id) return false;
+            if (seen.has(e.id)) return false;
+            seen.add(e.id);
+            return true;
+          });
+          dedup.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          if (!active) return;
+          setAllEvents(dedup);
+          return;
+        }
+
+        // País específico: obtenemos un catálogo grande y paginamos/filtramos en cliente
+        const res = await EventService.search({
+          country: countryParam,
+          city: city || undefined,
+          query: q || undefined,
+          pageSize: 100,
+          pageNumber: 0,
+        });
+        if (!active) return;
+        setAllEvents(res.events || []);
+      } catch (err) {
+        if (!active) return;
+        setError('Error al cargar eventos');
+         
+=======
         const res = await EventService.searchEvents({ pageNumber: 1, pageSize: 999 } as SearchEventParams);
         if (!active) return;
         setAllEvents(res.events);
       } catch (err) {
         if (!active) return;
         setError('Error al cargar eventos');
+>>>>>>> main
         console.error(err);
       } finally {
         if (active) setLoading(false);
@@ -73,12 +169,21 @@ function EventsListInner() {
     return () => {
       active = false;
     };
+<<<<<<< HEAD
+  }, [countryParam, city, q]);
+
+  // Facetas desde catálogo cargado
+  const facets = useMemo(() => buildFacets(allEvents), [allEvents]);
+
+  // Aplicar filtros + orden en cliente y luego paginar
+=======
   }, []);
 
   // Facetas desde todo el catálogo
   const facets = useMemo(() => buildFacets(allEvents), [allEvents]);
 
   // Aplicar filtros + orden sobre todo el catálogo, luego paginar en cliente para “rellenar” cada página.
+>>>>>>> main
   const favoriteIds = getFavoriteIds();
   const { slice: visible, total, totalPages, page: safePage } = useMemo(() => {
     const filtered = applyFilters(allEvents, filters, favoriteIds);
@@ -93,10 +198,16 @@ function EventsListInner() {
     router.push(`/events?${sp.toString()}`);
   };
 
+<<<<<<< HEAD
+  const activeCount = useMemo(() => {
+    let n = 0;
+    const keys = ['country', 'city', 'category', 'dateFrom', 'dateTo', 'savedOnly', 'adultOnly', 'minPrice', 'maxPrice', 'vendors', 'q'];
+=======
   // Contador de filtros activos y chips
   const activeCount = useMemo(() => {
     let n = 0;
     const keys = ['country', 'city', 'category', 'dateFrom', 'dateTo', 'savedOnly', 'adultOnly', 'minPrice', 'maxPrice', 'vendors'];
+>>>>>>> main
     keys.forEach((k) => {
       const v = searchParams.get(k);
       if (v && v !== 'false' && v !== '0') n += 1;
@@ -111,7 +222,19 @@ function EventsListInner() {
 
       {error && (
         <Box sx={{ mb: 3 }}>
+<<<<<<< HEAD
+          <ErrorState
+            message={error}
+            onRetry={() => {
+              setError(null);
+              // fuerza recarga
+              const sp = new URLSearchParams(searchParams.toString());
+              router.replace(`/events?${sp.toString()}`);
+            }}
+          />
+=======
           <ErrorState message={error} onRetry={() => { setError(null); /* re-trigger */ setLoading(true); }} />
+>>>>>>> main
         </Box>
       )}
 
@@ -123,12 +246,21 @@ function EventsListInner() {
         <>
           <Box sx={{ mb: 2 }}>
             <Typography variant="body2" color="text.secondary">
+<<<<<<< HEAD
+              Mostrando {visible.length} {visible.length === 1 ? 'resultado' : 'resultados'} de {total}{' '}
+              {total === 1 ? 'total' : 'totales'}
+=======
               Mostrando {visible.length} {visible.length === 1 ? 'resultado' : 'resultados'} de {total} {total === 1 ? 'total' : 'totales'}
+>>>>>>> main
             </Typography>
           </Box>
 
           <Grid container spacing={3}>
+<<<<<<< HEAD
+            {visible.map((e) => (
+=======
             {visible.map((e: SearchEvent) => (
+>>>>>>> main
               <Grid key={e.id} size={{ xs: 12, sm: 6, md: 4 }}>
                 <EventCard event={e} />
               </Grid>
@@ -155,7 +287,11 @@ export default function EventsPage() {
             Explora eventos
           </Typography>
           <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
+<<<<<<< HEAD
+            Busca por país, ciudad y nombre del evento.
+=======
             Usa Filtros para ajustar ciudad, país, categoría, fechas, precios, guardados y +18.
+>>>>>>> main
           </Typography>
         </Container>
 
@@ -165,4 +301,8 @@ export default function EventsPage() {
       </Box>
     </LightLayout>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> main

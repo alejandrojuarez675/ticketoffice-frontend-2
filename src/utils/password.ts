@@ -12,7 +12,7 @@ export function hasUpper(s: string) {
   return /[A-Z]/.test(s);
 }
 export function hasNumber(s: string) {
-  return /\\d/.test(s);
+return /[0-9]/.test(s);
 }
 
 export function meetsBasicPasswordRules(pwd: string) {

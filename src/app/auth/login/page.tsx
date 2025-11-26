@@ -31,10 +31,13 @@ function LoginForm() {
     try {
       setLoading(true);
       await login({ username, password, remember });
-      router.replace(next);
-    } catch {
-      setError('Credenciales inválidas');
-    } finally {
+      // Wait for the next render cycle to ensure state is updated
+      setTimeout(() => {
+        router.replace(next);
+      }, 0);
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Credenciales inválidas. Por favor, verifica e intenta nuevamente.');
       setLoading(false);
     }
   };

@@ -1,4 +1,7 @@
+<<<<<<< HEAD
+=======
 // src/app/auth/register/page.tsx
+>>>>>>> main
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -7,7 +10,21 @@ import AuthShell from '@/components/auth/AuthShell';
 import SubmitButton from '@/components/forms/SubmitButton';
 import PasswordField from '@/components/forms/PasswordField';
 import PasswordStrengthBar from '@/components/forms/PasswordStrengthBar';
+<<<<<<< HEAD
+import {
+  TextField,
+  Alert,
+  Link as MuiLink,
+  FormControlLabel,
+  Checkbox,
+  CircularProgress,
+  InputAdornment,
+  Box,
+  Typography,
+} from '@mui/material';
+=======
 import { TextField, Alert, Link as MuiLink, FormControlLabel, Checkbox, CircularProgress, InputAdornment, Box, Typography } from '@mui/material';
+>>>>>>> main
 import Grid from '@mui/material/Grid';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,10 +39,13 @@ import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import Collapse from '@mui/material/Collapse';
 
+// Usuario: debe iniciar con letra; permite números, punto y guion bajo
 const usernameRegex = /^[A-Za-z][A-Za-z0-9._]{2,19}$/;
+// Repeticiones prohibidas de símbolos
 const forbidRepeats = /(\\.\\.|__|_\\.)/;
-const nameRegex = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]{2,50}$/;
-
+// Nombre/Apellido: permite letras acentuadas, espacios, apóstrofo, guion y (ahora) dígitos
+// Si quieres volver a “solo letras”, elimina 0-9 del conjunto.
+const nameRegex = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' 0-9-]{2,50}$/;
 const RegisterSchema = z
   .object({
     username: z
@@ -35,15 +55,25 @@ const RegisterSchema = z
       .max(20, 'Máximo 20 caracteres')
       .regex(usernameRegex, 'Solo letras, números, punto y guion bajo; debe iniciar con letra')
       .refine((s) => !forbidRepeats.test(s), 'Evita repeticiones de símbolos (.., __, _.)'),
-    firstName: z.string().trim().min(2, 'Nombre demasiado corto').max(50, 'Nombre demasiado largo').regex(nameRegex, 'Nombre inválido'),
-    lastName: z.string().trim().min(2, 'Apellido demasiado corto').max(50, 'Apellido demasiado largo').regex(nameRegex, 'Apellido inválido'),
+    firstName: z
+      .string()
+      .trim()
+      .min(2, 'Nombre demasiado corto')
+      .max(50, 'Nombre demasiado largo')
+      .regex(nameRegex, 'Nombre inválido (usa letras, espacios, guion y números si es necesario)'),
+    lastName: z
+      .string()
+      .trim()
+      .min(2, 'Apellido demasiado corto')
+      .max(50, 'Apellido demasiado largo')
+      .regex(nameRegex, 'Apellido inválido (usa letras, espacios, guion y números si es necesario)'),
     email: z.string().trim().email('Email inválido'),
     password: z
       .string()
       .min(8, 'Mínimo 8 caracteres')
-      .refine((s) => hasLower(s), 'Debe incluir minúsculas')
-      .refine((s) => hasUpper(s), 'Debe incluir mayúsculas')
-      .refine((s) => hasNumber(s), 'Debe incluir números'),
+      .regex(/[a-z]/, 'Debe incluir minúsculas')
+      .regex(/[A-Z]/, 'Debe incluir mayúsculas')
+      .regex(/[0-9]/, 'Debe incluir números'),
     confirmPassword: z.string(),
     acceptTerms: z.boolean().refine((val) => val === true, { message: 'Debes aceptar los términos y condiciones' }),
   })
@@ -103,13 +133,63 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterData) => {
     try {
-      if (!meetsBasicPasswordRules(data.password)) return;
-      // En el BE actual sólo usamos username/email/password
-      await AuthService.register({ username: data.username, password: data.password, email: data.email, remember: true });
-      showSnack({ message: 'Cuenta creada con éxito. Inicia sesión para continuar.', severity: 'success' });
-      router.replace('/auth/login');
-    } catch (err) {
-      showSnack({ message: err instanceof Error ? err.message : 'Error al registrarse', severity: 'error' });
+      // Validate password requirements before submission
+      if (!meetsBasicPasswordRules(data.password)) {
+        showSnack({ 
+          message: 'La contraseña debe incluir mayúsculas, minúsculas y al menos un número', 
+          severity: 'error' 
+        });
+        return;
+      }
+      
+      // Only send required fields to the backend
+      const response = await AuthService.register({
+        username: data.username,
+        password: data.password,
+        email: data.email,
+        remember: true,
+      });
+      
+      if (response?.token) {
+        showSnack({ 
+          message: '¡Cuenta creada con éxito! Redirigiendo...', 
+          severity: 'success' 
+        });
+        // Redirect to login after a short delay to show the success message
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 1500);
+      }
+    } catch (err: unknown) {
+      let errorMessage = 'Error al crear la cuenta';
+      
+      // Type guard to check if error has response property
+      if (err && typeof err === 'object' && 'response' in err) {
+        const errorResponse = err as {
+          response?: {
+            data?: {
+              code?: string;
+              message?: string | { includes: (str: string) => boolean };
+            };
+          };
+        };
+        
+        if (errorResponse.response?.data?.code === 'BAD_REQUEST' && 
+            typeof errorResponse.response.data.message === 'string' && 
+            errorResponse.response.data.message.includes('already exists')) {
+          errorMessage = 'El nombre de usuario o correo electrónico ya está en uso';
+        } else if (errorResponse.response?.data?.message) {
+          errorMessage = String(errorResponse.response.data.message);
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      showSnack({ 
+        message: errorMessage, 
+        severity: 'error',
+        duration: 5000
+      });
     }
   };
 
@@ -164,8 +244,13 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
+<<<<<<< HEAD
+                label="Nombre"
+                autoComplete="off"
+=======
                 label='Nombre'
                 autoComplete='off'
+>>>>>>> main
                 {...register('firstName')}
                 error={!!errors.firstName}
                 helperText={errors.firstName?.message ?? ' '}
@@ -176,8 +261,13 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
+<<<<<<< HEAD
+                label="Apellido"
+                autoComplete="off"
+=======
                 label='Apellido'
                 autoComplete='off'
+>>>>>>> main
                 {...register('lastName')}
                 error={!!errors.lastName}
                 helperText={errors.lastName?.message ?? ' '}
@@ -188,9 +278,15 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
+<<<<<<< HEAD
+                type="email"
+                label="Email"
+                autoComplete="email"
+=======
                 type='email'
                 label='Email'
                 autoComplete='email'
+>>>>>>> main
                 {...register('email')}
                 error={!!errors.email || mailAvail === 'taken'}
                 helperText={errors.email?.message ?? ' '}
@@ -199,6 +295,18 @@ export default function RegisterPage() {
                   input: {
                     endAdornment:
                       mailAvail === 'loading' ? (
+<<<<<<< HEAD
+                        <InputAdornment position="end">
+                          <CircularProgress size={16} />
+                        </InputAdornment>
+                      ) : mailAvail === 'ok' ? (
+                        <InputAdornment position="end">
+                          <CheckIcon color="success" fontSize="small" />
+                        </InputAdornment>
+                      ) : mailAvail === 'taken' ? (
+                        <InputAdornment position="end">
+                          <CloseIcon color="error" fontSize="small" />
+=======
                         <InputAdornment position='end'>
                           <CircularProgress size={16} />
                         </InputAdornment>
@@ -209,6 +317,7 @@ export default function RegisterPage() {
                       ) : mailAvail === 'taken' ? (
                         <InputAdornment position='end'>
                           <CloseIcon color='error' fontSize='small' />
+>>>>>>> main
                         </InputAdornment>
                       ) : undefined,
                   },
@@ -218,22 +327,48 @@ export default function RegisterPage() {
 
             <Grid size={{ xs: 12 }}>
               <Controller
+<<<<<<< HEAD
+                name="password"
+=======
                 name='password'
+>>>>>>> main
                 control={control}
                 render={({ field, fieldState }) => (
                   <>
                     <PasswordField
                       fullWidth
+<<<<<<< HEAD
+                      label="Contraseña"
+                      autoComplete="new-password"
+=======
                       label='Contraseña'
                       autoComplete='new-password'
+>>>>>>> main
                       {...field}
                       onFocus={() => setPwdFocused(true)}
                       onBlur={(e) => {
                         field.onBlur();
                         setPwdFocused(false);
+<<<<<<< HEAD
+                        // Trigger validation on blur
+                        if (field.value) {
+                          field.onChange(field.value);
+                        }
+                      }}
+                      error={!!fieldState.error || (field.value ? !meetsBasicPasswordRules(field.value) : false)}
+                      helperText={
+                        showPwdHints 
+                          ? fieldState.error?.message ?? 
+                            (field.value && !meetsBasicPasswordRules(field.value) 
+                              ? 'La contraseña debe incluir mayúsculas, minúsculas y al menos un número'
+                              : 'Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.')
+                          : ' '
+                      }
+=======
                       }}
                       error={!!fieldState.error}
                       helperText={showPwdHints ? fieldState.error?.message ?? 'Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.' : ' '}
+>>>>>>> main
                       disabled={isSubmitting || isLoading}
                     />
                     {showPwdHints && (
@@ -241,7 +376,11 @@ export default function RegisterPage() {
                         <PasswordStrengthBar strength={strength} />
                         <Box sx={{ mt: 1 }}>
                           {rules.map((r) => (
+<<<<<<< HEAD
+                            <Typography key={r.label} variant="caption" sx={{ display: 'block', color: r.ok ? 'success.main' : 'text.secondary' }}>
+=======
                             <Typography key={r.label} variant='caption' sx={{ display: 'block', color: r.ok ? 'success.main' : 'text.secondary' }}>
+>>>>>>> main
                               • {r.label}
                             </Typography>
                           ))}
@@ -256,8 +395,13 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12 }}>
               <PasswordField
                 fullWidth
+<<<<<<< HEAD
+                label="Confirmar contraseña"
+                autoComplete="new-password"
+=======
                 label='Confirmar contraseña'
                 autoComplete='new-password'
+>>>>>>> main
                 {...register('confirmPassword')}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword?.message ?? ' '}
@@ -266,16 +410,40 @@ export default function RegisterPage() {
             </Grid>
 
             <Grid size={{ xs: 12 }}>
+<<<<<<< HEAD
+              <FormControlLabel
+                control={<Checkbox {...register('acceptTerms')} />}
+                label={
+                  <span>
+                    Acepto los{' '}
+                    <MuiLink component={Link} href="/terms" underline="hover">
+                      Términos
+                    </MuiLink>{' '}
+                    y la{' '}
+                    <MuiLink component={Link} href="/privacy" underline="hover">
+                      Política de Privacidad
+                    </MuiLink>
+                  </span>
+                }
+              />
+              {errors.acceptTerms && (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+=======
               <FormControlLabel control={<Checkbox {...register('acceptTerms')} />} label={<span>Acepto los <MuiLink component={Link} href='/terms' underline='hover'>Términos</MuiLink> y la <MuiLink component={Link} href='/privacy' underline='hover'>Política de Privacidad</MuiLink></span>} />
               {errors.acceptTerms && (
                 <Alert severity='warning' sx={{ mt: 1 }}>
+>>>>>>> main
                   {errors.acceptTerms.message}
                 </Alert>
               )}
             </Grid>
 
             <Grid size={{ xs: 12 }}>
+<<<<<<< HEAD
+              <SubmitButton type="submit" fullWidth variant="contained" loading={isSubmitting || isLoading}>
+=======
               <SubmitButton type='submit' fullWidth variant='contained' loading={isSubmitting || isLoading}>
+>>>>>>> main
                 Crear cuenta
               </SubmitButton>
             </Grid>

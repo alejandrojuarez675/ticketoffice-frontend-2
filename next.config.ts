@@ -46,6 +46,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'via.placeholder.com' },
       { protocol: 'https', hostname: 'sanangel.edu.mx' },
+      { protocol: 'https', hostname: 'movistararena.co' },
       // agrega aquí el CDN (CloudFront/Cloudinary)
       // { protocol: 'https', hostname: 'dXXXX.cloudfront.net' },
     ],
