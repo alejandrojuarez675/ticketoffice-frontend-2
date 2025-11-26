@@ -44,28 +44,92 @@ class AuthService {
   }
 
   private static setRoleCookie(role: BackofficeRole | 'user' | null, remember?: boolean) {
-    if (typeof document === 'undefined') return;
-    const base = 'path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
-    if (role) {
-      const max = remember ? `; Max-Age=${60 * 60 * 24 * 30}` : '';
-      document.cookie = `role=${role}; ${base}${max}`;
-    } else {
-      document.cookie = `role=; Max-Age=0; ${base}`;
+    // Only run in browser environment
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return;
+    }
+    
+    try {
+      const isSecure = window.location?.protocol === 'https:';
+      const base = 'path=/; SameSite=Lax' + (isSecure ? '; Secure' : '');
+      
+      if (role) {
+        const maxAge = remember ? `; Max-Age=${60 * 60 * 24 * 30}` : '';
+        document.cookie = `role=${encodeURIComponent(role)}; ${base}${maxAge}`;
+      } else {
+        document.cookie = `role=; ${base}; Max-Age=0`;
+      }
+    } catch (error) {
+      console.error('Error setting role cookie:', error);
     }
   }
 
   private static storage(remember?: boolean) {
-    if (typeof window === 'undefined') {
+    // Check if we're in a browser environment
+    const isClient = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined' && typeof window.sessionStorage !== 'undefined';
+    
+    if (!isClient) {
+      // Return a no-op storage for server-side rendering
+      const noop = () => {};
       return {
-        getItem: (_: string) => null,
-        setItem: (_: string, __: string) => {},
-        removeItem: (_: string) => {},
-        other: { removeItem: (_: string) => {} },
+        getItem: () => null,
+        setItem: noop,
+        removeItem: noop,
+        key: () => null,
+        length: 0,
+        clear: noop,
+        other: {
+          getItem: () => null,
+          setItem: noop,
+          removeItem: noop,
+          key: () => null,
+          length: 0,
+          clear: noop,
+        },
       } as unknown as Storage & { other: Storage };
     }
-    const primary = remember ? localStorage : sessionStorage;
-    const secondary = remember ? sessionStorage : localStorage;
-    return { ...primary, other: secondary } as unknown as Storage & { other: Storage };
+
+    try {
+      const primary = remember ? window.localStorage : window.sessionStorage;
+      const secondary = remember ? window.sessionStorage : window.localStorage;
+
+      // Important: do NOT spread the Storage object. Spreading loses its prototype
+      // methods (setItem, getItem, etc.) and causes `store.setItem is not a function`.
+      // Instead, return a small wrapper that delegates to the real Storage instance.
+      const wrapper: Storage & { other: Storage } = {
+        get length() {
+          return primary.length;
+        },
+        clear: () => primary.clear(),
+        getItem: (key: string) => primary.getItem(key),
+        key: (index: number) => primary.key(index),
+        removeItem: (key: string) => primary.removeItem(key),
+        setItem: (key: string, value: string) => primary.setItem(key, value),
+        other: secondary,
+      } as Storage & { other: Storage };
+
+      return wrapper;
+    } catch (error) {
+      console.error('Error accessing storage:', error);
+      // Fallback to memory storage if there's an error
+      const storage = new Map<string, string>();
+      return {
+        getItem: (key: string) => storage.get(key) || null,
+        setItem: (key: string, value: string) => storage.set(key, value),
+        removeItem: (key: string) => storage.delete(key),
+        key: (index: number) => Array.from(storage.keys())[index] || null,
+        get length() { return storage.size; },
+        clear: () => storage.clear(),
+        other: {
+          getItem: () => null,
+          setItem: () => {},
+          removeItem: () => {},
+          key: () => null,
+          length: 0,
+          clear: () => {},
+        },
+      } as unknown as Storage & { other: Storage };
+    }
   }
 
   private static persistToken(token: string, remember?: boolean) {
@@ -127,13 +191,13 @@ class AuthService {
     return { token, user } as LoginResponse;
   }
 
-  static async register(payload: RegisterCredentials & { remember?: boolean }): Promise<void> {
+  static async register(payload: RegisterCredentials & { remember?: boolean }): Promise<{ token: string } | void> {
     if (ConfigService.isMockedEnabled()) {
       await new Promise((r) => setTimeout(r, 300));
-      return;
+      return { token: 'mock_token' }; // Return mock token for testing
     }
+    
     const url = `${this.BASE_URL}/auth/signup`;
-    // BE espera: { username, password, email }
     const res = await http.post<ApiLoginResponse, { username: string; password: string; email: string }>(url, {
       username: payload.username,
       password: payload.password,
@@ -146,6 +210,7 @@ class AuthService {
       const user = this.toAppUser(apiUser);
       this.persistUser(user, payload.remember);
       this.setRoleCookie(user.role, payload.remember);
+      return { token: res.token }; // Return the token
     }
   }
 

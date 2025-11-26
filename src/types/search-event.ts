@@ -23,13 +23,13 @@ export interface SearchEventResponse {
 
 export interface SearchEventParams {
   country: string;
-  city?: string;
-  query?: string;
-  category?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  pageSize?: number;
-  pageNumber?: number;
+  city?: string | null;
+  query?: string | null;
+  category?: string | null;
+  dateFrom?: string | null;
+  dateTo?: string | null;
+  pageNumber?: number | null;
+  pageSize?: number | null;
   // Optional comma-separated vendor IDs to filter by seller(s)
-  vendors?: string;
+  vendors?: string | null;
 }
