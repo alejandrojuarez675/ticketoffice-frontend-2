@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+// src/app/auth/register/page.tsx
+>>>>>>> main
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -6,6 +10,7 @@ import AuthShell from '@/components/auth/AuthShell';
 import SubmitButton from '@/components/forms/SubmitButton';
 import PasswordField from '@/components/forms/PasswordField';
 import PasswordStrengthBar from '@/components/forms/PasswordStrengthBar';
+<<<<<<< HEAD
 import {
   TextField,
   Alert,
@@ -17,6 +22,9 @@ import {
   Box,
   Typography,
 } from '@mui/material';
+=======
+import { TextField, Alert, Link as MuiLink, FormControlLabel, Checkbox, CircularProgress, InputAdornment, Box, Typography } from '@mui/material';
+>>>>>>> main
 import Grid from '@mui/material/Grid';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -236,8 +244,13 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
+<<<<<<< HEAD
                 label="Nombre"
                 autoComplete="off"
+=======
+                label='Nombre'
+                autoComplete='off'
+>>>>>>> main
                 {...register('firstName')}
                 error={!!errors.firstName}
                 helperText={errors.firstName?.message ?? ' '}
@@ -248,8 +261,13 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
+<<<<<<< HEAD
                 label="Apellido"
                 autoComplete="off"
+=======
+                label='Apellido'
+                autoComplete='off'
+>>>>>>> main
                 {...register('lastName')}
                 error={!!errors.lastName}
                 helperText={errors.lastName?.message ?? ' '}
@@ -260,9 +278,15 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
+<<<<<<< HEAD
                 type="email"
                 label="Email"
                 autoComplete="email"
+=======
+                type='email'
+                label='Email'
+                autoComplete='email'
+>>>>>>> main
                 {...register('email')}
                 error={!!errors.email || mailAvail === 'taken'}
                 helperText={errors.email?.message ?? ' '}
@@ -271,6 +295,7 @@ export default function RegisterPage() {
                   input: {
                     endAdornment:
                       mailAvail === 'loading' ? (
+<<<<<<< HEAD
                         <InputAdornment position="end">
                           <CircularProgress size={16} />
                         </InputAdornment>
@@ -281,6 +306,18 @@ export default function RegisterPage() {
                       ) : mailAvail === 'taken' ? (
                         <InputAdornment position="end">
                           <CloseIcon color="error" fontSize="small" />
+=======
+                        <InputAdornment position='end'>
+                          <CircularProgress size={16} />
+                        </InputAdornment>
+                      ) : mailAvail === 'ok' ? (
+                        <InputAdornment position='end'>
+                          <CheckIcon color='success' fontSize='small' />
+                        </InputAdornment>
+                      ) : mailAvail === 'taken' ? (
+                        <InputAdornment position='end'>
+                          <CloseIcon color='error' fontSize='small' />
+>>>>>>> main
                         </InputAdornment>
                       ) : undefined,
                   },
@@ -290,19 +327,29 @@ export default function RegisterPage() {
 
             <Grid size={{ xs: 12 }}>
               <Controller
+<<<<<<< HEAD
                 name="password"
+=======
+                name='password'
+>>>>>>> main
                 control={control}
                 render={({ field, fieldState }) => (
                   <>
                     <PasswordField
                       fullWidth
+<<<<<<< HEAD
                       label="Contraseña"
                       autoComplete="new-password"
+=======
+                      label='Contraseña'
+                      autoComplete='new-password'
+>>>>>>> main
                       {...field}
                       onFocus={() => setPwdFocused(true)}
                       onBlur={(e) => {
                         field.onBlur();
                         setPwdFocused(false);
+<<<<<<< HEAD
                         // Trigger validation on blur
                         if (field.value) {
                           field.onChange(field.value);
@@ -317,6 +364,11 @@ export default function RegisterPage() {
                               : 'Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.')
                           : ' '
                       }
+=======
+                      }}
+                      error={!!fieldState.error}
+                      helperText={showPwdHints ? fieldState.error?.message ?? 'Mínimo 8 caracteres, incluir mayúsculas, minúsculas y números.' : ' '}
+>>>>>>> main
                       disabled={isSubmitting || isLoading}
                     />
                     {showPwdHints && (
@@ -324,7 +376,11 @@ export default function RegisterPage() {
                         <PasswordStrengthBar strength={strength} />
                         <Box sx={{ mt: 1 }}>
                           {rules.map((r) => (
+<<<<<<< HEAD
                             <Typography key={r.label} variant="caption" sx={{ display: 'block', color: r.ok ? 'success.main' : 'text.secondary' }}>
+=======
+                            <Typography key={r.label} variant='caption' sx={{ display: 'block', color: r.ok ? 'success.main' : 'text.secondary' }}>
+>>>>>>> main
                               • {r.label}
                             </Typography>
                           ))}
@@ -339,8 +395,13 @@ export default function RegisterPage() {
             <Grid size={{ xs: 12 }}>
               <PasswordField
                 fullWidth
+<<<<<<< HEAD
                 label="Confirmar contraseña"
                 autoComplete="new-password"
+=======
+                label='Confirmar contraseña'
+                autoComplete='new-password'
+>>>>>>> main
                 {...register('confirmPassword')}
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword?.message ?? ' '}
@@ -349,6 +410,7 @@ export default function RegisterPage() {
             </Grid>
 
             <Grid size={{ xs: 12 }}>
+<<<<<<< HEAD
               <FormControlLabel
                 control={<Checkbox {...register('acceptTerms')} />}
                 label={
@@ -366,13 +428,22 @@ export default function RegisterPage() {
               />
               {errors.acceptTerms && (
                 <Alert severity="warning" sx={{ mt: 1 }}>
+=======
+              <FormControlLabel control={<Checkbox {...register('acceptTerms')} />} label={<span>Acepto los <MuiLink component={Link} href='/terms' underline='hover'>Términos</MuiLink> y la <MuiLink component={Link} href='/privacy' underline='hover'>Política de Privacidad</MuiLink></span>} />
+              {errors.acceptTerms && (
+                <Alert severity='warning' sx={{ mt: 1 }}>
+>>>>>>> main
                   {errors.acceptTerms.message}
                 </Alert>
               )}
             </Grid>
 
             <Grid size={{ xs: 12 }}>
+<<<<<<< HEAD
               <SubmitButton type="submit" fullWidth variant="contained" loading={isSubmitting || isLoading}>
+=======
+              <SubmitButton type='submit' fullWidth variant='contained' loading={isSubmitting || isLoading}>
+>>>>>>> main
                 Crear cuenta
               </SubmitButton>
             </Grid>

@@ -267,7 +267,6 @@ export class EventService {
     logger.debug('getEventById parsed', { id: parsed.id });
     return parsed;
   }
-
   static async createEvent(event: Omit<EventDetail, 'id'>): Promise<EventDetail> {
     if (this.isMocked()) {
       return mockCreateEvent(event as EventDetail);
