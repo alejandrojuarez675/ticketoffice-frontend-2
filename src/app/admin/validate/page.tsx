@@ -153,12 +153,9 @@ function EventTicketValidationContent() {
         return;
       }
 
-      if (!eventId) {
-        setSnackbar({ open: true, message: 'Selecciona un evento para validar (eventId requerido)', severity: 'warning' });
-        return;
-      }
-
-      await SalesService.validate(eventId, idToValidate);
+      // El idToValidate es el sessionId del checkout (viene en el QR)
+      // Endpoint: POST /api/public/v1/checkout/session/{sessionId}/validate
+      await SalesService.validate(idToValidate);
       setSale({ id: idToValidate, validated: true, validatedAt: new Date().toISOString() });
       setOpenDialog(true);
       setSnackbar({ open: true, message: 'Entrada validada correctamente', severity: 'success' });

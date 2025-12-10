@@ -58,13 +58,18 @@ export default function EventTicketValidationPage() {
     })();
   }, [eventId, router]);
 
+  /**
+   * Endpoint BE: POST /api/public/v1/checkout/session/{sessionId}/validate
+   * El sessionId es el código que viene en el QR del ticket
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketId.trim()) return;
 
     setLoading(true);
     try {
-      await SalesService.validate(eventId, ticketId.trim());
+      // El ticketId aquí es realmente el sessionId del checkout
+      await SalesService.validate(ticketId.trim());
       setValidationResult({ success: true, message: '¡Entrada validada exitosamente!', ticketId });
     } catch {
       setValidationResult({ success: false, message: 'No se pudo validar la entrada. Verifica el código.', ticketId });

@@ -1,7 +1,8 @@
 // src/contexts/AuthContext.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { User, LoginCredentials, RegisterCredentials } from '@/types/user';
 import { AuthService } from '@/services/AuthService';
 
@@ -20,7 +21,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(AuthService.getCurrentUser());
   const [isLoading, setIsLoading] = useState<boolean>(true);
   

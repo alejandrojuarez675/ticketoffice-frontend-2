@@ -1,0 +1,7 @@
+IMPORTANTE: No realicemos las tareas opcionales, solo realicemos las core para el MVP. Aunque queramos hacer un flujo de mock, hagamos el flujo feliz con lo existente de BE, ese es nuestro MVP, una vez tengamos eso podemos meterle mas feature de a poco. Puedes dejar preguntas al final si necessitas entender algo mas.
+
+1- Creame un documento/archivo de especificacion de lo que hacemos en el FRONTEND y que necesitamos del BACKEND para seguir con el MVP. asi se lo paso a mi compañero de BACKEND para que sepa que nos hace falta 
+2- revisa las implementaciones, creo que una sin querer le di no aceptar, revisa a cual no le di aceptar para volverla a implementar.
+3- ¿Que proximos pasos recomiendas del lado FRONTEND que es lo que nos compete a nosotros para el MVP? algunas pruebas de conceptos u otras cosas? si es asi especificamelas en un archivo/documento.
+4- Revisaste absolutamente todos los archivos para rectificar que estan alineados con todo lo dicho en @MVP_ROADMAP.md? 
+

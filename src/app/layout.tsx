@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
+import type { ReactNode } from 'react';
 import './globals.css';
-import { ThemeProvider } from '@/components/ThemeProvider/ThemeProvider';
-import { AuthProvider } from './contexts/AuthContext';
+import { ClientProviders } from '@/components/common/ClientProviders';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 export const metadata: Metadata = {
@@ -19,13 +19,13 @@ export const viewport: Viewport = {
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'], display: 'swap' });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'], display: 'swap' });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <ThemeProvider>{children}</ThemeProvider>
-        </AuthProvider>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );

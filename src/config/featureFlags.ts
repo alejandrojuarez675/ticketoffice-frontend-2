@@ -16,8 +16,8 @@ export const FEATURES: FeatureFlags = {
   EVENTS: true,
   VALIDATE: true,
   TICKETS: true, // para QR y vista del ticket si se comparte enlace
+  PROFILE: true, // Habilitado - redirigir aquí después del registro
   // MVP OFF (ocultas por ahora)
-  PROFILE: false,
   REPORTS: false,
   USERS: false,
   SETTINGS: false,

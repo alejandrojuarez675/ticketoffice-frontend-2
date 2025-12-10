@@ -148,9 +148,11 @@ export default function RegisterPage() {
           message: '¡Cuenta creada con éxito! Redirigiendo...', 
           severity: 'success' 
         });
-        // Redirect to login after a short delay to show the success message
+        // El usuario ya está autenticado (el token se guardó en AuthService.register)
+        // Redirigir al perfil o dashboard, NO al login
         setTimeout(() => {
-          router.push('/auth/login');
+          // Forzar refresh del contexto auth recargando la página destino
+          window.location.href = '/admin/profile';
         }, 1500);
       }
     } catch (err: unknown) {
