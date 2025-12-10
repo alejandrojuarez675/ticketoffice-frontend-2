@@ -18,13 +18,9 @@ import { logger } from '@/lib/logger';
 import Loading from '@/components/common/Loading';
 import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
-
-const COUNTRIES = [
-  'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba',
-  'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'México', 'Nicaragua',
-  'Panamá', 'Paraguay', 'Perú', 'Puerto Rico', 'República Dominicana',
-  'Uruguay', 'Venezuela', 'España', 'Estados Unidos', 'Otro'
-];
+// [F1-007] Constantes centralizadas
+import { COUNTRIES } from '@/constants/countries';
+import { DOCUMENT_TYPES } from '@/constants/documents';
 
 type SessionMeta = { eventId: string; priceId: string; quantity: number };
 
@@ -87,14 +83,23 @@ function CheckoutContent() {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    if (!mainEmail) errors.mainEmail = 'El correo electrónico es requerido';
-    else if (!/\\S+@\\S+\\.\\S+/.test(mainEmail)) errors.mainEmail = 'Ingrese un correo electrónico válido';
+    // Regex de email corregido (sin doble escape)
+    const emailRegex = /^\S+@\S+\.\S+$/;
+    
+    if (!mainEmail) {
+      errors.mainEmail = 'El correo electrónico es requerido';
+    } else if (!emailRegex.test(mainEmail)) {
+      errors.mainEmail = 'Ingrese un correo electrónico válido';
+    }
 
     buyers.forEach((buyer, index) => {
       if (!buyer.name) errors[`buyer-${index}-name`] = 'El nombre es requerido';
       if (!buyer.lastName) errors[`buyer-${index}-lastName`] = 'El apellido es requerido';
-      if (!buyer.email) errors[`buyer-${index}-email`] = 'El correo electrónico es requerido';
-      else if (!/\\S+@\\S+\\.\\S+/.test(buyer.email)) errors[`buyer-${index}-email`] = 'Ingrese un correo electrónico válido';
+      if (!buyer.email) {
+        errors[`buyer-${index}-email`] = 'El correo electrónico es requerido';
+      } else if (!emailRegex.test(buyer.email)) {
+        errors[`buyer-${index}-email`] = 'Ingrese un correo electrónico válido';
+      }
       if (!buyer.phone) errors[`buyer-${index}-phone`] = 'El teléfono es requerido';
       if (!buyer.document) errors[`buyer-${index}-document`] = 'El documento es requerido';
     });
@@ -283,14 +288,14 @@ function CheckoutContent() {
                       error={!!formErrors[`buyer-${index}-phone`]} helperText={formErrors[`buyer-${index}-phone`]} required />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
+                    {/* [F1-007] Tipos de documento centralizados */}
                     <FormControl fullWidth margin="normal" error={!!formErrors[`buyer-${index}-documentType`]}>
                       <InputLabel id={`document-type-${index}-label`}>Tipo de documento</InputLabel>
                       <Select labelId={`document-type-${index}-label`} value={buyer.documentType} label="Tipo de documento"
                         onChange={(e) => handleBuyerChange(index, 'documentType', e.target.value)} required>
-                        <MenuItem value="DNI">DNI</MenuItem>
-                        <MenuItem value="PASSPORT">Pasaporte</MenuItem>
-                        <MenuItem value="CE">Carné de extranjería</MenuItem>
-                        <MenuItem value="OTHER">Otro</MenuItem>
+                        {DOCUMENT_TYPES.map((doc) => (
+                          <MenuItem key={doc.value} value={doc.value}>{doc.label}</MenuItem>
+                        ))}
                       </Select>
                       {formErrors[`buyer-${index}-documentType`] && (
                         <FormHelperText>{formErrors[`buyer-${index}-documentType`]}</FormHelperText>

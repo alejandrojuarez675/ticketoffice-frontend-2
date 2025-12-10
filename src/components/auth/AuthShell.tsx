@@ -2,6 +2,7 @@
 'use client';
 
 import { Container, Paper, Box, Typography } from '@mui/material';
+import type { ReactNode } from 'react';
 
 export default function AuthShell({
   title,
@@ -9,8 +10,8 @@ export default function AuthShell({
   footer,
 }: {
   title: string;
-  children: React.ReactNode;
-  footer?: React.ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
 }) {
   return (
     <Container component="main" maxWidth="xs" sx={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', py: 6 }}>

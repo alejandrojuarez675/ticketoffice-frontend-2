@@ -7,10 +7,11 @@ import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
 import { useServerInsertedHTML } from 'next/navigation';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import theme from '@/theme/theme';
 import SnackbarProvider from '@/components/forms/SnackbarProvider';
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children }: { children: ReactNode }) {
   const [{ cache, flush }] = useState(() => {
     const cache = createCache({ key: 'css' });
     cache.compat = true;

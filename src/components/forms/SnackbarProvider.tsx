@@ -2,9 +2,35 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 
-type Snack = { message: string; severity?: 'success' | 'error' | 'info' | 'warning'; duration?: number };
+/**
+ * [F2-005] SnackbarProvider - Notificaciones toast globales
+ * 
+ * GUÍA: Este provider permite mostrar notificaciones desde cualquier componente.
+ * Ya está integrado en ThemeProvider, no necesitas agregarlo de nuevo.
+ * 
+ * Uso:
+ * ```tsx
+ * import { useSnackbar } from '@/components/forms/SnackbarProvider';
+ * 
+ * const { showSnack } = useSnackbar();
+ * 
+ * // Mostrar éxito
+ * showSnack({ message: 'Guardado exitosamente', severity: 'success' });
+ * 
+ * // Mostrar error
+ * showSnack({ message: 'Error al guardar', severity: 'error', duration: 5000 });
+ * ```
+ */
+
+type Snack = { 
+  message: string; 
+  severity?: 'success' | 'error' | 'info' | 'warning'; 
+  duration?: number; // ms, default 3500
+};
+
 type Ctx = { showSnack: (s: Snack) => void };
 
 const SnackbarCtx = createContext<Ctx | null>(null);
@@ -15,7 +41,7 @@ export function useSnackbar() {
   return ctx;
 }
 
-export default function SnackbarProvider({ children }: { children: React.ReactNode }) {
+export default function SnackbarProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [snack, setSnack] = useState<Snack>({ message: '', severity: 'info', duration: 3500 });
 
