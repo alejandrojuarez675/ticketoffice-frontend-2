@@ -181,7 +181,7 @@ class AuthService {
 
     this.persistToken(token, credentials.remember);
 
-    const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
+    const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/api/v1/users/me`);
     const user = this.toAppUser(apiUser);
 
     this.persistUser(user, credentials.remember);
@@ -206,7 +206,7 @@ class AuthService {
 
     if (res?.token) {
       this.persistToken(res.token, payload.remember);
-      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
+      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/api/v1/users/me`);
       const user = this.toAppUser(apiUser);
       this.persistUser(user, payload.remember);
       this.setRoleCookie(user.role, payload.remember);
@@ -216,7 +216,7 @@ class AuthService {
 
   static async me(): Promise<User | null> {
     try {
-      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/users/me`);
+      const apiUser = await http.get<ApiUserResponse>(`${this.BASE_URL}/api/v1/users/me`);
       const user = this.toAppUser(apiUser);
       if (typeof window !== 'undefined') {
         const remember = !!localStorage.getItem(this.TOKEN_KEY);

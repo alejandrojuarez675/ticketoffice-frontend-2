@@ -1,7 +1,7 @@
 // src/app/auth/login/page.tsx
 'use client';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import LightLayout from '@/components/layouts/LightLayout';
 import { Box, Button, Container, TextField, Typography, Alert, Checkbox, FormControlLabel, Paper, CircularProgress } from '@mui/material';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -12,14 +12,38 @@ import { useAuth } from '@/hooks/useAuth';
 function LoginForm() {
   const router = useRouter();
   const sp = useSearchParams();
-  const next = sp.get('next') || '/admin/dashboard';
+  // Redirigir al perfil por defecto después del login
+  const next = sp.get('next') || '/admin/profile';
 
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Redirigir si ya está autenticado
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace('/admin/profile');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Mostrar loading mientras verifica autenticación
+  if (authLoading) {
+    return (
+      <LightLayout title="Cargando...">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+          <CircularProgress />
+        </Box>
+      </LightLayout>
+    );
+  }
+
+  // Si ya está autenticado, no mostrar nada (se está redirigiendo)
+  if (isAuthenticated) {
+    return null;
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +55,8 @@ function LoginForm() {
     try {
       setLoading(true);
       await login({ username, password, remember });
-      // Wait for the next render cycle to ensure state is updated
-      setTimeout(() => {
-        router.replace(next);
-      }, 0);
+      // Redirigir usando router.push para mejor UX
+      router.push(next);
     } catch (error) {
       console.error('Login error:', error);
       setError('Credenciales inválidas. Por favor, verifica e intenta nuevamente.');

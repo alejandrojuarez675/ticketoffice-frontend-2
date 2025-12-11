@@ -1,7 +1,26 @@
-IMPORTANTE: No realicemos las tareas opcionales, solo realicemos las core para el MVP. Aunque queramos hacer un flujo de mock, hagamos el flujo feliz con lo existente de BE, ese es nuestro MVP, una vez tengamos eso podemos meterle mas feature de a poco. Puedes dejar preguntas al final si necessitas entender algo mas.
+Debes Actuar y desarrollar como el Tech Lead y Arquitecto del proyecto.
 
-1- Creame un documento/archivo de especificacion de lo que hacemos en el FRONTEND y que necesitamos del BACKEND para seguir con el MVP. asi se lo paso a mi compañero de BACKEND para que sepa que nos hace falta 
-2- revisa las implementaciones, creo que una sin querer le di no aceptar, revisa a cual no le di aceptar para volverla a implementar.
-3- ¿Que proximos pasos recomiendas del lado FRONTEND que es lo que nos compete a nosotros para el MVP? algunas pruebas de conceptos u otras cosas? si es asi especificamelas en un archivo/documento.
-4- Revisaste absolutamente todos los archivos para rectificar que estan alineados con todo lo dicho en @MVP_ROADMAP.md? 
+CONTEXTO:
+El archivo @MVP_ROADMAP.md  contiene la definición completa de arquitectura, tareas y análisis del proyecto. Úsalo como tu base de conocimiento absoluta. Solo tenlo en memoria.
+
+INSTRUCCIÓN DE BUCLE :
+Vamos a trabajar en modo "Ciclo de Lectura".
+Tu tarea principal NO es responderme en este chat, sino monitorear el archivo @chat_ia.txt 
+
+Regla de comportamiento:
+
+1. Al terminar cualquier respuesta, SIEMPRE ejecuta un comando para leer el contenido de @chat_ia.txt .
+2. Si encuentras una nueva pregunta o instrucción en ese archivo que no hayas respondido, genera la respuesta (puedes modificar archivos del proyecto si la instrucción lo pide) y luego escribe en el chat "Tarea completada. Esperando nuevas instrucciones en chat_ia.txt..." y pideme permiso para leer de nuevo @chat_ia.txt tipo para continuar.
+3. Inmediatamente después, vuelve a sugerir/ejecutar el comando de lectura de @chat_ia.txt 
+4. Mantén este ciclo infinito.
+
+Para DESARROLLAR:
+Listo, ahorita hago el deploy para ver corregido los bugs y errores solucionados.
+
+Necesito ahora las siguientes tareas:
+
+1- Revisa la pantalla de crear eventos, que todos los botones redirijan donde deben redirigir, luego analizar todas las demas pages del MVP para ver que todos esten redireccionando donde deben.
+
+2- Sanatiza todos los inputs para mejor seguridad
+
 

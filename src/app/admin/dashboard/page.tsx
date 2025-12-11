@@ -2,13 +2,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import LightLayout from '@/components/layouts/LightLayout';
-import { Box, Container, Grid, Paper, Typography, Button, CircularProgress } from '@mui/material';
+import BackofficeLayout from '@/components/layouts/BackofficeLayout';
+import { Box, Grid, Paper, Typography, Button, CircularProgress, Card, CardContent, Stack, Chip } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { EventService } from '@/services/EventService';
 import type { EventForList } from '@/types/Event';
 import Link from 'next/link';
+import EventIcon from '@mui/icons-material/Event';
+import UpcomingIcon from '@mui/icons-material/Schedule';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import AddIcon from '@mui/icons-material/Add';
+import ListIcon from '@mui/icons-material/List';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -41,45 +46,120 @@ export default function AdminDashboard() {
 
   if (isLoading || (!isAuthenticated && !isLoading)) {
     return (
-      <LightLayout title="Panel - TicketOffice">
+      <BackofficeLayout title="Panel">
         <Box display="flex" alignItems="center" justifyContent="center" minHeight="60vh">
           <CircularProgress />
         </Box>
-      </LightLayout>
+      </BackofficeLayout>
     );
   }
 
   const upcoming = events.filter((e) => new Date(e.date).getTime() >= Date.now()).length;
+  const hasEvents = events.length > 0;
 
   return (
-    <LightLayout title="Panel - TicketOffice">
-      <Container sx={{ py: 4 }}>
-        <Typography variant="h4" gutterBottom>Bienvenido{user ? `, ${user.username}` : ''}</Typography>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6">Eventos</Typography>
-              <Typography variant="h3">{loadingData ? '—' : events.length}</Typography>
-            </Paper>
+    <BackofficeLayout title="Dashboard">
+      <Box>
+        <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
+          ¡Hola, {user?.name || user?.username}! 👋
+        </Typography>
+
+        {/* Métricas */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <EventIcon sx={{ fontSize: 40, color: 'primary.main' }} />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Eventos
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {loadingData ? '—' : events.length}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6">Próximos</Typography>
-              <Typography variant="h3">{loadingData ? '—' : upcoming}</Typography>
-            </Paper>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <UpcomingIcon sx={{ fontSize: 40, color: 'success.main' }} />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Próximos
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      {loadingData ? '—' : upcoming}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6">Ventas</Typography>
-              <Typography variant="h3">—</Typography>
-            </Paper>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Card sx={{ height: '100%' }}>
+              <CardContent>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <ConfirmationNumberIcon sx={{ fontSize: 40, color: 'warning.main' }} />
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Ventas Totales
+                    </Typography>
+                    <Typography variant="h4" fontWeight="bold">
+                      — <Chip label="Próximamente" size="small" />
+                    </Typography>
+                  </Box>
+                </Stack>
+              </CardContent>
+            </Card>
           </Grid>
         </Grid>
-        <Box sx={{ mt: 3 }}>
-          <Button variant="contained" component={Link} href="/admin/events/new">Crear evento</Button>
-          <Button variant="text" component={Link} href="/admin/events" sx={{ ml: 2 }}>Ver eventos</Button>
-        </Box>
-      </Container>
-    </LightLayout>
+
+        {/* Acciones Rápidas */}
+        <Card>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Acciones Rápidas
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <Button
+                variant="contained"
+                component={Link}
+                href="/admin/events/new"
+                startIcon={<AddIcon />}
+                size="large"
+              >
+                Crear nuevo evento
+              </Button>
+              <Button
+                variant="outlined"
+                component={Link}
+                href="/admin/events"
+                startIcon={<ListIcon />}
+                size="large"
+                disabled={!hasEvents}
+              >
+                {hasEvents ? 'Ver mis eventos' : 'No tienes eventos aún'}
+              </Button>
+            </Stack>
+
+            {!hasEvents && !loadingData && (
+              <Paper sx={{ mt: 3, p: 3, bgcolor: 'grey.50', textAlign: 'center' }}>
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  🎉 ¡Comienza creando tu primer evento!
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Aún no tienes eventos. Crea tu primer evento para empezar a vender entradas.
+                </Typography>
+              </Paper>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
+    </BackofficeLayout>
   );
 }

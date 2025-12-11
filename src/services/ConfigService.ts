@@ -1,14 +1,58 @@
 // src/services/ConfigService.ts
+
+// URL de producción hardcodeada como fallback seguro
+const PRODUCTION_API_URL = 'https://yscqvjs2zg.us-east-1.awsapprunner.com';
+const LOCAL_API_URL = 'http://localhost:8080';
+
 export class ConfigService {
   private static sanitizeBase(url?: string | null) {
     const s = (url || '').trim();
     if (!s) return '';
-    return s.replace(/^<|>$/g, '');
+    // Limpiar caracteres inválidos que podrían venir de configs mal formateadas
+    return s.replace(/^<|>$/g, '').replace(/['"`]/g, '');
   }
 
+  /**
+   * Obtiene la URL base de la API
+   * 
+   * Estrategia:
+   * - Si existe NEXT_PUBLIC_API_BASE_URL, usarla
+   * - En producción: usar URL de producción hardcodeada como fallback
+   * - En desarrollo: usar localhost como fallback
+   */
   static getApiBase() {
-    const raw = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
-    return this.sanitizeBase(raw);
+    const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    
+    // Si hay variable de entorno, usarla
+    if (envUrl && envUrl.trim()) {
+      return this.sanitizeBase(envUrl);
+    }
+    
+    // Fallback según ambiente
+    if (this.isProduction()) {
+      // En producción SIEMPRE usar la URL de producción
+      return PRODUCTION_API_URL;
+    }
+    
+    // En desarrollo usar localhost
+    return LOCAL_API_URL;
+  }
+
+  /**
+   * Log de configuración actual (para debugging)
+   * Solo ejecuta en cliente y en desarrollo
+   */
+  static logConfig() {
+    if (typeof window === 'undefined') return;
+    if (this.isProduction()) return;
+    
+    console.group('🔧 ConfigService');
+    console.log('API Base:', this.getApiBase());
+    console.log('App URL:', this.getAppUrl());
+    console.log('Mocks:', this.isMockedEnabled() ? 'Habilitados' : 'Deshabilitados');
+    console.log('Ambiente:', this.isProduction() ? 'Producción' : 'Desarrollo');
+    console.log('ENV NEXT_PUBLIC_API_BASE_URL:', process.env.NEXT_PUBLIC_API_BASE_URL || '(no definida)');
+    console.groupEnd();
   }
 
   /**

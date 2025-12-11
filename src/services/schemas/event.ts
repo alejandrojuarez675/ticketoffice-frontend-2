@@ -49,12 +49,13 @@ export const EventForListSchema = z.object({
   status: z.enum(['ACTIVE', 'INACTIVE', 'SOLD_OUT']),
 });
 
+// Schema flexible para compatibilidad con BE (campos de paginación pueden no venir)
 export const EventListResponseSchema = z.object({
   events: z.array(EventForListSchema),
-  total: z.number().int().nonnegative(),
-  page: z.number().int().nonnegative(),
-  pageSize: z.number().int().positive(),
-  totalPages: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative().optional().default(0),
+  page: z.number().int().nonnegative().optional().default(0),
+  pageSize: z.number().int().positive().optional().default(10),
+  totalPages: z.number().int().nonnegative().optional().default(1),
 });
 
 export type EventDetailDTO = z.infer<typeof EventDetailSchema>;

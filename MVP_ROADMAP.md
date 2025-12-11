@@ -2,7 +2,7 @@
 
 > **Documento Maestro de Auditoría y Planificación**  
 > Última actualización: Diciembre 2025  
-> Versión: 1.0
+> Versión: 1.1 (Actualizado con documentación Postman)
 
 ---
 
@@ -17,6 +17,16 @@
 
 ---
 
+## 🔄 Cambios Recientes (v1.1)
+
+| Fecha | Cambio | Archivo |
+|-------|--------|---------|
+| Dic 2025 | Corregido endpoint `/users/me` → `/api/v1/users/me` | `AuthService.ts` |
+| Dic 2025 | Mejorado UI de confirmación de compra (sin sessionId visible) | `CongratsClient.tsx` |
+| Dic 2025 | Creado documento `MVP_PENDIENTES.md` con análisis detallado | Nuevo archivo |
+
+---
+
 ## 1. Resumen Ejecutivo
 
 ### 1.1 Estado Actual del Proyecto
@@ -24,13 +34,15 @@
 | Área | Estado | Observaciones |
 |------|--------|---------------|
 | **Infraestructura** | ✅ Funcional | Next.js 15, React 19, MUI 7, TypeScript |
-| **Autenticación** | 🟡 Parcial | Login/Register funcionan, falta forgot/reset password |
+| **Autenticación** | ✅ Funcional | Login/Register funcionan con BE real |
 | **Eventos Públicos** | ✅ Funcional | Búsqueda, detalle, filtros implementados |
-| **Checkout** | 🟡 Parcial | Formulario OK, falta integración real MercadoPago |
-| **Backoffice Seller** | 🟡 Parcial | CRUD eventos OK, dashboard sin métricas reales |
-| **Backoffice Admin** | 🔴 Incompleto | Usuarios/reportes deshabilitados por flags |
+| **Checkout/Compra** | ✅ Funcional | Formulario y API de compra funcionan |
+| **Backoffice Seller** | ✅ Funcional | CRUD eventos completo con BE real |
+| **Backoffice Admin** | 🟡 Parcial | Usuarios/reportes deshabilitados por flags |
 | **Validación Entradas** | 🟡 Parcial | Manual funciona, QR no implementado |
-| **Tickets Digitales** | 🔴 Mock Only | Sin endpoint real de backend |
+| **Tickets Digitales** | 🔴 Pendiente BE | Requiere endpoint `GET /api/public/v1/tickets/{id}` |
+| **MercadoPago** | 🔴 Pendiente BE | Requiere endpoints de integración con MP |
+| **Forgot/Reset Pass** | 🔴 Pendiente BE | Requiere endpoints de recuperación |
 
 ### 1.2 Stack Tecnológico
 
@@ -675,29 +687,99 @@ export const FEATURES: FeatureFlags = {
 
 ---
 
-## 4. Auditoría de Backend (Swagger/OpenAPI)
+## 4. Auditoría de Backend (Documentación Postman - Actualizada)
 
 ### 4.1 Endpoints Existentes vs Implementación Frontend
+
+> **Base URL de Producción**: `https://yscqvjs2zg.us-east-1.awsapprunner.com`
 
 | Endpoint | Método | Frontend | Estado |
 |----------|--------|----------|--------|
 | `/auth/login` | POST | `AuthService.login()` | ✅ Integrado |
 | `/auth/signup` | POST | `AuthService.register()` | ✅ Integrado |
-| `/users/me` | GET | `AuthService.me()` | ✅ Integrado |
-| `/users` | GET | - | ⚠️ No usado (admin only) |
-| `/api/v1/organizer` | POST | - | ❌ No implementado en FE |
+| `/api/v1/users/me` | GET | `AuthService.me()` | ✅ Integrado (corregido) |
+| `/api/v1/users` | GET | No usado | ⚪ Admin only |
 | `/api/v1/events` | GET | `EventService.getEvents()` | ✅ Integrado |
 | `/api/v1/events` | POST | `EventService.createEvent()` | ✅ Integrado |
 | `/api/v1/events/{id}` | GET | `EventService.getEventById()` | ✅ Integrado |
 | `/api/v1/events/{id}` | PUT | `EventService.updateEvent()` | ✅ Integrado |
 | `/api/v1/events/{id}` | DELETE | `EventService.deleteEvent()` | ✅ Integrado |
-| `/api/v1/events/{id}/sales` | GET | `SalesService.listByEvent()` | ✅ Integrado |
-| `/api/public/v1/checkout/session/{sessionId}/validate` | POST | `SalesService.validate()` | ✅ Integrado |
 | `/api/public/v1/event/search` | GET | `EventService.searchEvents()` | ✅ Integrado |
 | `/api/public/v1/event/{id}` | GET | `EventService.getPublicById()` | ✅ Integrado |
 | `/api/public/v1/event/{id}/recommendations` | GET | `EventService.getRecommendations()` | ✅ Integrado |
 | `/api/public/v1/checkout/session` | POST | `CheckoutService.createSession()` | ✅ Integrado |
 | `/api/public/v1/checkout/session/{id}/buy` | POST | `CheckoutService.buy()` | ✅ Integrado |
+| `/ping` | GET | No usado | ⚪ Health check |
+
+### 4.1.1 Formato de Request/Response del Backend
+
+**Login** (`POST /auth/login`):
+```json
+// Request
+{ "username": "string", "password": "string" }
+// Response
+{ "token": "eyJ...", "expiresIn": 864000000 }
+```
+
+**Signup** (`POST /auth/signup`):
+```json
+// Request
+{ "username": "string", "password": "string", "email": "string" }
+// Response
+{ "token": "eyJ...", "expiresIn": 864000000 }
+```
+
+**Create Event** (`POST /api/v1/events`):
+```json
+{
+  "title": "Concierto de La Joaqui",
+  "date": "2042-01-01T20:00:00",
+  "location": {
+    "name": "Huracan",
+    "address": "Manuel Belgrano",
+    "city": "Buenos Aires",
+    "country": "Argentina"
+  },
+  "image": {
+    "url": "https://...",
+    "alt": "Descripción de imagen"
+  },
+  "tickets": [{
+    "value": 100,
+    "currency": "$",
+    "type": "General",
+    "isFree": false,
+    "stock": 100
+  }],
+  "description": "Descripción del evento...",
+  "additionalInfo": ["Info adicional 1", "Info adicional 2"]
+}
+```
+
+**Create Checkout Session** (`POST /api/public/v1/checkout/session`):
+```json
+// Request
+{ "eventId": "uuid", "priceId": "ticketId", "quantity": 1 }
+// Response
+{ "sessionId": "uuid__uuid__qty__timestamp" }
+```
+
+**Buy** (`POST /api/public/v1/checkout/session/{sessionId}/buy`):
+```json
+// Request
+{
+  "mainEmail": "email@example.com",
+  "buyer": [{
+    "name": "John",
+    "lastName": "Doe",
+    "email": "email@example.com",
+    "phone": "+573012345678",
+    "nationality": "Colombia",
+    "documentType": "CC",
+    "document": "123456789"
+  }]
+}
+```
 
 ### 4.2 🔴 Endpoints Faltantes en Backend (Críticos para MVP)
 
