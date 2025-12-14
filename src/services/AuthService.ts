@@ -24,6 +24,28 @@ class AuthService {
   private static BASE_URL = ConfigService.getApiBase();
   private static TOKEN_KEY = 'auth_token';
   private static USER_KEY = 'user_data';
+  private static initialized = false;
+
+  /**
+   * Inicializa el servicio de autenticación.
+   * DEBE llamarse al inicio de la aplicación para restaurar la sesión.
+   */
+  static initialize() {
+    if (this.initialized) return;
+    if (typeof window === 'undefined') return;
+    
+    // Restaurar el provider de token si existe un token guardado
+    const token = localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
+    if (token) {
+      setAuthTokenProvider(() => {
+        if (typeof window === 'undefined') return null;
+        return localStorage.getItem(this.TOKEN_KEY) ?? sessionStorage.getItem(this.TOKEN_KEY);
+      });
+      logger.debug('AuthService initialized with existing token');
+    }
+    
+    this.initialized = true;
+  }
 
   private static mapRolesToBackofficeRole(serverRoles?: string[]): BackofficeRole | 'user' {
     const r = (serverRoles || []).map((x) => x.toUpperCase());

@@ -79,14 +79,30 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
     <AppBar position="fixed" color="default" elevation={0}>
       <Toolbar>
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-          <Typography
-            variant="h6"
+          <Box
             component={Link}
             href="/"
-            sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold', mr: 2 }}
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              textDecoration: 'none', 
+              color: 'inherit',
+              mr: 2 
+            }}
           >
-            TicketOffice
-          </Typography>
+            <Box
+              component="img"
+              src="/logo.png"
+              alt="TuEntradaYa"
+              sx={{ height: 32, width: 32, mr: 1 }}
+            />
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 'bold', display: { xs: 'none', sm: 'block' } }}
+            >
+              TuEntradaYa
+            </Typography>
+          </Box>
 
           {!isMobile && (
             <Box sx={{ display: 'flex', ml: 2 }}>

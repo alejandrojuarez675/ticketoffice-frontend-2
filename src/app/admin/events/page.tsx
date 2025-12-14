@@ -110,6 +110,9 @@ export default function AdminEventsPage() {
                     <Button component={Link} href={`/admin/events/${e.id}/edit`} size="small">
                       Editar
                     </Button>
+                    <Button component={Link} href={`/admin/events/${e.id}/sales`} size="small">
+                      Ventas
+                    </Button>
                     <Button component={Link} href={`/admin/events/${e.id}/validate`} size="small">
                       Validar
                     </Button>

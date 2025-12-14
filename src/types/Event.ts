@@ -45,9 +45,16 @@ export interface EventForList {
   name: string;
   date: string;
   location: string;
-  status: "ACTIVE" | "INACTIVE" | "SOLD_OUT";
+  bannerUrl?: string;
+  price?: number;
+  currency?: string;
+  status: string;
 }
 
 export interface EventListResponse {
   events: EventForList[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
 }

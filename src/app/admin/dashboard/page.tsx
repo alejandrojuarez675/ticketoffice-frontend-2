@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
-import { Box, Grid, Paper, Typography, Button, CircularProgress, Card, CardContent, Stack, Chip } from '@mui/material';
+import { Box, Grid, Typography, Button, CircularProgress, Card, CardContent, Stack, Chip, Alert } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { EventService } from '@/services/EventService';
@@ -14,6 +14,7 @@ import UpcomingIcon from '@mui/icons-material/Schedule';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AddIcon from '@mui/icons-material/Add';
 import ListIcon from '@mui/icons-material/List';
+import CelebrationIcon from '@mui/icons-material/Celebration';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -21,6 +22,7 @@ export default function AdminDashboard() {
 
   const [events, setEvents] = useState<EventForList[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -34,9 +36,13 @@ export default function AdminDashboard() {
       try {
         if (!isAuthenticated) return;
         setLoadingData(true);
+        setError(null);
         const res = await EventService.getEvents(1, 20);
         if (!active) return;
         setEvents(res.events || []);
+      } catch (err) {
+        console.error('Error loading events:', err);
+        if (active) setError('Error al cargar los eventos');
       } finally {
         if (active) setLoadingData(false);
       }
@@ -147,15 +153,33 @@ export default function AdminDashboard() {
               </Button>
             </Stack>
 
-            {!hasEvents && !loadingData && (
-              <Paper sx={{ mt: 3, p: 3, bgcolor: 'grey.50', textAlign: 'center' }}>
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  🎉 ¡Comienza creando tu primer evento!
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Aún no tienes eventos. Crea tu primer evento para empezar a vender entradas.
-                </Typography>
-              </Paper>
+            {error && (
+              <Alert severity="error" sx={{ mt: 3 }}>
+                {error}
+              </Alert>
+            )}
+
+            {!hasEvents && !loadingData && !error && (
+              <Card sx={{ mt: 3, bgcolor: 'primary.50', border: '2px dashed', borderColor: 'primary.main' }}>
+                <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                  <CelebrationIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+                  <Typography variant="h5" gutterBottom fontWeight="bold" color="primary.main">
+                    ¡Comienza creando tu primer evento!
+                  </Typography>
+                  <Typography variant="body1" color="text.primary" sx={{ mb: 3 }}>
+                    Aún no tienes eventos. Crea tu primer evento para empezar a vender entradas.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    size="large"
+                    component={Link}
+                    href="/admin/events/new"
+                    startIcon={<AddIcon />}
+                  >
+                    Crear mi primer evento
+                  </Button>
+                </CardContent>
+              </Card>
             )}
           </CardContent>
         </Card>

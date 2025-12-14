@@ -22,7 +22,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(AuthService.getCurrentUser());
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   const hasBackofficeAccess = useMemo(() => {
@@ -35,12 +35,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const u = await AuthService.me();
       setUser(u);
+    } catch {
+      // Si falla, limpiar el usuario
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    // Inicializar el servicio de auth para restaurar el token del storage
+    AuthService.initialize();
+    
+    // Cargar usuario inicial del storage
+    const storedUser = AuthService.getCurrentUser();
+    if (storedUser) {
+      setUser(storedUser);
+    }
+    
+    // Refrescar datos del usuario desde el servidor
     refresh();
   }, []);
 
