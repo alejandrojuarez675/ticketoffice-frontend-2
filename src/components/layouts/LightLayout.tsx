@@ -21,10 +21,20 @@ export default function LightLayout({ children, title = 'TicketOffice' }: LightL
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box component="main" sx={{ flexGrow: 1, mt: { xs: '56px', sm: '64px' } }}>
-          {children}
+        <Box 
+          component="main" 
+          sx={{ 
+            minHeight: 'calc(100vh - 56px)', 
+            mt: { xs: '56px', sm: '64px' },
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box sx={{ flexGrow: 1 }}>
+            {children}
+          </Box>
         </Box>
         <Footer />
       </Box>

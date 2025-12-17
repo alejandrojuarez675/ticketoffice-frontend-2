@@ -16,13 +16,14 @@ import {
   Typography,
   Tooltip,
   Chip,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import CloseIcon from '@mui/icons-material/Close';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { todayRange, weekendRange } from '@/utils/date';
-import { VendorService, type Vendor } from '@/services/VendorService';
 
 type Facets = {
   countries: string[];
@@ -40,6 +41,8 @@ export default function FiltersPanel({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [open, setOpen] = useState(false);
 
@@ -54,16 +57,6 @@ export default function FiltersPanel({
   const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState<string>(searchParams.get('maxPrice') || '');
 
-  // Vendors
-  const [vendorsOptions, setVendorsOptions] = useState<Vendor[]>([]);
-  const [vendorsLoading, setVendorsLoading] = useState(false);
-  const [selectedVendors, setSelectedVendors] = useState<string[]>(
-    (searchParams.get('vendors') || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-  );
-
   useEffect(() => {
     if (open) return;
     setCountry(searchParams.get('country') || '');
@@ -75,16 +68,10 @@ export default function FiltersPanel({
     setAdultOnly(searchParams.get('adultOnly') === 'true');
     setMinPrice(searchParams.get('minPrice') || '');
     setMaxPrice(searchParams.get('maxPrice') || '');
-    setSelectedVendors(
-      (searchParams.get('vendors') || '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-    );
   }, [searchParams, open]);
 
   const filteredCities = useMemo(() => {
-    if (!country || country.toLowerCase() === 'all') return facets.cities;
+    if (!country || country === 'all' || country === '') return facets.cities;
     return facets.citiesByCountry[country] ?? [];
   }, [country, facets]);
 
@@ -130,10 +117,6 @@ export default function FiltersPanel({
       if (maxP !== undefined && !Number.isNaN(maxP)) sp.set('maxPrice', String(maxP));
       else sp.delete('maxPrice');
 
-      // Vendors
-      if (selectedVendors.length > 0) sp.set('vendors', selectedVendors.join(','));
-      else sp.delete('vendors');
-
       if (!sp.get('pageSize')) sp.set('pageSize', '9');
       sp.set('page', '1');
     });
@@ -154,12 +137,6 @@ export default function FiltersPanel({
     setAdultOnly(searchParams.get('adultOnly') === 'true');
     setMinPrice(searchParams.get('minPrice') || '');
     setMaxPrice(searchParams.get('maxPrice') || '');
-    setSelectedVendors(
-      (searchParams.get('vendors') || '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-    );
     setOpen(false);
   };
 
@@ -186,26 +163,6 @@ export default function FiltersPanel({
   };
 
   const hasActive = activeCount > 0;
-
-  // Load vendors on mount
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        setVendorsLoading(true);
-        const list = await VendorService.list();
-        if (!alive) return;
-        setVendorsOptions(list.filter((v: Vendor) => (v.events ?? 0) > 0));
-      } catch {
-        // ignore
-      } finally {
-        if (alive) setVendorsLoading(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   return (
     <>
@@ -235,7 +192,7 @@ export default function FiltersPanel({
           </Box>
 
           <Stack spacing={2}>
-            {/* Toggles rápidos */}
+            {/* Toggles rápidos - En mobile solo los más importantes */}
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <FormControlLabel
@@ -257,66 +214,70 @@ export default function FiltersPanel({
                   label="Este fin de semana"
                 />
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <FormControlLabel control={<Switch checked={adultOnly} onChange={(_, c) => setAdultOnly(c)} />} label="Mayores de edad" />
-              </Grid>
+              {!isMobile && (
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <FormControlLabel control={<Switch checked={adultOnly} onChange={(_, c) => setAdultOnly(c)} />} label="Mayores de edad" />
+                </Grid>
+              )}
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <FormControlLabel control={<Switch checked={savedOnly} onChange={(_, c) => setSavedOnly(c)} />} label="Guardados" />
               </Grid>
             </Grid>
 
-            {/* Fechas + precios */}
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Desde"
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField
-                  fullWidth
-                  type="date"
-                  label="Hasta"
-                  slotProps={{ inputLabel: { shrink: true } }}
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                />
-              </Grid>
+            {/* Fechas + precios - En mobile solo fechas */}
+            {!isMobile && (
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Desde"
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Hasta"
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Precio mínimo"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  slotProps={{ input: { inputProps: { min: 0 } }, inputLabel: { shrink: true } }}
-                  sx={{
-                    '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
-                    '& input[type=number]': { MozAppearance: 'textfield' },
-                  }}
-                />
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Precio mínimo"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    slotProps={{ input: { inputProps: { min: 0 } }, inputLabel: { shrink: true } }}
+                    sx={{
+                      '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                      '& input[type=number]': { MozAppearance: 'textfield' },
+                    }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Precio máximo"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    slotProps={{ input: { inputProps: { min: 0 } }, inputLabel: { shrink: true } }}
+                    sx={{
+                      '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
+                      '& input[type=number]': { MozAppearance: 'textfield' },
+                    }}
+                  />
+                </Grid>
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Precio máximo"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  slotProps={{ input: { inputProps: { min: 0 } }, inputLabel: { shrink: true } }}
-                  sx={{
-                    '& input::-webkit-outer-spin-button,& input::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
-                    '& input[type=number]': { MozAppearance: 'textfield' },
-                  }}
-                />
-              </Grid>
-            </Grid>
+            )}
 
             {/* País -> Ciudad dependiente / Categoría */}
             <Grid container spacing={2}>
@@ -333,13 +294,9 @@ export default function FiltersPanel({
                   disabled={!!city}
                   helperText={city ? 'País bloqueado por selección de ciudad' : ' '}
                 >
-                  <MenuItem value="">{'Todos'}</MenuItem>
-                  <MenuItem value="all">{'Todos (CO+AR)'}</MenuItem>
-                  {facets.countries.map((c) => (
-                    <MenuItem key={c} value={c}>
-                      {c}
-                    </MenuItem>
-                  ))}
+                  <MenuItem value="all">Todos</MenuItem>
+                  <MenuItem value="Colombia">Colombia</MenuItem>
+                  <MenuItem value="Argentina">Argentina</MenuItem>
                 </TextField>
               </Grid>
 
@@ -361,46 +318,18 @@ export default function FiltersPanel({
                 </TextField>
               </Grid>
 
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <TextField select fullWidth label="Categoría" value={category} onChange={(e) => setCategory(e.target.value)}>
-                  <MenuItem value="">Todas</MenuItem>
-                  {facets.categories.map((c) => (
-                    <MenuItem key={c} value={c}>
-                      {c}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            </Grid>
-
-            {/* Vendedores */}
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12 }}>
-                <TextField
-                  select
-                  fullWidth
-                  SelectProps={{
-                    multiple: true,
-                    renderValue: (selected) =>
-                      (selected as string[])
-                        .map((id) => vendorsOptions.find((v) => v.id === id)?.name || id)
-                        .join(', '),
-                  }}
-                  label="Vendedores"
-                  value={selectedVendors}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setSelectedVendors(typeof v === 'string' ? v.split(',') : (v as string[]));
-                  }}
-                  helperText={vendorsLoading ? 'Cargando vendedores...' : 'Seleccione uno o varios vendedores'}
-                >
-                  {vendorsOptions.map((v) => (
-                    <MenuItem key={v.id} value={v.id}>
-                      {v.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
+              {!isMobile && (
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <TextField select fullWidth label="Categoría" value={category} onChange={(e) => setCategory(e.target.value)}>
+                    <MenuItem value="">Todas</MenuItem>
+                    {facets.categories.map((c) => (
+                      <MenuItem key={c} value={c}>
+                        {c}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              )}
             </Grid>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>

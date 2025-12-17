@@ -5,8 +5,12 @@ import { ClientProviders } from '@/components/common/ClientProviders';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 export const metadata: Metadata = {
-  title: 'TicketOffice - Compra de entradas online',
-  description: 'Compra entradas para los mejores eventos con TicketOffice',
+  title: 'TuEntradaYa - Compra de entradas online',
+  description: 'Compra entradas para los mejores eventos con TuEntradaYa',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export const viewport: Viewport = {

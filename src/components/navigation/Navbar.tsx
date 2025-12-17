@@ -30,7 +30,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 type NavbarProps = { onMenuClick?: () => void };
 
-export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
+export default function Navbar({ onMenuClick }: NavbarProps) {
   const { isAuthenticated, hasBackofficeAccess, logout, user } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -69,24 +69,39 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
 
   const avatarLetter = useMemo(() => (user?.name ? user.name.charAt(0).toUpperCase() : 'U'), [user?.name]);
 
-  useEffect(() => {
-    // keep prop referenced
-  }, [_onMenuClick]);
-
   const isEventsActive = pathname?.startsWith('/events');
+  
+  // Determinar si estamos en una página de backoffice
+  const isBackofficePage = pathname?.startsWith('/admin');
 
   return (
     <AppBar position="fixed" color="default" elevation={0}>
       <Toolbar>
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-          <Typography
-            variant="h6"
+          <Box
             component={Link}
             href="/"
-            sx={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold', mr: 2 }}
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              textDecoration: 'none', 
+              color: 'inherit',
+              mr: 2 
+            }}
           >
-            TicketOffice
-          </Typography>
+            <Box
+              component="img"
+              src="/logo.png"
+              alt="TuEntradaYa"
+              sx={{ height: 32, width: 32, mr: 1 }}
+            />
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 'bold', display: { xs: 'none', sm: 'block' } }}
+            >
+              TuEntradaYa
+            </Typography>
+          </Box>
 
           {!isMobile && (
             <Box sx={{ display: 'flex', ml: 2 }}>
@@ -110,6 +125,21 @@ export default function Navbar({ onMenuClick: _onMenuClick }: NavbarProps) {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* Botón de menú para sidebar en mobile (solo en backoffice) */}
+          {isMobile && isAuthenticated && hasBackofficeAccess && isBackofficePage && onMenuClick && (
+            <IconButton 
+              size="large" 
+              edge="start" 
+              color="inherit" 
+              aria-label="abrir menú" 
+              sx={{ mr: 1 }} 
+              onClick={onMenuClick}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          
+          {/* Menú para invitados en mobile */}
           {isMobile && !isAuthenticated && (
             <>
               <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 1 }} onClick={openGuestMenu}>

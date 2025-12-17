@@ -8,14 +8,15 @@ try { apiOrigin = apiBase ? new URL(apiBase).origin : ''; } catch {}
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' <https://sdk.mercadopago.com> https://*.mercadopago.com https://*.mercadopago.com.ar https://*.mercadopago.com.co",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.ar https://*.mercadopago.com.co",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
   [
     "connect-src 'self'",
-    '<http://localhost:8080>',
-    '<https://api.mercadopago.com>',
+    'http://localhost:8080',
+    'https://api.mercadopago.com',
+    'https://yscqvjs2zg.us-east-1.awsapprunner.com',
     apiOrigin || '',
   ]
     .filter(Boolean)
@@ -23,7 +24,7 @@ const csp = [
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "frame-src https: <https://sdk.mercadopago.com> https://*.mercadopago.com",
+  "frame-src https: https://sdk.mercadopago.com https://*.mercadopago.com",
   "object-src 'none'",
   'upgrade-insecure-requests',
 ].join('; ');

@@ -1,7 +1,64 @@
-IMPORTANTE: No realicemos las tareas opcionales, solo realicemos las core para el MVP. Aunque queramos hacer un flujo de mock, hagamos el flujo feliz con lo existente de BE, ese es nuestro MVP, una vez tengamos eso podemos meterle mas feature de a poco. Puedes dejar preguntas al final si necessitas entender algo mas.
+Debes Actuar y desarrollar como el Tech Lead y Arquitecto del proyecto.
 
-1- Creame un documento/archivo de especificacion de lo que hacemos en el FRONTEND y que necesitamos del BACKEND para seguir con el MVP. asi se lo paso a mi compañero de BACKEND para que sepa que nos hace falta 
-2- revisa las implementaciones, creo que una sin querer le di no aceptar, revisa a cual no le di aceptar para volverla a implementar.
-3- ¿Que proximos pasos recomiendas del lado FRONTEND que es lo que nos compete a nosotros para el MVP? algunas pruebas de conceptos u otras cosas? si es asi especificamelas en un archivo/documento.
-4- Revisaste absolutamente todos los archivos para rectificar que estan alineados con todo lo dicho en @MVP_ROADMAP.md? 
+CONTEXTO:
+El archivo @MVP_ROADMAP.md  contiene la definición completa de arquitectura, tareas y análisis del proyecto. Úsalo como tu base de conocimiento absoluta. Solo tenlo en memoria.
 
+INSTRUCCIÓN DE BUCLE :
+Vamos a trabajar en modo "Ciclo de Lectura".
+Tu tarea principal NO es responderme en este chat, sino monitorear el archivo @chat_ia.txt 
+
+Regla de comportamiento:
+
+1. Al terminar cualquier respuesta, SIEMPRE ejecuta un comando para leer el contenido de @chat_ia.txt .
+2. Si encuentras una nueva pregunta o instrucción en ese archivo que no hayas respondido, genera la respuesta (puedes modificar archivos del proyecto si la instrucción lo pide) y luego escribe en el chat "Tarea completada. Esperando nuevas instrucciones en chat_ia.txt..." y pideme permiso para leer de nuevo @chat_ia.txt tipo para continuar.
+3. Inmediatamente después, vuelve a sugerir/ejecutar el comando de lectura de @chat_ia.txt 
+4. Mantén este ciclo infinito.
+
+lee @RESPUESTAS_IA.md que es algunas respuestas anteriores, ademas agrega todo lo nuevo que hiciste en el mismo formato. Tambien analiza los archivos necesarios para completar todas las tareas correspondientes.
+
+Para DESARROLLAR:
+Todos los cambios que hagas recuerda que tambien tengas en cuenta a mobile, no solo desktop.
+
+Algunas cosas:
+
+0- revierte la implementacion del logo, deja el logo anterior.
+
+1- Mejor seamos prácticos en una etiqueta que diga gratis en la pantalla donde estan todos los eventos, leamos cuando el valor de la boleta sea 0, pongamos ese tag (o algo descriptivo) en vez del precio.
+
+2- En el modal que mostramos cuando el usuario presiona “comprar ahora”, mejor mostremos separado el tipo de entrada y el valor, que se pueda cambiar el tipo de entrada cuando hay varias y el valor cambie automatico,  si es gratis, que no se pueda cambiar y que salga “gratis” esto hazlo de la mejor forma de UX/UI. Tambien estoy viendo el error de que no se puede eliminar el 1 como entrada minima, esto de cierta forma esta bien pero agrega un boton de subir y de bajar la cantidad de entradas ya que no tiene.
+
+3- En la pantalla de /admin/events/new sube el icono de eliminar entrada ya que esta muy pegado al input de “moneda”.
+
+4- Revisa de nuevo en /admin/events/new el input de fecha y hora, ahora quedo peor que antes, busca en internet o en tu base de datos, diferentes formas de hacerlo y hazlo estetico y funcional con buen UX/UI.
+
+5- Agrega un input en /admin/events/new donde podamos ponerle tags al evento, que los son los salen en todos los eventos, tipo “mayor de edad, para todo publico, concierto, eventos de compras, etc” agrega tantos como tengas disponible en tu base de datos y estos tags, hazlos a elegir, que sea una opción que se vea bien y que se muestren los tags elegidos de forma sutil al lado o donde creas que se vea bien.
+
+6- Quita la eleccion de estado “cancelado” cuando se crea un evento, no tiene sentido que este en un evento que quieras crear pero si dejala en el editar evento.
+
+7- Todo lo que cambies es /admin/events/new tiene que hacerlo en /edit para mantener la concordancia.
+
+8- En la pantalla /events/id hagamos lo mismo con los eventos que son gratis, cuando venga 0 mejor pongamos de manera visual y chevere un indicador de “gratis” en vez del precio.
+
+9- Vamos a mejorar los filtros de /events? ya que veo que solo funcionan algunos, deja solo los funcionales por ahora y mejoralos. 
+
+a-Deja el de: hoy, este fin de semana, mayores de edad (cuando nos llegue el tag pero eso lo dejamos para despues), guardados.
+
+b- Mejora el de Pais, ahorita mostramos por defecto todos los eventos tanto de colombia como de argentina pero cuando selecciono, solo me da dos opciones, “todos y todos(CO+AR)” esto no tiene sentido, deberia haber 3, Colombia, Argenita y todos.
+
+c- Ciudad deberiamos mostrar solo las ciudades que en un principio tienen los eventos pero hagamosla dependiente del pais elegido, si eligen Colombia, solo mostrar ciudades de Colombia que tengan eventos, lo mismo para argentina y si eligen todos, que muestre todas las ciudades con eventos.
+
+d- En categorias tambien esperemos los tags que se implementaran mas adelante pero como esta ahorita esta bien.
+
+e- Quitemos el filtro de vendedores, no tiene sentido tenerlo aun, eliminalo.
+
+10- Mejoremos como se ven la opciones de /admin/events en los eventos, ya que no se ve una separacion entre los botones, que se sepan que son botones accionables, lo mismo en mobile, no es intuitivo. Diseña mejor esta tabla para mobile, ya que en mobile pequeños , no queda toda en la pantalla.
+
+11- Agrega en mobile en la home un boton de ver todos los eventos disposibles ya que el del banner me parece que esta muy oculto.
+
+12- En solo mobile, la categoria de filtros, deja los principales que consideres (los mas utiles) ya que siento que abarca mucho espacio.
+
+13- Hagamos que en todas las pantallas el footer se muestre luego de 100vh (Es decir toda la pantalla) para mantener consistencia en todas las pantallas y se vea bien.
+
+14- En mobile el boton de “olvide mi contraseña se ve apiñado” mejor para mobile hagamos los botones de 100% de width con display block del contenedor para que uno salga abajo del otro o si tienes una idea mejor, implementala.
+
+14- Ayudame a crear la pantalla de configuracion, indicame de que deberia tener, entre eso debe tener el eliminar cuenta y no se que mas.

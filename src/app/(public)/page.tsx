@@ -99,24 +99,46 @@ function HomeContent() {
               >
                 La solución completa para la gestión de eventos y venta de boletos en línea
               </Typography>
-              <Button
-                component={Link}
-                href="/auth/register"
-                variant="contained"
-                size="large"
-                sx={{
-                  backgroundColor: 'background.paper',
-                  color: 'primary.contrastText',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
-                  },
-                  py: 1.5,
-                  px: 4,
-                  fontSize: '1.1rem',
-                }}
-              >
-                Quiero ser vendedor
-              </Button>
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                <Button
+                  component={Link}
+                  href="/events?country=all"
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    backgroundColor: 'background.paper',
+                    color: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'grey.100',
+                    },
+                    py: 1.5,
+                    px: 4,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Ver todos los eventos
+                </Button>
+                <Button
+                  component={Link}
+                  href="/auth/register"
+                  variant="outlined"
+                  size="large"
+                  sx={{
+                    borderColor: 'background.paper',
+                    color: 'background.paper',
+                    '&:hover': {
+                      borderColor: 'background.paper',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    py: 1.5,
+                    px: 4,
+                    fontSize: '1.1rem',
+                  }}
+                >
+                  Quiero ser vendedor
+                </Button>
+              </Box>
             </Grid>
             {!isMobile && (
               <Grid size={{ xs: 12, md: 6 }}>

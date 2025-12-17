@@ -263,7 +263,16 @@ export class EventService {
       headers: { ...AuthService.getAuthHeader() },
       retries: 1,
     });
-    const parsed = EventDetailSchema.parse(raw);
+
+    // Normalizar respuesta antes de parsear (igual que getPublicById)
+    const prepared: Record<string, unknown> = isRecord(raw) ? { ...raw } : {};
+    prepared.date = dateArrayToIso(prepared.date) ?? new Date().toISOString();
+    prepared.organizer = normalizeOrganizer(prepared.organizer);
+    prepared.image = normalizeImage(prepared.image);
+    prepared.location = normalizeLocation(prepared.location);
+    prepared.tickets = normalizeTickets(prepared.tickets);
+
+    const parsed = EventDetailSchema.parse(prepared);
     logger.debug('getEventById parsed', { id: parsed.id });
     return parsed;
   }

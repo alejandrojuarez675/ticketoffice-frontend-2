@@ -181,7 +181,11 @@ export async function fetchJson<TResponse, B = unknown>(url: string, opts: Fetch
     try {
       const res = await fetch(url, init);
       const isJson = res.headers.get('content-type')?.includes('application/json');
-      if (!res.ok) {
+      
+      // Códigos de éxito: 2xx (200-299)
+      const isSuccess = res.status >= 200 && res.status < 300;
+      
+      if (!isSuccess) {
         let details: unknown;
         if (isJson) {
           try {
@@ -199,7 +203,11 @@ export async function fetchJson<TResponse, B = unknown>(url: string, opts: Fetch
         }
         throw new HttpError(url, res.status, res.statusText, details);
       }
+      
+      // 204 No Content - sin body
       if (res.status === 204) return undefined as unknown as TResponse;
+      
+      // 201 Created, 200 OK, etc - con body
       if (isJson) return (await res.json()) as TResponse;
       return (await res.text()) as unknown as TResponse;
     } catch (err) {

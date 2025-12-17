@@ -16,7 +16,17 @@ import {
   Typography,
   Chip,
   CircularProgress,
+  Card,
+  CardContent,
+  CardActions,
+  Stack,
+  useMediaQuery,
+  useTheme,
+  IconButton,
+  Menu,
+  MenuItem,
 } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { EventService } from '@/services/EventService';
 import type { EventForList } from '@/types/Event';
 import Link from 'next/link';
@@ -35,9 +45,23 @@ export default function AdminEventsPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
   const hasBackoffice = !!user && (user.role === 'admin' || user.role === 'seller');
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [rows, setRows] = useState<EventForList[]>([]);
   const [loading, setLoading] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, eventId: string) => {
+    setAnchorEl(event.currentTarget);
+    setSelectedEventId(eventId);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedEventId(null);
+  };
 
   useEffect(() => {
     if (isLoading) return;
@@ -83,47 +107,124 @@ export default function AdminEventsPage() {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">Mis eventos</Typography>
           <Button variant="contained" component={Link} href="/admin/events/new">
-            Nuevo evento
+            {isMobile ? '+' : 'Nuevo evento'}
           </Button>
         </Box>
 
-        <Paper>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Título</TableCell>
-                <TableCell>Fecha</TableCell>
-                <TableCell>Estado</TableCell>
-                <TableCell align="right">Acciones</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((e) => (
-                <TableRow key={e.id} hover>
-                  <TableCell>{e.name}</TableCell>
-                  <TableCell>{new Date(e.date).toLocaleString('es-AR')}</TableCell>
-                  <TableCell>{statusChip(e.status)}</TableCell>
-                  <TableCell align="right">
-                    <Button component={Link} href={`/admin/events/${e.id}`} size="small">
-                      Ver
-                    </Button>
-                    <Button component={Link} href={`/admin/events/${e.id}/edit`} size="small">
-                      Editar
-                    </Button>
-                    <Button component={Link} href={`/admin/events/${e.id}/validate`} size="small">
-                      Validar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {rows.length === 0 && (
+        {isMobile ? (
+          // Vista móvil: Cards
+          <Stack spacing={2}>
+            {rows.map((e) => (
+              <Card key={e.id} variant="outlined">
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Typography variant="h6" sx={{ flex: 1, pr: 1 }}>
+                      {e.name}
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={(event) => handleMenuOpen(event, e.id)}
+                      sx={{ mt: -1 }}
+                    >
+                      <MoreVertIcon />
+                    </IconButton>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    {new Date(e.date).toLocaleString('es-AR')}
+                  </Typography>
+                  <Box sx={{ mt: 1 }}>
+                    {statusChip(e.status)}
+                  </Box>
+                </CardContent>
+                <CardActions sx={{ justifyContent: 'flex-start', flexWrap: 'wrap', gap: 0.5, px: 2, pb: 2 }}>
+                  <Button component={Link} href={`/admin/events/${e.id}`} size="small" variant="outlined">
+                    Ver
+                  </Button>
+                  <Button component={Link} href={`/admin/events/${e.id}/edit`} size="small" variant="outlined">
+                    Editar
+                  </Button>
+                  <Button component={Link} href={`/admin/events/${e.id}/sales`} size="small" variant="outlined">
+                    Ventas
+                  </Button>
+                  <Button component={Link} href={`/admin/events/${e.id}/validate`} size="small" variant="outlined">
+                    Validar
+                  </Button>
+                </CardActions>
+              </Card>
+            ))}
+            {rows.length === 0 && (
+              <Paper sx={{ p: 3, textAlign: 'center' }}>
+                <Typography color="text.secondary">No tienes eventos aún.</Typography>
+              </Paper>
+            )}
+          </Stack>
+        ) : (
+          // Vista desktop: Tabla mejorada
+          <Paper sx={{ overflow: 'hidden' }}>
+            <Table size="small">
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={4}>No tienes eventos aún.</TableCell>
+                  <TableCell><strong>Título</strong></TableCell>
+                  <TableCell><strong>Fecha</strong></TableCell>
+                  <TableCell><strong>Estado</strong></TableCell>
+                  <TableCell align="right"><strong>Acciones</strong></TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Paper>
+              </TableHead>
+              <TableBody>
+                {rows.map((e) => (
+                  <TableRow key={e.id} hover>
+                    <TableCell>{e.name}</TableCell>
+                    <TableCell>{new Date(e.date).toLocaleString('es-AR')}</TableCell>
+                    <TableCell>{statusChip(e.status)}</TableCell>
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button component={Link} href={`/admin/events/${e.id}`} size="small" variant="outlined">
+                          Ver
+                        </Button>
+                        <Button component={Link} href={`/admin/events/${e.id}/edit`} size="small" variant="outlined">
+                          Editar
+                        </Button>
+                        <Button component={Link} href={`/admin/events/${e.id}/sales`} size="small" variant="outlined">
+                          Ventas
+                        </Button>
+                        <Button component={Link} href={`/admin/events/${e.id}/validate`} size="small" variant="outlined">
+                          Validar
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {rows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} sx={{ textAlign: 'center', py: 4 }}>
+                      <Typography color="text.secondary">No tienes eventos aún.</Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Paper>
+        )}
+
+        {/* Menu para mobile */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+        >
+          <MenuItem component={Link} href={`/admin/events/${selectedEventId}`} onClick={handleMenuClose}>
+            Ver detalles
+          </MenuItem>
+          <MenuItem component={Link} href={`/admin/events/${selectedEventId}/edit`} onClick={handleMenuClose}>
+            Editar evento
+          </MenuItem>
+          <MenuItem component={Link} href={`/admin/events/${selectedEventId}/sales`} onClick={handleMenuClose}>
+            Ver ventas
+          </MenuItem>
+          <MenuItem component={Link} href={`/admin/events/${selectedEventId}/validate`} onClick={handleMenuClose}>
+            Validar entradas
+          </MenuItem>
+        </Menu>
       </Container>
     </BackofficeLayout>
   );

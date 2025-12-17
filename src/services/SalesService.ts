@@ -61,23 +61,32 @@ export const SalesService = {
    * IMPORTANTE: Este es el ÚNICO método para validar entradas.
    * ValidatorService.ts fue eliminado para evitar duplicación.
    * 
-   * Endpoint BE: POST /api/public/v1/checkout/session/{sessionId}/validate
-   * Requiere: Autenticación (seller)
+   * Endpoint BE: POST /api/v1/events/{eventId}/sales/{saleId}/validate
+   * Requiere: Autenticación (seller/admin)
    * Response: 204 No Content si exitoso
    * 
-   * NOTA: El sessionId es el ID de la sesión de checkout (viene en el QR del ticket)
-   * 
-   * @param sessionId - ID de la sesión de checkout a validar
+   * @param eventId - ID del evento
+   * @param saleId - ID de la venta a validar
    * @throws HttpError si la validación falla (404, 400, etc.)
    */
-  async validate(sessionId: string): Promise<void> {
+  async validateSale(eventId: string, saleId: string): Promise<void> {
     const base = ConfigService.getApiBase();
     await http.post<void, void>(
-      `${base}/api/public/v1/checkout/session/${encodeURIComponent(sessionId)}/validate`,
+      `${base}/api/v1/events/${encodeURIComponent(eventId)}/sales/${encodeURIComponent(saleId)}/validate`,
       undefined,
       { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
     );
-    logger.info('SalesService.validate ok', { sessionId });
+    logger.info('SalesService.validateSale ok', { eventId, saleId });
+  },
+
+  /**
+   * @deprecated Usa validateSale(eventId, saleId) en su lugar
+   */
+  async validate(sessionId: string): Promise<void> {
+    // Legacy: intenta parsear el sessionId para extraer eventId y saleId
+    // Formato esperado: eventId__saleId o similar
+    logger.warn('SalesService.validate deprecated, use validateSale', { sessionId });
+    throw new Error('Usa validateSale(eventId, saleId) en su lugar');
   },
 
   toCSV(rows: SaleRecord[]): string {

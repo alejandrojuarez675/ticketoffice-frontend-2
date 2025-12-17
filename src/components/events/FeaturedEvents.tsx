@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Box, Container, Typography, Card, CardContent, CardMedia, CardActionArea, Skeleton } from '@mui/material';
+import { Box, Container, Typography, Card, CardContent, CardMedia, CardActionArea, Skeleton, Chip } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import type { SearchEvent } from '@/types/search-event';
 import { EventService } from '@/services/EventService';
@@ -13,7 +13,21 @@ function FeaturedEventCard({ event }: { event: SearchEvent }) {
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardActionArea onClick={() => router.push(`/events/${event.id}`)} sx={{ display: 'block', textAlign: 'left' }}>
-        <CardMedia component="img" height="200" image={event.bannerUrl} alt={event.name} sx={{ objectFit: 'cover' }} />
+        <CardMedia 
+          component="img" 
+          height="200" 
+          image={event.bannerUrl || 'https://via.placeholder.com/800x450/6366f1/ffffff?text=Evento'} 
+          alt={event.name} 
+          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+            e.currentTarget.src = 'https://via.placeholder.com/800x450/6366f1/ffffff?text=Evento';
+          }}
+          sx={{ 
+            objectFit: 'cover',
+            width: '100%',
+            aspectRatio: '16/9',
+            backgroundColor: 'grey.200'
+          }} 
+        />
         <CardContent sx={{ flexGrow: 1 }}>
           <Typography gutterBottom variant="h5" component="h2">
             {event.name}
@@ -31,13 +45,26 @@ function FeaturedEventCard({ event }: { event: SearchEvent }) {
               minute: '2-digit',
             })}
           </Typography>
-          <Typography variant="h6" color="primary">
-            {event.currency
-              ? new Intl.NumberFormat('es-AR', { style: 'currency', currency: /^[A-Z]{3}$/.test(event.currency) ? event.currency : 'ARS' }).format(
-                  event.price
-                )
-              : `$${event.price.toLocaleString('es-AR')}`}
-          </Typography>
+          {event.price === 0 ? (
+            <Chip 
+              label="GRATIS" 
+              color="success" 
+              size="medium"
+              sx={{ 
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                mt: 1
+              }} 
+            />
+          ) : (
+            <Typography variant="h6" color="primary" sx={{ fontWeight: 600 }}>
+              {event.currency
+                ? new Intl.NumberFormat('es-AR', { style: 'currency', currency: /^[A-Z]{3}$/.test(event.currency) ? event.currency : 'ARS' }).format(
+                    event.price
+                  )
+                : `$${event.price.toLocaleString('es-AR')}`}
+            </Typography>
+          )}
         </CardContent>
       </CardActionArea>
     </Card>

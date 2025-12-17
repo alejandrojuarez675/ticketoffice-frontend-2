@@ -166,8 +166,35 @@ function EventDetailContent() {
           <Box mb={4}>
             <Box position="relative" sx={{ width: '100%', height: '400px', borderRadius: 2, overflow: 'hidden', mb: 3, bgcolor: 'grey.100' }}>
               {event.image?.url ? (
-                <Image src={event.image.url} alt={event.image.alt || event.title} fill style={{ objectFit: 'cover' }} priority />
-              ) : null}
+                <Image 
+                  src={event.image.url} 
+                  alt={event.image.alt || event.title} 
+                  fill 
+                  style={{ objectFit: 'cover' }} 
+                  priority 
+                  onError={(e) => {
+                    // Si la imagen falla al cargar, usar placeholder
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'https://via.placeholder.com/800x400/6366f1/ffffff?text=Evento';
+                  }}
+                />
+              ) : (
+                <Box 
+                  sx={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    fontSize: '2rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {event.title}
+                </Box>
+              )}
             </Box>
 
             <Typography variant="h5" gutterBottom>Descripción</Typography>
@@ -190,6 +217,21 @@ function EventDetailContent() {
                       <Typography component="span" variant="body2" color="text.secondary">
                         {event.location.address}, {event.location.city}, {event.location.country}
                       </Typography>
+                      {event.location.latitude && event.location.longitude && (
+                        <Box sx={{ mt: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            component="a"
+                            href={`https://www.google.com/maps?q=${event.location.latitude},${event.location.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            startIcon={<LocationIcon />}
+                          >
+                            Ver en el mapa
+                          </Button>
+                        </Box>
+                      )}
                     </>
                   }
                 />
@@ -239,10 +281,19 @@ function EventDetailContent() {
                           </Typography>
                         </Box>
                         <Box display="flex" alignItems="center" gap={1}>
-                          {disabled && <Chip size="small" label="Agotado" />}
-                          <Typography variant="h6">
-                            {ticket.isFree ? 'Gratis' : formatMoneyByCountry(ticket.value, event.location?.country)}
-                          </Typography>
+                          {disabled && <Chip size="small" label="Agotado" color="error" />}
+                          {ticket.isFree || ticket.value === 0 ? (
+                            <Chip 
+                              label="GRATIS" 
+                              color="success" 
+                              size="medium"
+                              sx={{ fontWeight: 'bold', fontSize: '1rem' }} 
+                            />
+                          ) : (
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                              {formatMoneyByCountry(ticket.value, event.location?.country)}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
                       <Radio value={ticket.id} checked={selectedTicketId === ticket.id} sx={{ display: 'none' }} />
@@ -271,10 +322,22 @@ function EventDetailContent() {
                 </Box>
 
                 <Box mb={2}>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography>Precio por entrada:</Typography>
-                    <Typography>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
-                  </Box>
+                  {selectedTicket.isFree || selectedTicket.value === 0 ? (
+                    <Box display="flex" justifyContent="space-between" mb={1} alignItems="center">
+                      <Typography>Precio por entrada:</Typography>
+                      <Chip 
+                        label="GRATIS" 
+                        color="success" 
+                        size="small"
+                        sx={{ fontWeight: 'bold' }} 
+                      />
+                    </Box>
+                  ) : (
+                    <Box display="flex" justifyContent="space-between" mb={1}>
+                      <Typography>Precio por entrada:</Typography>
+                      <Typography>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
+                    </Box>
+                  )}
                   <Box display="flex" justifyContent="space-between" mb={1}>
                     <Typography>Cantidad:</Typography>
                     <Typography>{quantity}</Typography>
