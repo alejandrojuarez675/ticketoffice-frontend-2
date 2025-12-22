@@ -1,114 +1,176 @@
-// src/components/common/QRScanner.tsx
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Box, Button, Typography, Alert, CircularProgress } from '@mui/material';
-import { Close as CloseIcon, CameraAlt as CameraIcon } from '@mui/icons-material';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Box, Button, Typography, Alert, CircularProgress, IconButton } from '@mui/material';
+import { Close as CloseIcon, FlipCameraIos as FlipCameraIcon, FlashOn as FlashOnIcon, FlashOff as FlashOffIcon } from '@mui/icons-material';
+import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 
 interface QRScannerProps {
   onScan: (saleId: string) => void;
   onClose: () => void;
 }
 
-export default function QRScanner({ onScan, onClose }: QRScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [error, setError] = useState<string>('');
-  const [scanning, setScanning] = useState(false);
-  const streamRef = useRef<MediaStream | null>(null);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+function extractSaleIdFromUrl(qrData: string): string | null {
+  try {
+    const url = new URL(qrData);
+    
+    const saleId = url.searchParams.get('sale-id') || url.searchParams.get('saleId');
+    
+    if (saleId) {
+      return saleId;
+    }
+    
+    return null;
+  } catch {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(qrData.trim())) {
+      return qrData.trim();
+    }
+    return null;
+  }
+}
 
-  useEffect(() => {
-    startCamera();
-    return () => {
-      stopCamera();
-    };
+export default function QRScanner({ onScan, onClose }: QRScannerProps) {
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string>('');
+  const [isScanning, setIsScanning] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [hasTorch, setHasTorch] = useState(false);
+  const hasScannedRef = useRef(false);
+
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState();
+        if (state === Html5QrcodeScannerState.SCANNING) {
+          await scannerRef.current.stop();
+        }
+      } catch (err) {
+        console.warn('Error stopping scanner:', err);
+      }
+    }
   }, []);
 
-  const startCamera = async () => {
-    try {
-      setScanning(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }, // Cámara trasera en móviles
-      });
-      
-      streamRef.current = stream;
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+  const handleScanSuccess = useCallback((decodedText: string) => {
+    if (hasScannedRef.current) return;
+    hasScannedRef.current = true;
+
+    const saleId = extractSaleIdFromUrl(decodedText);
+
+    if (saleId) {
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
       }
 
-      // Iniciar escaneo continuo
-      scanIntervalRef.current = setInterval(() => {
-        scanQRCode();
-      }, 500);
-    } catch (err) {
-      console.error('Error al acceder a la cámara:', err);
-      setError('No se pudo acceder a la cámara. Por favor, verifica los permisos.');
-      setScanning(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-    }
-  };
-
-  const scanQRCode = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Intentar detectar QR usando jsQR (simulado - en producción usar librería real)
-    const detectedCode = detectQRFromImageData(imageData);
-    
-    if (detectedCode) {
-      extractSaleIdFromQR(detectedCode);
-    }
-  };
-
-  const detectQRFromImageData = (imageData: ImageData): string | null => {
-    // Esta es una implementación simplificada
-    // En producción, usar una librería como jsQR o @zxing/browser
-    
-    // Por ahora, usaremos detección básica de patrones
-    // La implementación real requeriría una librería de QR
-    
-    return null; // Placeholder
-  };
-
-  const extractSaleIdFromQR = (qrData: string) => {
-    try {
-      // El QR contiene una URL como:
-      // https://tuentradaya.com/admin/events/{eventId}/validate?sale-id={saleId}
-      
-      const url = new URL(qrData);
-      const saleId = url.searchParams.get('sale-id') || url.searchParams.get('saleId');
-      
-      if (saleId) {
-        stopCamera();
+      stopScanner().then(() => {
         onScan(saleId);
+      });
+    } else {
+      setError(`QR inválido: no se encontró sale-id en "${decodedText}"`);
+      hasScannedRef.current = false;
+    }
+  }, [onScan, stopScanner]);
+
+  const startScanner = useCallback(async () => {
+    if (!containerRef.current) return;
+
+    setError('');
+    setIsInitializing(true);
+    hasScannedRef.current = false;
+
+    try {
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode('qr-reader-container');
+      }
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        disableFlip: false,
+      };
+
+      await scannerRef.current.start(
+        { facingMode },
+        config,
+        handleScanSuccess,
+        () => {}
+      );
+
+      setIsScanning(true);
+      setIsInitializing(false);
+
+      try {
+        const capabilities = scannerRef.current.getRunningTrackCameraCapabilities();
+        if (capabilities.torchFeature && capabilities.torchFeature().isSupported()) {
+          setHasTorch(true);
+        }
+      } catch {
+        setHasTorch(false);
+      }
+
+    } catch (err) {
+      console.error('Error starting scanner:', err);
+      setIsInitializing(false);
+      
+      if (err instanceof Error) {
+        if (err.message.includes('Permission denied') || err.message.includes('NotAllowedError')) {
+          setError('Permiso de cámara denegado. Por favor, permite el acceso a la cámara en la configuración de tu navegador.');
+        } else if (err.message.includes('NotFoundError') || err.message.includes('DevicesNotFoundError')) {
+          setError('No se encontró ninguna cámara en este dispositivo.');
+        } else if (err.message.includes('NotReadableError') || err.message.includes('TrackStartError')) {
+          setError('La cámara está siendo usada por otra aplicación. Ciérrala e intenta de nuevo.');
+        } else {
+          setError(`Error al iniciar la cámara: ${err.message}`);
+        }
       } else {
-        setError('QR inválido: no se encontró sale-id');
+        setError('Error desconocido al iniciar la cámara.');
+      }
+    }
+  }, [facingMode, handleScanSuccess]);
+
+  useEffect(() => {
+    startScanner();
+
+    return () => {
+      stopScanner();
+    };
+  }, [startScanner, stopScanner]);
+
+  const handleFlipCamera = async () => {
+    await stopScanner();
+    setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
+    setIsScanning(false);
+    setTimeout(() => {
+      startScanner();
+    }, 300);
+  };
+
+  const handleToggleTorch = async () => {
+    if (!scannerRef.current || !hasTorch) return;
+
+    try {
+      const capabilities = scannerRef.current.getRunningTrackCameraCapabilities();
+      if (capabilities.torchFeature) {
+        const torch = capabilities.torchFeature();
+        if (torchEnabled) {
+          await torch.disable();
+        } else {
+          await torch.enable();
+        }
+        setTorchEnabled(!torchEnabled);
       }
     } catch (err) {
-      setError('QR inválido: formato incorrecto');
+      console.warn('Error toggling torch:', err);
     }
+  };
+
+  const handleClose = async () => {
+    await stopScanner();
+    onClose();
   };
 
   return (
@@ -125,30 +187,59 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
       }}
     >
       <Box sx={{ position: 'relative', width: '100%', maxWidth: 500, p: 2 }}>
-        <Button
-          onClick={onClose}
+        <Box
           sx={{
-            position: 'absolute',
-            top: 16,
-            right: 16,
-            zIndex: 10000,
-            bgcolor: 'white',
-            '&:hover': { bgcolor: 'grey.200' },
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
           }}
-          startIcon={<CloseIcon />}
         >
-          Cerrar
-        </Button>
-
-        <Typography variant="h6" color="white" align="center" sx={{ mb: 2 }}>
-          📷 Escanea el código QR de la entrada
-        </Typography>
+          <Typography variant="h6" color="white">
+            📷 Escanear QR
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {hasTorch && (
+              <IconButton
+                onClick={handleToggleTorch}
+                sx={{
+                  bgcolor: torchEnabled ? 'warning.main' : 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  '&:hover': { bgcolor: torchEnabled ? 'warning.dark' : 'rgba(255,255,255,0.3)' },
+                }}
+              >
+                {torchEnabled ? <FlashOnIcon /> : <FlashOffIcon />}
+              </IconButton>
+            )}
+            <IconButton
+              onClick={handleFlipCamera}
+              sx={{
+                bgcolor: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+              }}
+            >
+              <FlipCameraIcon />
+            </IconButton>
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                bgcolor: 'error.main',
+                color: 'white',
+                '&:hover': { bgcolor: 'error.dark' },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
             {error}
           </Alert>
         )}
@@ -162,57 +253,41 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
             borderRadius: 2,
             overflow: 'hidden',
             border: '3px solid',
-            borderColor: 'primary.main',
+            borderColor: isScanning ? 'success.main' : 'primary.main',
           }}
         >
-          <video
-            ref={videoRef}
+          <div
+            id="qr-reader-container"
+            ref={containerRef}
             style={{
               width: '100%',
               height: '100%',
-              objectFit: 'cover',
             }}
-            playsInline
-            muted
           />
-          
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-          {/* Marco de escaneo */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '80%',
-              height: '80%',
-              border: '2px solid',
-              borderColor: 'success.main',
-              borderRadius: 2,
-              '&::before, &::after': {
-                content: '""',
+          {isInitializing && (
+            <Box
+              sx={{
                 position: 'absolute',
-                width: 20,
-                height: 20,
-                borderColor: 'success.main',
-              },
-              '&::before': {
-                top: -2,
-                left: -2,
-                borderTop: '4px solid',
-                borderLeft: '4px solid',
-              },
-              '&::after': {
-                bottom: -2,
-                right: -2,
-                borderBottom: '4px solid',
-                borderRight: '4px solid',
-              },
-            }}
-          />
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: 'rgba(0, 0, 0, 0.8)',
+              }}
+            >
+              <CircularProgress color="primary" size={48} />
+              <Typography variant="body1" color="white" sx={{ mt: 2 }}>
+                Iniciando cámara...
+              </Typography>
+            </Box>
+          )}
 
-          {scanning && (
+          {isScanning && !isInitializing && (
             <Box
               sx={{
                 position: 'absolute',
@@ -229,23 +304,27 @@ export default function QRScanner({ onScan, onClose }: QRScannerProps) {
                 borderRadius: 1,
               }}
             >
-              <CircularProgress size={16} color="inherit" />
+              <CircularProgress size={16} color="success" />
               <Typography variant="body2">Buscando QR...</Typography>
             </Box>
           )}
         </Box>
 
-        <Alert severity="info" sx={{ mt: 2 }}>
-          <Typography variant="body2">
-            <strong>Importante:</strong> Esta es una implementación básica. Para producción, se recomienda usar una librería especializada como <code>html5-qrcode</code> o <code>@zxing/browser</code>.
-          </Typography>
-        </Alert>
-
         <Typography variant="body2" color="white" align="center" sx={{ mt: 2 }}>
-          Centra el código QR dentro del marco para escanearlo
+          Centra el código QR dentro del marco para escanearlo automáticamente
         </Typography>
+
+        <Button
+          variant="contained"
+          color="error"
+          onClick={handleClose}
+          fullWidth
+          sx={{ mt: 2 }}
+          startIcon={<CloseIcon />}
+        >
+          Cancelar
+        </Button>
       </Box>
     </Box>
   );
 }
-
