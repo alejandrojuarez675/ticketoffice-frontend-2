@@ -162,7 +162,7 @@ export default function NewEventPage() {
       location: { ...prev.location, city: '' }, // Limpiar ciudad al cambiar país
       tickets: prev.tickets.map((t) => ({ ...t, currency: t.isFree ? t.currency : cur })),
     }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [formData.location.country]);
 
   const handleBack = () => router.push('/admin/events');
