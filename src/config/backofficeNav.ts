@@ -24,7 +24,7 @@ export type NavItem = {
 };
 
 export const navItems: NavItem[] = [
-  { key: 'dashboard', label: 'Panel', href: '/admin/dashboard', icon: DashboardIcon, roles: ['admin'] },
+  { key: 'dashboard', label: 'Dashboard', href: '/admin/dashboard', icon: DashboardIcon, roles: ['seller', 'admin'] },
   { key: 'profile', label: 'Mi perfil', href: '/admin/profile', icon: PersonIcon, roles: ['seller', 'admin'] },
   {
     key: 'events',
@@ -45,6 +45,7 @@ export const navItems: NavItem[] = [
 
 const featureGate = (key: string) => {
   switch (key) {
+    case 'dashboard': return FEATURES.DASHBOARD;
     case 'profile': return FEATURES.PROFILE;
     case 'reports': return FEATURES.REPORTS;
     case 'users': return FEATURES.USERS;

@@ -72,3 +72,41 @@ export const COUNTRY_ISO_MAP: Record<string, string> = {
   'Venezuela': 'VE',
 };
 
+// Ciudades principales por país (para selector de eventos)
+export const CITIES_BY_COUNTRY: Record<string, string[]> = {
+  'Argentina': [
+    'Buenos Aires',
+    'Córdoba',
+    'Rosario',
+    'Mendoza',
+    'La Plata',
+    'San Miguel de Tucumán',
+    'Mar del Plata',
+    'Salta',
+    'Santa Fe',
+    'San Juan',
+    'Resistencia',
+    'Neuquén',
+    'Posadas',
+    'Corrientes',
+    'Bahía Blanca',
+  ],
+  'Colombia': [
+    'Bogotá',
+    'Medellín',
+    'Cali',
+    'Barranquilla',
+    'Cartagena',
+    'Cúcuta',
+    'Bucaramanga',
+    'Pereira',
+    'Santa Marta',
+    'Ibagué',
+    'Manizales',
+    'Villavicencio',
+    'Pasto',
+    'Montería',
+    'Neiva',
+  ],
+};
+

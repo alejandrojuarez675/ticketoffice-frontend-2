@@ -12,19 +12,29 @@ type LightLayoutProps = {
   title?: string;
 };
 
-export default function LightLayout({ children, title = 'TicketOffice' }: LightLayoutProps) {
+export default function LightLayout({ children, title = 'TuEntradaYa' }: LightLayoutProps) {
   return (
     <>
       <Head>
         <title>{title}</title>
-        <meta name="description" content="TicketOffice - Your event ticketing platform" />
+        <meta name="description" content="TuEntradaYa - Your event ticketing platform" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         <Navbar />
-        <Box component="main" sx={{ flexGrow: 1, mt: { xs: '56px', sm: '64px' } }}>
-          {children}
+        <Box 
+          component="main" 
+          sx={{ 
+            minHeight: 'calc(100vh - 56px)', 
+            mt: { xs: '56px', sm: '64px' },
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Box sx={{ flexGrow: 1 }}>
+            {children}
+          </Box>
         </Box>
         <Footer />
       </Box>

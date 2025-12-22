@@ -72,7 +72,7 @@ function ResetPasswordContent() {
   };
 
   return (
-    <LightLayout title="Restablecer contraseña - TicketOffice">
+    <LightLayout title="Restablecer contraseña - TuEntradaYa">
       <AuthShell
         title="Restablecer contraseña"
         footer={

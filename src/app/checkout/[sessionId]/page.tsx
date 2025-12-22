@@ -21,6 +21,7 @@ import Empty from '@/components/common/Empty';
 // [F1-007] Constantes centralizadas
 import { COUNTRIES } from '@/constants/countries';
 import { DOCUMENT_TYPES } from '@/constants/documents';
+import { sanitizeBuyerData, sanitizeEmail } from '@/utils/sanitize';
 
 type SessionMeta = { eventId: string; priceId: string; quantity: number };
 
@@ -116,9 +117,13 @@ function CheckoutContent() {
       setIsSubmitting(true);
       logger.info('checkout_submit', { sessionId });
 
+      // Sanitizar todos los datos antes de enviarlos al backend
+      const sanitizedMainEmail = sanitizeEmail(mainEmail);
+      const sanitizedBuyers = buyers.map(buyer => sanitizeBuyerData(buyer)) as typeof buyers;
+
       await CheckoutService.buy(sessionId as string, {
-        mainEmail,
-        buyer: buyers,
+        mainEmail: sanitizedMainEmail,
+        buyer: sanitizedBuyers,
       });
 
       router.push(`/checkout/congrats?sessionId=${encodeURIComponent(sessionId as string)}`);
@@ -343,7 +348,7 @@ function CheckoutContent() {
 
 export default function CheckoutPage() {
   return (
-    <LightLayout title="Finalizar Compra - TicketOffice">
+    <LightLayout title="Finalizar Compra - TuEntradaYa">
       <CheckoutContent />
     </LightLayout>
   );

@@ -23,7 +23,7 @@ export default function Footer() {
           }}
         >
           <Typography variant="body1" color="text.secondary">
-            © {new Date().getFullYear()} TicketOffice. Todos los derechos reservados.
+            © {new Date().getFullYear()} TuEntradaYa. Todos los derechos reservados.
           </Typography>
 
           <Box sx={{ display: 'flex', gap: 3, mt: { xs: 2, md: 0 } }}>
@@ -42,7 +42,7 @@ export default function Footer() {
         <Divider sx={{ my: 3 }} />
 
         <Typography variant="body2" color="text.secondary" align="center">
-          Desarrollado con ❤️ por TicketOffice
+          Desarrollado con ❤️ por TuEntradaYa
         </Typography>
       </Container>
     </Box>

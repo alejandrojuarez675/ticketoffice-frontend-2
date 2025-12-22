@@ -36,6 +36,7 @@ import {
   QrCodeScanner as QrCodeScannerIcon,
 } from '@mui/icons-material';
 import Loading from '@/components/common/Loading';
+import QRScanner from '@/components/common/QRScanner';
 import { AuthService } from '@/services/AuthService';
 import { EventService } from '@/services/EventService';
 import type { EventDetail } from '@/types/Event';
@@ -166,10 +167,41 @@ function EventTicketValidationContent() {
     }
   };
 
-  const handleScanSuccess = (scanned: string) => {
+  const handleScanSuccess = async (scanned: string) => {
     setTicketId(scanned);
     setScannerOpen(false);
-    void handleValidateTicket();
+    // Validar directamente con el valor escaneado
+    const idToValidate = scanned.trim();
+    if (!idToValidate) return;
+
+    try {
+      setIsSubmitting(true);
+
+      if (ConfigService.isMockedEnabled()) {
+        let ok = true;
+        if (eventId) {
+          const rows = await (await SalesService.list({ eventId })).slice(0, 100);
+          ok = rows.some((r) => r.id === idToValidate || r.orderId === idToValidate);
+        }
+        if (!ok) {
+          setSnackbar({ open: true, message: 'Entrada/venta no encontrada', severity: 'warning' });
+          return;
+        }
+        setSale({ id: idToValidate, validated: true, validatedAt: new Date().toISOString() });
+        setOpenDialog(true);
+        setSnackbar({ open: true, message: 'Entrada validada correctamente (mock)', severity: 'success' });
+        return;
+      }
+
+      await SalesService.validate(idToValidate);
+      setSale({ id: idToValidate, validated: true, validatedAt: new Date().toISOString() });
+      setOpenDialog(true);
+      setSnackbar({ open: true, message: 'Entrada validada correctamente', severity: 'success' });
+    } catch {
+      setSnackbar({ open: true, message: 'Error al validar el ticket. Intente nuevamente.', severity: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCopyToClipboard = () => {
@@ -329,7 +361,7 @@ function EventTicketValidationContent() {
                   Escanear Código QR
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Haz clic aquí para abrir el escáner (simulado en MVP).
+                  Haz clic aquí para abrir la cámara y escanear el código QR de la entrada.
                 </Typography>
               </Paper>
             </CardContent>
@@ -381,51 +413,13 @@ function EventTicketValidationContent() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={scannerOpen} onClose={() => setScannerOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Escanear Código QR</DialogTitle>
-        <DialogContent sx={{ textAlign: 'center', p: 4 }}>
-          <Box
-            sx={{
-              width: '100%',
-              height: 300,
-              bgcolor: 'black',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              mb: 2,
-              borderRadius: 1,
-              overflow: 'hidden',
-              position: 'relative',
-            }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: 200,
-                height: 200,
-                border: '2px solid white',
-                borderRadius: 1,
-                zIndex: 1,
-              }}
-            />
-            <Typography variant="body1" color="white">
-              Vista previa del escáner (MVP)
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary">Simulación de escaneo disponible en MVP.</Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setScannerOpen(false)} color="inherit">
-            Cancelar
-          </Button>
-          <Button onClick={() => handleScanSuccess('mock-scanned-ticket-id')} variant="contained">
-            Simular Escaneo
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* QR Scanner real con cámara */}
+      {scannerOpen && (
+        <QRScanner
+          onScan={handleScanSuccess}
+          onClose={() => setScannerOpen(false)}
+        />
+      )}
 
       <Snackbar
         open={snackbar.open}

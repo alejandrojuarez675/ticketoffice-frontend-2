@@ -3,6 +3,8 @@ export interface Location {
   address: string;
   city: string;
   country: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Image {
@@ -37,6 +39,7 @@ export interface EventDetail {
   organizer: Organizer | null;
   status: string;
   location: Location;
+  tags?: string[];
 }
 
 // For event lists (used in other components)
@@ -45,9 +48,16 @@ export interface EventForList {
   name: string;
   date: string;
   location: string;
-  status: "ACTIVE" | "INACTIVE" | "SOLD_OUT";
+  bannerUrl?: string;
+  price?: number;
+  currency?: string;
+  status: string;
 }
 
 export interface EventListResponse {
   events: EventForList[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
 }

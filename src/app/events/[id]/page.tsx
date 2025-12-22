@@ -16,7 +16,6 @@ import {
 import { EventService } from '@/services/EventService';
 import { CheckoutService } from '@/services/CheckoutService';
 import type { EventDetail, Ticket } from '@/types/Event';
-import Image from 'next/image';
 import Loading from '@/components/common/Loading';
 import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
@@ -30,7 +29,7 @@ function downloadICS(evt: EventDetail) {
   const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
   const location = `${evt.location?.name ?? ''} ${evt.location?.address ?? ''} ${evt.location?.city ?? ''} ${evt.location?.country ?? ''}`.trim();
   const ics = [
-    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TicketOffice//ES','BEGIN:VEVENT',
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TuEntradaYa//ES','BEGIN:VEVENT',
     `UID:${evt.id}@ticketoffice`,`DTSTAMP:${toICSDate(new Date())}`,
     `DTSTART:${toICSDate(start)}`,`DTEND:${toICSDate(end)}`,
     `SUMMARY:${evt.title}`,`LOCATION:${location}`,`DESCRIPTION:${(evt.description || '').replace(/\n/g, '\\n')}`,
@@ -166,8 +165,36 @@ function EventDetailContent() {
           <Box mb={4}>
             <Box position="relative" sx={{ width: '100%', height: '400px', borderRadius: 2, overflow: 'hidden', mb: 3, bgcolor: 'grey.100' }}>
               {event.image?.url ? (
-                <Image src={event.image.url} alt={event.image.alt || event.title} fill style={{ objectFit: 'cover' }} priority />
-              ) : null}
+                <Box
+                  component="img"
+                  src={event.image.url}
+                  alt={event.image.alt || event.title}
+                  onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                    e.currentTarget.src = 'https://via.placeholder.com/800x400/6366f1/ffffff?text=Evento';
+                  }}
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              ) : (
+                <Box 
+                  sx={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    fontSize: '2rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {event.title}
+                </Box>
+              )}
             </Box>
 
             <Typography variant="h5" gutterBottom>Descripción</Typography>
@@ -190,6 +217,21 @@ function EventDetailContent() {
                       <Typography component="span" variant="body2" color="text.secondary">
                         {event.location.address}, {event.location.city}, {event.location.country}
                       </Typography>
+                      {event.location.latitude && event.location.longitude && (
+                        <Box sx={{ mt: 1 }}>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            component="a"
+                            href={`https://www.google.com/maps?q=${event.location.latitude},${event.location.longitude}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            startIcon={<LocationIcon />}
+                          >
+                            Ver en el mapa
+                          </Button>
+                        </Box>
+                      )}
                     </>
                   }
                 />
@@ -239,10 +281,19 @@ function EventDetailContent() {
                           </Typography>
                         </Box>
                         <Box display="flex" alignItems="center" gap={1}>
-                          {disabled && <Chip size="small" label="Agotado" />}
-                          <Typography variant="h6">
-                            {ticket.isFree ? 'Gratis' : formatMoneyByCountry(ticket.value, event.location?.country)}
-                          </Typography>
+                          {disabled && <Chip size="small" label="Agotado" color="error" />}
+                          {ticket.isFree || ticket.value === 0 ? (
+                            <Chip 
+                              label="GRATIS" 
+                              color="success" 
+                              size="medium"
+                              sx={{ fontWeight: 'bold', fontSize: '1rem' }} 
+                            />
+                          ) : (
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                              {formatMoneyByCountry(ticket.value, event.location?.country)}
+                            </Typography>
+                          )}
                         </Box>
                       </Box>
                       <Radio value={ticket.id} checked={selectedTicketId === ticket.id} sx={{ display: 'none' }} />
@@ -252,29 +303,59 @@ function EventDetailContent() {
               </RadioGroup>
             </FormControl>
 
-            {selectedTicket && (
-              <>
-                <Box mb={3}>
-                  <FormLabel component="legend" sx={{ mb: 1, display: 'block' }}>Cantidad</FormLabel>
-                  <Box display="flex" alignItems="center">
-                    <IconButton onClick={() => handleQuantityChange(quantity - 1)} disabled={quantity <= 1}><RemoveIcon /></IconButton>
-                    <TextField
-                      value={quantity}
-                      type="number"
-                      slotProps={{ input: { inputProps: { min: 1, max: selectedTicket?.stock ?? 1, style: { textAlign: 'center' } } } }}
-                      sx={{ width: '80px', mx: 1 }}
-                      onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
-                    />
-                    <IconButton onClick={() => handleQuantityChange(quantity + 1)} disabled={quantity >= (selectedTicket?.stock || 1)}><AddIcon /></IconButton>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">Máximo {selectedTicket.stock} por compra</Typography>
-                </Box>
+            <Divider sx={{ my: 3 }} />
 
-                <Box mb={2}>
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography>Precio por entrada:</Typography>
-                    <Typography>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
-                  </Box>
+            {/* Desglose siempre visible */}
+            <Box mb={3}>
+              <FormLabel component="legend" sx={{ mb: 1, display: 'block' }}>Cantidad</FormLabel>
+              <Box display="flex" alignItems="center">
+                <IconButton 
+                  onClick={() => handleQuantityChange(quantity - 1)} 
+                  disabled={!selectedTicket || quantity <= 1}
+                >
+                  <RemoveIcon />
+                </IconButton>
+                <TextField
+                  value={quantity}
+                  type="number"
+                  disabled={!selectedTicket}
+                  slotProps={{ input: { inputProps: { min: 1, max: selectedTicket?.stock ?? 1, style: { textAlign: 'center' } } } }}
+                  sx={{ width: '80px', mx: 1 }}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                />
+                <IconButton 
+                  onClick={() => handleQuantityChange(quantity + 1)} 
+                  disabled={!selectedTicket || quantity >= (selectedTicket?.stock || 1)}
+                >
+                  <AddIcon />
+                </IconButton>
+              </Box>
+              {selectedTicket && (
+                <Typography variant="caption" color="text.secondary">
+                  Máximo {selectedTicket.stock} por compra
+                </Typography>
+              )}
+            </Box>
+
+            <Box mb={2}>
+              {selectedTicket ? (
+                <>
+                  {selectedTicket.isFree || selectedTicket.value === 0 ? (
+                    <Box display="flex" justifyContent="space-between" mb={1} alignItems="center">
+                      <Typography>Precio por entrada:</Typography>
+                      <Chip 
+                        label="GRATIS" 
+                        color="success" 
+                        size="small"
+                        sx={{ fontWeight: 'bold' }} 
+                      />
+                    </Box>
+                  ) : (
+                    <Box display="flex" justifyContent="space-between" mb={1}>
+                      <Typography>Precio por entrada:</Typography>
+                      <Typography>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
+                    </Box>
+                  )}
                   <Box display="flex" justifyContent="space-between" mb={1}>
                     <Typography>Cantidad:</Typography>
                     <Typography>{quantity}</Typography>
@@ -284,51 +365,63 @@ function EventDetailContent() {
                     <Typography>Subtotal:</Typography>
                     <Typography>{formatMoneyByCountry(total, event.location?.country)}</Typography>
                   </Box>
-
-                  <Button
-                    size="small"
-                    endIcon={<ExpandMoreIcon sx={{ transform: showBreakdown ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />}
-                    onClick={() => setShowBreakdown((v) => !v)}
-                    sx={{ mt: 1 }}
-                  >
-                    Ver desglose
-                  </Button>
-                  <Collapse in={showBreakdown}>
-                    <Box display="flex" justifyContent="space-between" mt={1}>
-                      <Typography>Tasas (10%):</Typography>
-                      <Typography>{formatMoneyByCountry(fees, event.location?.country)}</Typography>
-                    </Box>
-                    <Box display="flex" justifyContent="space-between" fontWeight="bold" mt={1}>
-                      <Typography>Total:</Typography>
-                      <Typography>{formatMoneyByCountry(grandTotal, event.location?.country)}</Typography>
-                    </Box>
-                  </Collapse>
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
+                  <Typography variant="body2">
+                    Selecciona un tipo de entrada para continuar
+                  </Typography>
                 </Box>
+              )}
+            </Box>
 
-                <Box display="grid" gap={1}>
-                  <Tooltip title={!canBuy ? 'Selecciona una entrada disponible' : ''}>
-                    <span>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        size="large"
-                        onClick={handleCheckout}
-                        startIcon={<CheckCircleIcon />}
-                        disabled={!canBuy}
-                      >
-                        Comprar ahora
-                      </Button>
-                    </span>
-                  </Tooltip>
-
-                  <Box display="flex" gap={1}>
-                    <Button fullWidth variant="outlined" startIcon={<ShareIcon />} onClick={handleShare}>Compartir</Button>
-                    <Button fullWidth variant="outlined" startIcon={<CalendarAddIcon />} onClick={() => downloadICS(event)}>Agregar al calendario</Button>
+            {/* Desglose de tasas (solo si hay entrada seleccionada y no es gratis) */}
+            {selectedTicket && !(selectedTicket.isFree || selectedTicket.value === 0) && (
+              <Box mb={2}>
+                <Button
+                  size="small"
+                  endIcon={<ExpandMoreIcon sx={{ transform: showBreakdown ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />}
+                  onClick={() => setShowBreakdown((v) => !v)}
+                  sx={{ mt: 1 }}
+                >
+                  Ver desglose de tasas
+                </Button>
+                <Collapse in={showBreakdown}>
+                  <Box display="flex" justifyContent="space-between" mt={1}>
+                    <Typography>Tasas (10%):</Typography>
+                    <Typography>{formatMoneyByCountry(fees, event.location?.country)}</Typography>
                   </Box>
-                </Box>
-              </>
+                  <Box display="flex" justifyContent="space-between" fontWeight="bold" mt={1}>
+                    <Typography>Total:</Typography>
+                    <Typography>{formatMoneyByCountry(grandTotal, event.location?.country)}</Typography>
+                  </Box>
+                </Collapse>
+              </Box>
             )}
+
+            {/* Botón de compra siempre visible */}
+            <Box display="grid" gap={1}>
+              <Tooltip title={!canBuy ? 'Selecciona una entrada disponible' : ''}>
+                <span>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    size="large"
+                    onClick={handleCheckout}
+                    startIcon={<CheckCircleIcon />}
+                    disabled={!canBuy}
+                  >
+                    Comprar ahora
+                  </Button>
+                </span>
+              </Tooltip>
+
+              <Box display="flex" gap={1}>
+                <Button fullWidth variant="outlined" startIcon={<ShareIcon />} onClick={handleShare}>Compartir</Button>
+                <Button fullWidth variant="outlined" startIcon={<CalendarAddIcon />} onClick={() => downloadICS(event)}>Agregar al calendario</Button>
+              </Box>
+            </Box>
           </Paper>
 
           {event.organizer && (
@@ -365,7 +458,7 @@ function EventDetailContent() {
 
 export default function EventDetailPage() {
   return (
-    <LightLayout title="Detalles del Evento - TicketOffice">
+    <LightLayout title="Detalles del Evento - TuEntradaYa">
       <EventDetailContent />
     </LightLayout>
   );

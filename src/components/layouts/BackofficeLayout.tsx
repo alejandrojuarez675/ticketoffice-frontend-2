@@ -9,11 +9,12 @@ import { useRouter } from 'next/navigation';
 import AdminSidebar from '@/components/navigation/AdminSidebar';
 import BackofficeBreadcrumbs from '@/components/layouts/BackofficeBreadcrumbs';
 import Navbar from '@/components/navigation/Navbar';
+import Footer from '@/components/navigation/Footer';
 
 type BackofficeLayoutProps = { children: ReactNode; title?: string };
 const drawerWidth = 240;
 
-export default function BackofficeLayout({ children, title = 'Admin - TicketOffice' }: BackofficeLayoutProps) {
+export default function BackofficeLayout({ children, title = 'Admin - TuEntradaYa' }: BackofficeLayoutProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -38,15 +39,15 @@ export default function BackofficeLayout({ children, title = 'Admin - TicketOffi
     <>
       <Head>
         <title>{title}</title>
-        <meta name="description" content="TicketOffice Admin Panel" />
+        <meta name="description" content="TuEntradaYa Admin Panel" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Box sx={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column' }}>
         <CssBaseline />
         <Navbar onMenuClick={handleDrawerToggle} />
 
-        <Box sx={{ display: 'flex', flex: 1 }}>
+        <Box sx={{ display: 'flex', minHeight: 'calc(100vh - 56px)' }}>
           <AdminSidebar mobileOpen={mobileOpen} onClose={handleDrawerToggle} isMobile={isMobile} />
 
           <Box
@@ -57,11 +58,19 @@ export default function BackofficeLayout({ children, title = 'Admin - TicketOffi
               width: { md: `calc(100% - ${drawerWidth}px)` },
               ml: { md: `${drawerWidth}px` },
               mt: { xs: '56px', sm: '64px' },
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <BackofficeBreadcrumbs />
-            {children}
+            <Box sx={{ flexGrow: 1 }}>
+              {children}
+            </Box>
           </Box>
+        </Box>
+        
+        <Box sx={{ ml: { md: `${drawerWidth}px` } }}>
+          <Footer />
         </Box>
       </Box>
     </>

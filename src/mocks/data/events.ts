@@ -1,5 +1,5 @@
 import type { EventDetail, EventForList } from '@/types/Event';
-import type { SearchEventParams, SearchEventResponse } from '@/types/search-event';
+import type { SearchEvent, SearchEventParams, SearchEventResponse } from '@/types/search-event';
 
 const mockEventDetailBase: EventDetail = {
   id: '1',
@@ -174,7 +174,7 @@ export async function mockSearchEvents(params: SearchEventParams): Promise<Searc
     bannerUrl: 'https://sanangel.edu.mx/wp-content/uploads/2024/06/obra-de-teatro.webp',
     price: Math.floor(Math.random() * 5000) + 1000,
     currency: 'ARS',
-    status: e.status,
+    status: e.status as SearchEvent['status'],
   }));
 
   const pageSize = params.pageSize ?? 6;

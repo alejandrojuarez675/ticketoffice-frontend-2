@@ -28,6 +28,7 @@ import { useForm, Controller, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { getPasswordStrength, hasLower, hasUpper, hasNumber, meetsBasicPasswordRules } from '@/utils/password';
+import { sanitizeUsername, sanitizeEmail, sanitizeString } from '@/utils/sanitize';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import Collapse from '@mui/material/Collapse';
@@ -101,11 +102,15 @@ export default function RegisterPage() {
     mode: 'onSubmit',
   });
 
+  // Si el usuario ya está autenticado al cargar la página, redirigir al perfil
+  // Pero NO redirigir si acabamos de registrarnos (el onSubmit maneja esa redirección)
+  const [hasJustRegistered, setHasJustRegistered] = useState(false);
+  
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.replace('/admin/dashboard');
+    if (!isLoading && isAuthenticated && !hasJustRegistered) {
+      router.replace('/admin/profile');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, hasJustRegistered]);
 
   const passwordValue = useWatch({ control, name: 'password', defaultValue: '' });
   const strength = useMemo(() => getPasswordStrength(passwordValue), [passwordValue]);
@@ -124,6 +129,22 @@ export default function RegisterPage() {
     { ok: hasNumber(passwordValue), label: 'Al menos un número' },
   ];
 
+  // Mostrar loading mientras verifica autenticación
+  if (isLoading) {
+    return (
+      <LightLayout title="Cargando...">
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+          <CircularProgress />
+        </Box>
+      </LightLayout>
+    );
+  }
+
+  // Si ya está autenticado y no acabamos de registrarnos, no mostrar nada (se está redirigiendo)
+  if (isAuthenticated && !hasJustRegistered) {
+    return null;
+  }
+
   const onSubmit = async (data: RegisterData) => {
     try {
       // Validate password requirements before submission
@@ -135,25 +156,39 @@ export default function RegisterPage() {
         return;
       }
       
+      // Sanitizar datos antes de enviarlos al backend
+      const sanitizedUsername = sanitizeUsername(data.username);
+      const sanitizedEmail = sanitizeEmail(data.email);
+      
+      if (!sanitizedUsername || !sanitizedEmail) {
+        showSnack({ 
+          message: 'Por favor, verifica que el usuario y email sean válidos', 
+          severity: 'error' 
+        });
+        return;
+      }
+      
       // Only send required fields to the backend
       const response = await AuthService.register({
-        username: data.username,
-        password: data.password,
-        email: data.email,
+        username: sanitizedUsername,
+        password: data.password, // No sanitizar contraseña
+        email: sanitizedEmail,
         remember: true,
       });
       
       if (response?.token) {
+        // Marcar que acabamos de registrarnos para evitar la redirección del useEffect
+        setHasJustRegistered(true);
+        
         showSnack({ 
-          message: '¡Cuenta creada con éxito! Redirigiendo...', 
+          message: '¡Cuenta creada con éxito! Redirigiendo a tu perfil...', 
           severity: 'success' 
         });
-        // El usuario ya está autenticado (el token se guardó en AuthService.register)
-        // Redirigir al perfil o dashboard, NO al login
+        
+        // Pequeña espera para mostrar el mensaje y luego redirigir
         setTimeout(() => {
-          // Forzar refresh del contexto auth recargando la página destino
-          window.location.href = '/admin/profile';
-        }, 1500);
+          router.push('/admin/profile');
+        }, 800);
       }
     } catch (err: unknown) {
       let errorMessage = 'Error al crear la cuenta';
@@ -189,7 +224,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <LightLayout title="Registro - TicketOffice">
+    <LightLayout title="Registro - TuEntradaYa">
       <AuthShell
         title="Crear cuenta"
         footer={

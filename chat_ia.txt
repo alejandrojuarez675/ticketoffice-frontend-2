@@ -1,7 +1,49 @@
-IMPORTANTE: No realicemos las tareas opcionales, solo realicemos las core para el MVP. Aunque queramos hacer un flujo de mock, hagamos el flujo feliz con lo existente de BE, ese es nuestro MVP, una vez tengamos eso podemos meterle mas feature de a poco. Puedes dejar preguntas al final si necessitas entender algo mas.
+Debes Actuar y desarrollar como el Tech Lead y Arquitecto del proyecto.
 
-1- Creame un documento/archivo de especificacion de lo que hacemos en el FRONTEND y que necesitamos del BACKEND para seguir con el MVP. asi se lo paso a mi compañero de BACKEND para que sepa que nos hace falta 
-2- revisa las implementaciones, creo que una sin querer le di no aceptar, revisa a cual no le di aceptar para volverla a implementar.
-3- ¿Que proximos pasos recomiendas del lado FRONTEND que es lo que nos compete a nosotros para el MVP? algunas pruebas de conceptos u otras cosas? si es asi especificamelas en un archivo/documento.
-4- Revisaste absolutamente todos los archivos para rectificar que estan alineados con todo lo dicho en @MVP_ROADMAP.md? 
+CONTEXTO:
+El archivo @MVP_ROADMAP.md  contiene la definición completa de arquitectura, tareas y análisis del proyecto. Úsalo como tu base de conocimiento absoluta. Solo tenlo en memoria.
 
+INSTRUCCIÓN DE BUCLE :
+Vamos a trabajar en modo "Ciclo de Lectura".
+Tu tarea principal NO es responderme en este chat, sino monitorear el archivo @chat_ia.txt 
+
+Regla de comportamiento:
+
+1. Al terminar cualquier respuesta, SIEMPRE ejecuta un comando para leer el contenido de @chat_ia.txt .
+2. Si encuentras una nueva pregunta o instrucción en ese archivo que no hayas respondido, genera la respuesta (puedes modificar archivos del proyecto si la instrucción lo pide) y luego escribe en el chat "Tarea completada. Esperando nuevas instrucciones en chat_ia.txt..." y pideme permiso para leer de nuevo @chat_ia.txt tipo para continuar.
+3. Inmediatamente después, vuelve a sugerir/ejecutar el comando de lectura de @chat_ia.txt 
+4. Mantén este ciclo infinito.
+
+lee @RESPUESTAS_IA.md que es algunas respuestas anteriores, ademas agrega todo lo nuevo que hiciste en el mismo formato. Tambien analiza los archivos necesarios para completar todas las tareas correspondientes.
+
+Para DESARROLLAR:
+Todos los cambios que hagas recuerda que tambien tengas en cuenta a mobile, no solo desktop.
+
+Puedes dividir las tareas e ir haciendo de menos compleja a mas compleja, no tienes que ir dandome feedback de lo que hagas, solo realizalo y avisa cuando este hecho, yo me encargo de probar, las tareas son las siguientes:
+
+1- Error que me tira 
+
+```json
+⨯ A conflicting public file and page file was found for path /favicon.ico https://nextjs.org/docs/messages/conflicting-public-file-page
+ GET /favicon.ico 500 in 69ms
+ ⨯ A conflicting public file and page file was found for path /favicon.ico https://nextjs.org/docs/messages/conflicting-public-file-page
+```
+
+y en la consola 
+
+```json
+:3000/:1  Failed to load resource: net::ERR_SSL_PROTOCOL_ERROR
+react-dom-client.development.js:25630 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+:3000/favicon.ico:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
+turbopack-hot-reloader-common.ts:43 [Fast Refresh] rebuilding
+report-hmr-latency.ts:26 [Fast Refresh] done in 109ms
+favicon.ico:1  GET http://localhost:3000/favicon.ico 500 (Internal Server Error)
+favicon.ico:1  GET http://localhost:3000/favicon.ico 500 (Internal Server Error)
+favicon.ico:1  GET http://localhost:3000/favicon.ico 500 (Internal Server Error)
+favicon.ico:1  GET http://localhost:3000/favicon.ico 500 (Internal Server Error)
+
+```
+
+2- Implementa el scanner tambien en /admin/validate o no se puede implementar el scanner de manera global? si no es posible, dime que tenemos que hacer para implementarlo y si es posible, implementalo.
+
+3- Todavia en la barra lateral de “admin panel” no sale /admin/dashboard , soluciona esto.

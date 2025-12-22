@@ -33,7 +33,6 @@ function EventsListInner() {
   const adultOnly = searchParams.get('adultOnly') === 'true';
   const minPrice = searchParams.get('minPrice');
   const maxPrice = searchParams.get('maxPrice');
-  const vendorsParam = searchParams.get('vendors');
   const q = searchParams.get('q') || '';
 
   const countryParam = (() => {
@@ -69,9 +68,8 @@ function EventsListInner() {
       adultOnly,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
-      vendors: vendorsParam ? vendorsParam.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
     }),
-    [countryParam, city, searchParams, savedOnly, adultOnly, minPrice, maxPrice, vendorsParam]
+    [countryParam, city, searchParams, savedOnly, adultOnly, minPrice, maxPrice]
   );
 
   useEffect(() => {
@@ -161,11 +159,14 @@ function EventsListInner() {
 
   const activeCount = useMemo(() => {
     let n = 0;
-    const keys = ['country', 'city', 'category', 'dateFrom', 'dateTo', 'savedOnly', 'adultOnly', 'minPrice', 'maxPrice', 'vendors', 'q'];
+    const keys = ['city', 'category', 'dateFrom', 'dateTo', 'savedOnly', 'adultOnly', 'minPrice', 'maxPrice', 'q'];
     keys.forEach((k) => {
       const v = searchParams.get(k);
       if (v && v !== 'false' && v !== '0') n += 1;
     });
+    // Country solo cuenta si no es 'all'
+    const countryValue = searchParams.get('country');
+    if (countryValue && countryValue !== 'all') n += 1;
     return n;
   }, [searchParams]);
 
@@ -222,7 +223,7 @@ function EventsListInner() {
 
 export default function EventsPage() {
   return (
-    <LightLayout title="Eventos - TicketOffice">
+    <LightLayout title="Eventos - TuEntradaYa">
       <Box sx={{ py: 3 }}>
         <Container>
           <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 2 }}>

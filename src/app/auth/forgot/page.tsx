@@ -48,7 +48,7 @@ export default function ForgotPage() {
   };
 
   return (
-    <LightLayout title="Recuperar contraseña - TicketOffice">
+    <LightLayout title="Recuperar contraseña - TuEntradaYa">
       <AuthShell
         title="Recuperar contraseña"
         footer={

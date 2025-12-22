@@ -156,52 +156,99 @@ function EventSalesPageInner() {
         <Box sx={{ flexGrow: 1 }} />
       </Box>
 
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12 }}>
-          <Card>
-            <CardContent>
-              <TableContainer component={Paper} sx={{ maxHeight: '70vh', overflow: 'auto' }}>
-                <Table stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Comprador</TableCell>
-                      <TableCell>Email</TableCell>
-                      <TableCell>Ticket</TableCell>
-                      <TableCell align="right">Precio</TableCell>
-                      <TableCell>Estado</TableCell>
-                      <TableCell align="center">Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((r) => (
-                      <TableRow key={r.id} hover>
-                        <TableCell>{r.name || '—'}</TableCell>
-                        <TableCell>{r.email}</TableCell>
-                        <TableCell>{r.ticketType}</TableCell>
-                        <TableCell align="right">
-                          {r.price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
-                        </TableCell>
-                        <TableCell>{statusChip(r.validated)}</TableCell>
-                        <TableCell align="center">
-                          <IconButton
-                            size="small"
-                            onClick={(e) => handleClick(e, r.id)}
-                            aria-label="more"
-                            aria-controls="sale-actions-menu"
-                            aria-haspopup="true"
-                          >
-                            <MoreVertIcon fontSize="small" />
-                          </IconButton>
-                        </TableCell>
+      {isMobile ? (
+        // Vista móvil: Cards
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {rows.map((r) => (
+            <Card key={r.id} variant="outlined">
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 'bold' }}>
+                      {r.name || '—'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                      {r.email}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => handleClick(e, r.id)}
+                    aria-label="more"
+                    sx={{ ml: 1 }}
+                  >
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Ticket:</Typography>
+                    <Typography variant="body2" fontWeight="medium">{r.ticketType}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">Precio:</Typography>
+                    <Typography variant="body2" fontWeight="medium">
+                      {r.price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="body2" color="text.secondary">Estado:</Typography>
+                    {statusChip(r.validated)}
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      ) : (
+        // Vista desktop: Tabla
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12 }}>
+            <Card>
+              <CardContent>
+                <TableContainer component={Paper} sx={{ maxHeight: '70vh', overflow: 'auto' }}>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Comprador</TableCell>
+                        <TableCell>Email</TableCell>
+                        <TableCell>Ticket</TableCell>
+                        <TableCell align="right">Precio</TableCell>
+                        <TableCell>Estado</TableCell>
+                        <TableCell align="center">Acciones</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
+                    </TableHead>
+                    <TableBody>
+                      {rows.map((r) => (
+                        <TableRow key={r.id} hover>
+                          <TableCell>{r.name || '—'}</TableCell>
+                          <TableCell>{r.email}</TableCell>
+                          <TableCell>{r.ticketType}</TableCell>
+                          <TableCell align="right">
+                            {r.price.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
+                          </TableCell>
+                          <TableCell>{statusChip(r.validated)}</TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => handleClick(e, r.id)}
+                              aria-label="more"
+                              aria-controls="sale-actions-menu"
+                              aria-haspopup="true"
+                            >
+                              <MoreVertIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      )}
 
       <Menu
         id="sale-actions-menu"
