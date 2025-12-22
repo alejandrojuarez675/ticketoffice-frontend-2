@@ -46,14 +46,11 @@ import { SalesService } from '@/services/SalesService';
 import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import type { EventDetail } from '@/types/Event';
 import type { SaleLightDTO } from '@/services/schemas/sales';
-<<<<<<< HEAD
 import dynamic from 'next/dynamic';
 import { useTheme, useMediaQuery } from '@mui/material';
 
 // Importar QRScanner dinámicamente para evitar SSR
 const QRScanner = dynamic(() => import('@/components/common/QRScanner'), { ssr: false });
-=======
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
 
 export default function EventTicketValidationPage() {
   const router = useRouter();
@@ -70,10 +67,7 @@ export default function EventTicketValidationPage() {
   const [salesLoading, setSalesLoading] = useState(false);
   const [validationResult, setValidationResult] = useState<{ success: boolean; message: string; saleId?: string } | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ open: false, message: '', severity: 'success' });
-<<<<<<< HEAD
   const [showQRScanner, setShowQRScanner] = useState(false);
-=======
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
 
   // Cargar evento y ventas al montar
   useEffect(() => {
@@ -224,11 +218,7 @@ export default function EventTicketValidationPage() {
               Ingresa el ID de la venta (saleId) o escanea el código QR
             </Typography>
 
-<<<<<<< HEAD
             <Box sx={{ display: 'flex', gap: 2, maxWidth: 500, mx: 'auto', mb: 2 }}>
-=======
-            <Box sx={{ display: 'flex', gap: 2, maxWidth: 500, mx: 'auto' }}>
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
               <TextField
                 fullWidth
                 variant="outlined"
@@ -237,18 +227,6 @@ export default function EventTicketValidationPage() {
                 value={saleId}
                 onChange={(e) => setSaleId(e.target.value)}
                 disabled={loading}
-<<<<<<< HEAD
-=======
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <IconButton onClick={() => alert('Escáner QR — próximamente')} edge="end">
-                        <QrCodeScannerIcon />
-                      </IconButton>
-                    ),
-                  }
-                }}
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
                 autoFocus
               />
               <Button
@@ -261,7 +239,6 @@ export default function EventTicketValidationPage() {
                 Validar
               </Button>
             </Box>
-<<<<<<< HEAD
 
             <Button
               variant="outlined"
@@ -273,8 +250,6 @@ export default function EventTicketValidationPage() {
             >
               Escanear código QR
             </Button>
-=======
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
           </Box>
         </Paper>
 
@@ -289,7 +264,6 @@ export default function EventTicketValidationPage() {
           </Box>
         ) : sales.length === 0 ? (
           <Alert severity="info">No hay ventas registradas para este evento.</Alert>
-<<<<<<< HEAD
         ) : isMobile ? (
           // Vista móvil: Cards
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -338,9 +312,6 @@ export default function EventTicketValidationPage() {
           </Box>
         ) : (
           // Vista desktop: Tabla
-=======
-        ) : (
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
@@ -433,7 +404,6 @@ export default function EventTicketValidationPage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-<<<<<<< HEAD
 
       {/* Scanner de QR */}
       {showQRScanner && (
@@ -452,8 +422,6 @@ export default function EventTicketValidationPage() {
           onClose={() => setShowQRScanner(false)}
         />
       )}
-=======
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
     </BackofficeLayout>
   );
 }

@@ -64,11 +64,7 @@ export default function AdminDashboard() {
   const hasEvents = events.length > 0;
 
   return (
-<<<<<<< HEAD
     <BackofficeLayout title="Métricas de Eventos">
-=======
-    <BackofficeLayout title="Dashboard">
->>>>>>> d790ef5e0a6c6061aacfffc1bf501b0f97e28dc6
       <Box>
         <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
           ¡Hola, {user?.name || user?.username}! 👋
