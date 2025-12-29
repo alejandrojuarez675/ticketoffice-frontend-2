@@ -80,13 +80,55 @@ export const SalesService = {
   },
 
   /**
-   * @deprecated Usa validateSale(eventId, saleId) en su lugar
+   * Valida una entrada usando solo el saleId
+   * Si el QR contiene el formato eventId/saleId o eventId__saleId, lo parsea
+   * De lo contrario, intenta validar directamente (útil para MVP)
    */
-  async validate(sessionId: string): Promise<void> {
-    // Legacy: intenta parsear el sessionId para extraer eventId y saleId
-    // Formato esperado: eventId__saleId o similar
-    logger.warn('SalesService.validate deprecated, use validateSale', { sessionId });
-    throw new Error('Usa validateSale(eventId, saleId) en su lugar');
+  async validate(saleId: string): Promise<void> {
+    if (ConfigService.isMockedEnabled()) {
+      // Mock: simular validación exitosa
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      logger.info('SalesService.validate mock ok', { saleId });
+      return;
+    }
+
+    // Intentar parsear si el saleId contiene eventId
+    // Formatos soportados: "eventId/saleId", "eventId__saleId"
+    let eventId = '';
+    let actualSaleId = saleId;
+
+    if (saleId.includes('/')) {
+      const parts = saleId.split('/');
+      eventId = parts[0];
+      actualSaleId = parts[1] || saleId;
+    } else if (saleId.includes('__')) {
+      const parts = saleId.split('__');
+      eventId = parts[0];
+      actualSaleId = parts[1] || saleId;
+    }
+
+    // Si tenemos eventId, usar el endpoint específico
+    if (eventId) {
+      await this.validateSale(eventId, actualSaleId);
+      return;
+    }
+
+    // Si no, intentar validar directamente
+    // Nota: Esto puede fallar si el backend requiere eventId
+    // En ese caso, el frontend debe obtener el eventId primero
+    const base = ConfigService.getApiBase();
+    try {
+      // Intentar con el endpoint más general si existe
+      await http.post<void, void>(
+        `${base}/api/v1/sales/${encodeURIComponent(actualSaleId)}/validate`,
+        undefined,
+        { headers: { ...AuthService.getAuthHeader() }, retries: 0 }
+      );
+      logger.info('SalesService.validate ok', { saleId: actualSaleId });
+    } catch (error) {
+      logger.error('SalesService.validate failed', { saleId: actualSaleId, error });
+      throw error;
+    }
   },
 
   toCSV(rows: SaleRecord[]): string {

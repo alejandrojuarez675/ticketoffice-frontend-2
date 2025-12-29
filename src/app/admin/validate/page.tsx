@@ -67,6 +67,9 @@ type ValidationResult = {
   price?: number;
   validatedAt: string;
   alreadyValidated?: boolean;
+  eventName?: string;
+  eventDate?: string;
+  eventLocation?: string;
 };
 
 type ValidationHistoryItem = {
@@ -206,7 +209,7 @@ function EventTicketValidationContent() {
       setValidationResult(null);
 
       if (ConfigService.isMockedEnabled()) {
-        // MOCK: Simular validación exitosa con datos del comprador
+        // MOCK: Simular validación exitosa con datos del comprador y evento
         await new Promise(resolve => setTimeout(resolve, 500)); // Simular latencia
         
         const mockResult: ValidationResult = {
@@ -218,6 +221,9 @@ function EventTicketValidationContent() {
           buyerEmail: 'juan.perez@email.com',
           price: 5000,
           validatedAt: new Date().toISOString(),
+          eventName: event?.title || 'Concierto de Rock 2024',
+          eventDate: event?.date || new Date().toISOString(),
+          eventLocation: event?.location?.city || 'Buenos Aires',
         };
 
         setValidationResult(mockResult);
@@ -237,6 +243,9 @@ function EventTicketValidationContent() {
         success: true,
         message: 'Entrada validada correctamente',
         validatedAt: new Date().toISOString(),
+        eventName: event?.title || 'Evento no especificado',
+        eventDate: event?.date,
+        eventLocation: event?.location?.city,
       };
 
       setValidationResult(result);
@@ -370,23 +379,6 @@ function EventTicketValidationContent() {
                   <Divider sx={{ my: 2 }} />
                 </>
               )}
-
-              {/* Botón grande de escanear */}
-              <Button 
-                variant="contained" 
-                size="large"
-                startIcon={<QrCodeScannerIcon />} 
-                onClick={() => setScannerOpen(true)} 
-                fullWidth 
-                sx={{ 
-                  py: 2, 
-                  mb: 2,
-                  fontSize: '1.1rem',
-                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                }}
-              >
-                Escanear QR
-              </Button>
 
               {/* Historial de validaciones */}
               {validationHistory.length > 0 && (
@@ -563,8 +555,24 @@ function EventTicketValidationContent() {
 
                 <Divider sx={{ my: 3 }} />
 
-                {/* Información del comprador */}
-                <Box sx={{ textAlign: 'left', maxWidth: 350, mx: 'auto' }}>
+                {/* Información del evento y comprador */}
+                <Box sx={{ textAlign: 'left', maxWidth: 400, mx: 'auto' }}>
+                  {validationResult.eventName && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <EventIcon color="primary" sx={{ mr: 2 }} />
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">Evento</Typography>
+                        <Typography variant="body1" fontWeight="bold">{validationResult.eventName}</Typography>
+                        {validationResult.eventLocation && (
+                          <Typography variant="caption" color="text.secondary">
+                            {validationResult.eventLocation}
+                            {validationResult.eventDate && ` • ${new Date(validationResult.eventDate).toLocaleDateString('es-AR')}`}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  )}
+
                   {validationResult.buyerName && (
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <PersonIcon color="action" sx={{ mr: 2 }} />

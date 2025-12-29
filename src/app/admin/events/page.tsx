@@ -103,8 +103,8 @@ export default function AdminEventsPage() {
 
   return (
     <BackofficeLayout title="Eventos">
-      <Container sx={{ py: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">Mis eventos</Typography>
           <Button variant="contained" component={Link} href="/admin/events/new">
             {isMobile ? '+' : 'Nuevo evento'}
@@ -225,7 +225,7 @@ export default function AdminEventsPage() {
             Validar entradas
           </MenuItem>
         </Menu>
-      </Container>
+      </Box>
     </BackofficeLayout>
   );
 }

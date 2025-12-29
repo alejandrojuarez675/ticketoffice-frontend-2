@@ -6,7 +6,6 @@ import BackofficeLayout from '@/components/layouts/BackofficeLayout';
 import {
   Box,
   Button,
-  Container,
   Paper,
   Typography,
   TextField,
@@ -103,7 +102,7 @@ export default function SettingsPage() {
 
   return (
     <BackofficeLayout title="Configuración - TuEntradaYa">
-      <Container sx={{ py: 4 }}>
+      <Box>
         <Typography variant="h4" gutterBottom>
           Configuración
         </Typography>
@@ -335,7 +334,7 @@ export default function SettingsPage() {
             </Button>
           </DialogActions>
         </Dialog>
-      </Container>
+      </Box>
     </BackofficeLayout>
   );
 }

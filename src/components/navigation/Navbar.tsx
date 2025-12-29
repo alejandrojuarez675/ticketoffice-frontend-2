@@ -91,16 +91,10 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           >
             <Box
               component="img"
-              src="/logo.png"
+              src="/LogoFigma2-1.svg"
               alt="TuEntradaYa"
-              sx={{ height: 32, width: 32, mr: 1 }}
+              sx={{ height: 40, width: 'auto' }}
             />
-            <Typography
-              variant="h6"
-              sx={{ fontWeight: 'bold', display: { xs: 'none', sm: 'block' } }}
-            >
-              TuEntradaYa
-            </Typography>
           </Box>
 
           {!isMobile && (

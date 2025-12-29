@@ -197,7 +197,7 @@ class AuthService {
 
     const loginUrl = `${this.BASE_URL}/auth/login`;
     const { token } = await http.post<ApiLoginResponse, Omit<LoginCredentials, 'remember'>>(loginUrl, {
-      username: credentials.username,
+      username: credentials.username.toLowerCase(),
       password: credentials.password,
     });
 

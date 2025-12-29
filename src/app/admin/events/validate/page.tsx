@@ -69,8 +69,7 @@ function ValidateEventInner() {
   }, [router, id]);
 
   /**
-   * Endpoint BE: POST /api/public/v1/checkout/session/{sessionId}/validate
-   * El ticketId es realmente el sessionId del checkout (viene en el QR)
+   * Endpoint BE: POST /api/v1/events/{eventId}/sales/{saleId}/validate
    */
   const handleValidate = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -78,7 +77,7 @@ function ValidateEventInner() {
     if (!sessionId) return;
     try {
       setSubmitting(true);
-      await SalesService.validate(sessionId);
+      await SalesService.validateSale(id, sessionId);
       setValidatedAt(new Date().toISOString());
       setOpenDialog(true);
       setSnackbar({ open: true, message: 'Entrada validada correctamente', severity: 'success' });
@@ -209,3 +208,4 @@ function ValidateEventInner() {
     </Box>
   );
 }
+

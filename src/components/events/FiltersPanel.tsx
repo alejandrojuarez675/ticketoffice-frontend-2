@@ -19,12 +19,16 @@ import {
   Chip,
   useMediaQuery,
   useTheme,
+  CircularProgress,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import CloseIcon from '@mui/icons-material/Close';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { todayRange, weekendRange } from '@/utils/date';
+import { RegionService, type CountryDto, type CityDto } from '@/services/RegionService';
+import { useRegion } from '@/contexts/RegionContext';
+import { logger } from '@/lib/logger';
 
 type Facets = {
   countries: string[];
@@ -44,8 +48,15 @@ export default function FiltersPanel({
   const searchParams = useSearchParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { countryCode: userCountryCode, countryConfig } = useRegion();
 
   const [open, setOpen] = useState(false);
+
+  // Estados para datos dinámicos de regionalización
+  const [availableCountries, setAvailableCountries] = useState<CountryDto[]>([]);
+  const [availableCities, setAvailableCities] = useState<CityDto[]>([]);
+  const [loadingCountries, setLoadingCountries] = useState(true);
+  const [loadingCities, setLoadingCities] = useState(false);
 
   const [country, setCountry] = useState(searchParams.get('country') || '');
   const [city, setCity] = useState(searchParams.get('city') || '');
@@ -57,6 +68,69 @@ export default function FiltersPanel({
 
   const [minPrice, setMinPrice] = useState<string>(searchParams.get('minPrice') || '');
   const [maxPrice, setMaxPrice] = useState<string>(searchParams.get('maxPrice') || '');
+
+  // Cargar países disponibles
+  useEffect(() => {
+    let active = true;
+    
+    const loadCountries = async () => {
+      try {
+        setLoadingCountries(true);
+        const countries = await RegionService.getCountries();
+        if (active) {
+          setAvailableCountries(countries);
+          
+          // NO pre-seleccionar país del usuario - permitir ver todos los eventos por defecto
+          // La config regional solo afecta: moneda, hora, documentos en formularios
+        }
+      } catch (error) {
+        logger.error('Error loading countries for filters', error);
+      } finally {
+        if (active) {
+          setLoadingCountries(false);
+        }
+      }
+    };
+    
+    loadCountries();
+    
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Cargar ciudades cuando cambia el país
+  useEffect(() => {
+    let active = true;
+    
+    const loadCities = async () => {
+      if (!country || country === 'all' || country === '') {
+        setAvailableCities([]);
+        return;
+      }
+      
+      try {
+        setLoadingCities(true);
+        const config = await RegionService.getCountryConfig(country);
+        if (active) {
+          setAvailableCities(config.cities || []);
+        }
+      } catch (error) {
+        logger.error('Error loading cities for country', { country, error });
+        setAvailableCities([]);
+      } finally {
+        if (active) {
+          setLoadingCities(false);
+        }
+      }
+    };
+    
+    loadCities();
+    
+    return () => {
+      active = false;
+    };
+  }, [country]);
 
   useEffect(() => {
     if (open) return;
@@ -304,21 +378,22 @@ export default function FiltersPanel({
                     const newCountry = e.target.value;
                     setCountry(newCountry);
                     // Limpiar ciudad cuando se cambia el país o se selecciona "Todos"
-                    if (newCountry === 'all' || newCountry === '') {
-                      setCity('');
-                    } else {
-                      // Si la ciudad actual no está en el nuevo país, limpiarla
-                      const citiesInNewCountry = facets.citiesByCountry[newCountry] || [];
-                      if (city && !citiesInNewCountry.includes(city)) {
-                        setCity('');
-                      }
-                    }
+                    setCity('');
                   }}
                   helperText=" "
+                  disabled={loadingCountries}
+                  slotProps={{
+                    input: {
+                      startAdornment: loadingCountries ? <CircularProgress size={20} sx={{ mr: 1 }} /> : undefined,
+                    },
+                  }}
                 >
-                  <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="Colombia">Colombia</MenuItem>
-                  <MenuItem value="Argentina">Argentina</MenuItem>
+                  <MenuItem value="all">Todos los países</MenuItem>
+                  {availableCountries.map((c) => (
+                    <MenuItem key={c.code} value={c.code}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
                 </TextField>
               </Grid>
 
@@ -329,17 +404,24 @@ export default function FiltersPanel({
                   label="Ciudad"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  disabled={!country || country === 'all' || country === ''}
+                  disabled={!country || country === 'all' || country === '' || loadingCities}
                   helperText={
                     !country || country === 'all' || country === ''
                       ? 'Selecciona un país primero'
-                      : `Ciudades en ${country}`
+                      : loadingCities
+                      ? 'Cargando ciudades...'
+                      : `Ciudades disponibles`
                   }
+                  slotProps={{
+                    input: {
+                      startAdornment: loadingCities ? <CircularProgress size={20} sx={{ mr: 1 }} /> : undefined,
+                    },
+                  }}
                 >
-                  <MenuItem value="">Todas</MenuItem>
-                  {filteredCities.map((c) => (
-                    <MenuItem key={c} value={c}>
-                      {c}
+                  <MenuItem value="">Todas las ciudades</MenuItem>
+                  {availableCities.map((c) => (
+                    <MenuItem key={c.code} value={c.code}>
+                      {c.name}
                     </MenuItem>
                   ))}
                 </TextField>

@@ -3,7 +3,7 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import LightLayout from '@/components/layouts/LightLayout';
-import { Box, Button, Container, TextField, Typography, Alert, Checkbox, FormControlLabel, Paper, CircularProgress } from '@mui/material';
+import { Box, Button, Container, Divider, TextField, Typography, Alert, Checkbox, FormControlLabel, Paper, CircularProgress } from '@mui/material';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -119,6 +119,16 @@ function LoginForm() {
                 Olvidé mi contraseña
               </Button>
             </Box>
+            <Divider sx={{ my: 2 }}>o</Divider>
+            <Button
+              component="a"
+              href="/auth/register"
+              variant="outlined"
+              color="primary"
+              fullWidth
+            >
+              Crear una cuenta nueva
+            </Button>
           </Box>
         </Paper>
       </Container>
