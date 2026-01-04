@@ -1,8 +1,8 @@
 # MVP ROADMAP - Plataforma de Ticketing (Colombia/Argentina)
 
 > **Documento Maestro de Auditoría y Planificación**  
-> Última actualización: 29 Diciembre 2025  
-> Versión: 1.2 (Sistema de Regionalización Optimizado)
+> Última actualización: 4 Enero 2026  
+> Versión: 1.3 (Sistema de Slugs SEO-Friendly + QR Tickets)
 
 ---
 
@@ -17,18 +17,22 @@
 
 ---
 
-## 🔄 Cambios Recientes (v1.2)
+## 🔄 Cambios Recientes (v1.3)
 
 | Fecha       | Cambio                                                                 | Archivo                   |
 | ----------- | ---------------------------------------------------------------------- | ------------------------- |
+| Ene 4 2026  | **Sistema de Slugs SEO-friendly implementado**                         | `slug.ts` (nuevo)         |
+| Ene 4 2026  | Ruta `/events/[id]` migrada a `/events/[slug]`                         | `/events/[slug]/page.tsx` |
+| Ene 4 2026  | EventCard y FeaturedEvents actualizados para usar slugs                | Componentes eventos       |
+| Ene 4 2026  | Botón "Volver a eventos" agregado en página de detalle                 | `/events/[slug]/page.tsx` |
+| Ene 4 2026  | **QR Codes de tickets en página congrats desde API**                   | `CongratsClient.tsx`      |
+| Ene 4 2026  | Visualización escalable de múltiples tickets con QR codes              | `CongratsClient.tsx`      |
+| Ene 4 2026  | Header no oculta resumen en checkout (sticky top ajustado)             | `checkout/[id]/page.tsx`  |
+| Ene 4 2026  | Ajustado padding de chip "Publicado" en admin events                   | `admin/events/page.tsx`   |
+| Ene 4 2026  | Font-family Inter aplicada globalmente                                 | `theme.ts`, `layout.tsx`  |
 | Dic 29 2025 | Optimizado `RegionContext` para evitar bloqueos en renderizado inicial | `RegionContext.tsx`       |
 | Dic 29 2025 | `RegionSelectorModal` ahora se renderiza condicionalmente              | `RegionContext.tsx`       |
 | Dic 29 2025 | Carga de países y configuración regional ahora es no-bloqueante        | `RegionSelectorModal.tsx` |
-| Dic 29 2025 | Reemplazada imagen faltante por emoji en landing page                  | `page.tsx`                |
-| Dic 29 2025 | Agregado manejo de errores robusto en carga de configuración regional  | `RegionContext.tsx`       |
-| Dic 2025    | Corregido endpoint `/users/me` → `/api/v1/users/me`                    | `AuthService.ts`          |
-| Dic 2025    | Mejorado UI de confirmación de compra (sin sessionId visible)          | `CongratsClient.tsx`      |
-| Dic 2025    | Creado documento `MVP_PENDIENTES.md` con análisis detallado            | Nuevo archivo             |
 
 ---
 
@@ -43,6 +47,7 @@
 | **Regionalización**     | ✅ Funcional    | Sistema de países/ciudades con API real             |
 | **Eventos Públicos**    | ✅ Funcional    | Búsqueda, detalle, filtros implementados            |
 | **Checkout/Compra**     | ✅ Funcional    | Formulario y API de compra funcionan                |
+| **QR Codes Tickets**    | ✅ Funcional    | Visualización de QR desde API en congrats           |
 | **Backoffice Seller**   | ✅ Funcional    | CRUD eventos completo con BE real                   |
 | **Backoffice Admin**    | 🟡 Parcial      | Usuarios/reportes deshabilitados por flags          |
 | **Validación Entradas** | 🟡 Parcial      | Manual funciona, QR no implementado                 |
@@ -634,7 +639,101 @@ export default function RootLayout({
 }
 ```
 
-### 2.8 Sistema de Regionalización (Nuevo en v1.2)
+### 2.8 Sistema de Slugs SEO-Friendly (Nuevo en v1.3)
+
+> 🔗 **IMPORTANTE**: Las URLs de eventos ahora usan slugs amigables para SEO en lugar de IDs crudos.
+
+El sistema de slugs permite URLs más legibles y mejores para SEO mientras mantiene la unicidad mediante el ID del evento.
+
+#### 2.8.1 Formato de Slugs
+
+```
+Formato: {titulo-normalizado}-{id-corto}
+Ejemplo: concierto-de-rock-2025-3351d67b
+         └─────┬─────┘ └──┬──┘
+           título      primeros 8 chars del ID
+```
+
+#### 2.8.2 Utilidades de Slugs
+
+```typescript
+// src/utils/slug.ts
+
+// Genera slug desde título
+export function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Quitar acentos
+    .replace(/[^a-z0-9]+/g, "-") // Reemplazar espaciales
+    .replace(/-+/g, "-") // Sin guiones múltiples
+    .replace(/^-|-$/g, ""); // Sin guiones en extremos
+}
+
+// Combina título + ID para slug único
+export function generateEventSlug(title: string, id: string): string {
+  const titleSlug = generateSlug(title);
+  const shortId = id.substring(0, 8);
+  return `${titleSlug}-${shortId}`;
+}
+
+// Extrae ID desde slug
+export function extractIdFromSlug(slug: string): string | null {
+  const parts = slug.split("-");
+  if (parts.length < 2) return null;
+  return parts[parts.length - 1]; // Último segmento = ID
+}
+```
+
+#### 2.8.3 Migración de Rutas
+
+**Antes (v1.2)**:
+
+```
+/events/3351d67b-2b50-4d6c-9681-1fb79440a078
+```
+
+**Después (v1.3)**:
+
+```
+/events/concierto-de-trueno-movistar-arena-3351d67b
+```
+
+#### 2.8.4 Componentes Actualizados
+
+```typescript
+// EventCard.tsx, FeaturedEvents.tsx
+import { generateEventSlug } from "@/utils/slug";
+
+const eventSlug = generateEventSlug(event.name, event.id);
+router.push(`/events/${eventSlug}`);
+```
+
+```typescript
+// /events/[slug]/page.tsx
+const { slug } = useParams<{ slug: string }>();
+const id = extractIdFromSlug(slug);
+const eventData = await EventService.getPublicById(id);
+```
+
+#### 2.8.5 Beneficios
+
+- ✅ **SEO**: URLs descriptivas mejoran indexación en buscadores
+- ✅ **UX**: Enlaces más legibles y compartibles
+- ✅ **Unicidad**: ID al final garantiza URLs únicas
+- ✅ **Compatibilidad**: Extracción de ID mantiene lógica de backend
+
+#### 2.8.6 Consideraciones
+
+- El backend sigue usando IDs, solo el frontend usa slugs
+- Los slugs NO se guardan en base de datos
+- Se generan dinámicamente desde `name` + `id`
+- URLs antiguas con ID directo ya no funcionarán (requiere migración manual si hay URLs compartidas)
+
+---
+
+### 2.9 Sistema de Regionalización (v1.2)
 
 > 🌍 **IMPORTANTE**: La configuración regional NO limita qué eventos puede ver el usuario. Solo afecta CÓMO se muestran los datos.
 

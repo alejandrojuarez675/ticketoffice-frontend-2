@@ -169,7 +169,9 @@ function CheckoutContent() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Button variant="text" color="primary" component={Link} href={`/events/${event.id}`} startIcon={<ArrowBackIcon />} sx={{ mb: 3 }}>
+      <Button variant="text" color="primary" component={Link} href={`/events/${event.id}`} startIcon={<ArrowBackIcon />} sx={{ mb: 3, p: 0,
+          pt: 1,
+          pb: 1, }}>
         Volver al evento
       </Button>
 

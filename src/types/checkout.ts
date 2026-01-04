@@ -33,3 +33,7 @@ export interface ProcessPaymentResponse {
   redirectUrl?: string;
   error?: string;
 }
+
+export interface BuyResponse {
+  qrCodes: string[];
+}

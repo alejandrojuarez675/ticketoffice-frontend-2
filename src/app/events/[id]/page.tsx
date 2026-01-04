@@ -11,7 +11,7 @@ import {
 import {
   Add as AddIcon, Remove as RemoveIcon, CheckCircle as CheckCircleIcon, LocationOn as LocationIcon,
   CalendarToday as CalendarIcon, Info as InfoIcon, Share as ShareIcon, Event as CalendarAddIcon,
-  ExpandMore as ExpandMoreIcon,
+  ExpandMore as ExpandMoreIcon, ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { EventService } from '@/services/EventService';
 import { CheckoutService } from '@/services/CheckoutService';
@@ -158,6 +158,20 @@ function EventDetailContent() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Button
+        startIcon={<ArrowBackIcon />}
+        onClick={() => router.push('/events')}
+        sx={{
+          mb: 2,
+          mt: 2,
+          p: 0,
+          pt: 1,
+          pb: 1,
+        }}
+      >
+        Volver a eventos
+      </Button>
+
       <Typography variant="h3" component="h1" gutterBottom>{event.title}</Typography>
 
       <Grid container spacing={4}>
