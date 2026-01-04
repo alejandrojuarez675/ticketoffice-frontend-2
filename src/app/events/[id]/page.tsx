@@ -163,7 +163,7 @@ function EventDetailContent() {
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, md: 8 }}>
           <Box mb={4}>
-            <Box position="relative" sx={{ width: '100%', height: '400px', borderRadius: 2, overflow: 'hidden', mb: 3, bgcolor: 'grey.100' }}>
+            <Box position="relative" sx={{ width: '100%', height: '400px', borderRadius: 2, overflow: 'hidden', mb: 3, }}>
               {event.image?.url ? (
                 <Box
                   component="img"
@@ -175,7 +175,6 @@ function EventDetailContent() {
                   sx={{
                     width: '100%',
                     height: '100%',
-                    objectFit: 'cover',
                   }}
                 />
               ) : (
@@ -251,32 +250,102 @@ function EventDetailContent() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
-          <Paper elevation={3} sx={{ p: 3, borderRadius: 2, position: 'sticky', top: 20 }}>
-            <Typography variant="h5" gutterBottom>Selecciona tu entrada</Typography>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 3, 
+              borderRadius: '12px', 
+              position: 'sticky', 
+              top: 20,
+              backgroundColor: 'rgba(28, 28, 34, 1)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.4)',
+            }}
+          >
+          <Typography 
+            variant="h5" 
+            gutterBottom
+            sx={{
+              fontSize: '1.125rem',
+              fontWeight: 600,
+              color: 'white',
+              mb: 2,
+            }}
+          >
+            Selecciona tu entrada
+          </Typography>
 
-            <FormControl component="fieldset" fullWidth sx={{ mb: 3 }}>
-              <FormLabel component="legend">Tipo de entrada</FormLabel>
-              <RadioGroup value={selectedTicketId} onChange={(e) => setSelectedTicketId(e.target.value)}>
-                {event.tickets.map((ticket) => {
-                  const disabled = ticket.stock <= 0;
-                  return (
+          <FormControl component="fieldset" fullWidth sx={{ mb: 3 }}>
+            <FormLabel 
+              component="legend"
+              sx={{
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                color: 'rgba(161, 161, 170, 1)',
+                mb: 1,
+              }}
+            >
+              Tipo de entrada
+            </FormLabel>
+            <RadioGroup value={selectedTicketId} onChange={(e) => setSelectedTicketId(e.target.value)}>
+              {event.tickets.map((ticket) => {
+                const disabled = ticket.stock <= 0;
+                return (
+                  <Box
+                    key={ticket.id}
+                    onClick={() => !disabled && setSelectedTicketId(ticket.id)}
+                    sx={{
+                      position: 'relative',
+                      cursor: disabled ? 'not-allowed' : 'pointer',
+                      opacity: disabled ? 0.6 : 1,
+                      mb: 1,
+                    }}
+                  >
+                    {selectedTicketId === ticket.id && (
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          inset: '-2px',
+                          background: 'linear-gradient(to right, rgba(139, 92, 246, 1), rgba(99, 102, 241, 1))',
+                          borderRadius: '8px',
+                          opacity: 1,
+                          filter: 'blur(1px)',
+                        }}
+                      />
+                    )}
                     <Paper
-                      key={ticket.id}
                       variant="outlined"
                       sx={{
-                        p: 2, mb: 2, borderRadius: 1,
-                        borderColor: selectedTicketId === ticket.id ? 'primary.main' : 'divider',
-                        borderWidth: selectedTicketId === ticket.id ? 2 : 1,
-                        cursor: disabled ? 'not-allowed' : 'pointer',
-                        opacity: disabled ? 0.6 : 1,
-                        '&:hover': { borderColor: disabled ? 'divider' : 'primary.main' },
+                        position: 'relative',
+                        p: 1.5,
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(28, 28, 34, 1)',
+                        border: 'none',
+                        '&:hover': {
+                          backgroundColor: disabled ? 'rgba(28, 28, 34, 1)' : 'rgba(39, 39, 42, 0.5)',
+                        },
                       }}
-                      onClick={() => !disabled && setSelectedTicketId(ticket.id)}
                     >
                       <Box display="flex" justifyContent="space-between" alignItems="center" gap={2}>
                         <Box>
-                          <Typography variant="subtitle1">{ticket.type}</Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography 
+                            variant="subtitle1"
+                            sx={{
+                              fontSize: '0.875rem',
+                              fontWeight: 500,
+                              color: 'white',
+                            }}
+                          >
+                            {ticket.type}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            sx={{
+                              fontSize: '0.75rem',
+                              color: 'rgba(113, 113, 122, 1)',
+                              mt: 0.25,
+                            }}
+                          >
                             {ticket.stock} entradas disponibles
                           </Typography>
                         </Box>
@@ -285,12 +354,27 @@ function EventDetailContent() {
                           {ticket.isFree || ticket.value === 0 ? (
                             <Chip 
                               label="GRATIS" 
-                              color="success" 
-                              size="medium"
-                              sx={{ fontWeight: 'bold', fontSize: '1rem' }} 
+                              size="small"
+                              sx={{ 
+                                fontWeight: 'bold', 
+                                fontSize: '0.625rem',
+                                backgroundColor: 'rgba(74, 222, 128, 1)',
+                                color: 'black',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                px: 1,
+                                py: 0.25,
+                              }} 
                             />
                           ) : (
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            <Typography 
+                              variant="h6" 
+                              sx={{ 
+                                fontWeight: 600,
+                                color: 'white',
+                                fontSize: '1rem',
+                              }}
+                            >
                               {formatMoneyByCountry(ticket.value, event.location?.country)}
                             </Typography>
                           )}
@@ -298,158 +382,294 @@ function EventDetailContent() {
                       </Box>
                       <Radio value={ticket.id} checked={selectedTicketId === ticket.id} sx={{ display: 'none' }} />
                     </Paper>
-                  );
-                })}
-              </RadioGroup>
-            </FormControl>
+                  </Box>
+                );
+              })}
+            </RadioGroup>
+          </FormControl>
 
-            <Divider sx={{ my: 3 }} />
+          <Box sx={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.05)', my: 3 }} />
 
-            {/* Desglose siempre visible */}
-            <Box mb={3}>
-              <FormLabel component="legend" sx={{ mb: 1, display: 'block' }}>Cantidad</FormLabel>
-              <Box display="flex" alignItems="center">
-                <IconButton 
-                  onClick={() => handleQuantityChange(quantity - 1)} 
-                  disabled={!selectedTicket || quantity <= 1}
-                >
-                  <RemoveIcon />
-                </IconButton>
-                <TextField
-                  value={quantity}
-                  type="number"
-                  disabled={!selectedTicket}
-                  slotProps={{ input: { inputProps: { min: 1, max: selectedTicket?.stock ?? 1, style: { textAlign: 'center' } } } }}
-                  sx={{ width: '80px', mx: 1 }}
-                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
-                />
-                <IconButton 
-                  onClick={() => handleQuantityChange(quantity + 1)} 
-                  disabled={!selectedTicket || quantity >= (selectedTicket?.stock || 1)}
-                >
-                  <AddIcon />
-                </IconButton>
-              </Box>
-              {selectedTicket && (
-                <Typography variant="caption" color="text.secondary">
-                  Máximo {selectedTicket.stock} por compra
-                </Typography>
-              )}
+          {/* Desglose siempre visible */}
+          <Box mb={3}>
+            <FormLabel 
+              component="legend" 
+              sx={{ 
+                mb: 1, 
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                color: 'rgba(161, 161, 170, 1)',
+              }}
+            >
+              Cantidad
+            </FormLabel>
+            <Box display="flex" alignItems="center" gap={1.5}>
+              <IconButton 
+                onClick={() => handleQuantityChange(quantity - 1)} 
+                disabled={!selectedTicket || quantity <= 1}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(39, 39, 42, 1)',
+                  color: 'rgba(161, 161, 170, 1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(63, 63, 70, 1)',
+                    color: 'white',
+                  },
+                  '&:disabled': {
+                    backgroundColor: 'rgba(39, 39, 42, 0.5)',
+                    color: 'rgba(113, 113, 122, 1)',
+                  },
+                }}
+              >
+                <RemoveIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
+              <TextField
+                value={quantity}
+                type="number"
+                disabled={!selectedTicket}
+                slotProps={{ 
+                  input: { 
+                    inputProps: { 
+                      min: 1, 
+                      max: selectedTicket?.stock ?? 1, 
+                      style: { textAlign: 'center' } 
+                    },
+                    sx: {
+                      '& input': {
+                        color: 'white',
+                        fontWeight: 500,
+                      },
+                    },
+                  } 
+                }}
+                sx={{ 
+                  flex: 1,
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'transparent',
+                  },
+                }}
+                onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+              />
+              <IconButton 
+                onClick={() => handleQuantityChange(quantity + 1)} 
+                disabled={!selectedTicket || quantity >= (selectedTicket?.stock || 1)}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(39, 39, 42, 1)',
+                  color: 'rgba(161, 161, 170, 1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(63, 63, 70, 1)',
+                    color: 'white',
+                  },
+                  '&:disabled': {
+                    backgroundColor: 'rgba(39, 39, 42, 0.5)',
+                    color: 'rgba(113, 113, 122, 1)',
+                  },
+                }}
+              >
+                <AddIcon sx={{ fontSize: '1rem' }} />
+              </IconButton>
             </Box>
+            {selectedTicket && (
+              <Typography 
+                variant="caption" 
+                sx={{
+                  display: 'block',
+                  textAlign: 'center',
+                  fontSize: '0.625rem',
+                  color: 'rgba(113, 113, 122, 1)',
+                  mt: 1,
+                }}
+              >
+                Máximo {selectedTicket.stock} por compra
+              </Typography>
+            )}
+          </Box>
 
-            <Box mb={2}>
-              {selectedTicket ? (
-                <>
-                  {selectedTicket.isFree || selectedTicket.value === 0 ? (
-                    <Box display="flex" justifyContent="space-between" mb={1} alignItems="center">
-                      <Typography>Precio por entrada:</Typography>
-                      <Chip 
-                        label="GRATIS" 
-                        color="success" 
-                        size="small"
-                        sx={{ fontWeight: 'bold' }} 
-                      />
-                    </Box>
-                  ) : (
-                    <Box display="flex" justifyContent="space-between" mb={1}>
-                      <Typography>Precio por entrada:</Typography>
-                      <Typography>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
-                    </Box>
-                  )}
-                  <Box display="flex" justifyContent="space-between" mb={1}>
-                    <Typography>Cantidad:</Typography>
-                    <Typography>{quantity}</Typography>
+          <Box mb={3} sx={{ fontSize: '0.875rem' }}>
+            {selectedTicket ? (
+              <>
+                {selectedTicket.isFree || selectedTicket.value === 0 ? (
+                  <Box display="flex" justifyContent="space-between" mb={1.5} alignItems="center">
+                    <Typography sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem' }}>Precio por entrada:</Typography>
+                    <Chip 
+                      label="GRATIS" 
+                      size="small"
+                      sx={{ 
+                        fontWeight: 'bold',
+                        fontSize: '0.625rem',
+                        backgroundColor: 'rgba(74, 222, 128, 1)',
+                        color: 'black',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }} 
+                    />
                   </Box>
-                  <Divider sx={{ my: 1 }} />
-                  <Box display="flex" justifyContent="space-between" fontWeight="bold">
-                    <Typography>Subtotal:</Typography>
-                    <Typography>{formatMoneyByCountry(total, event.location?.country)}</Typography>
+                ) : (
+                  <Box display="flex" justifyContent="space-between" mb={1.5}>
+                    <Typography sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem' }}>Precio por entrada:</Typography>
+                    <Typography sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem' }}>{formatMoneyByCountry(selectedTicket.value, event.location?.country)}</Typography>
                   </Box>
-                </>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 2, color: 'text.secondary' }}>
-                  <Typography variant="body2">
-                    Selecciona un tipo de entrada para continuar
-                  </Typography>
+                )}
+                <Box display="flex" justifyContent="space-between" mb={1.5}>
+                  <Typography sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem' }}>Cantidad:</Typography>
+                  <Typography sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem' }}>{quantity}</Typography>
                 </Box>
-              )}
-            </Box>
-
-            {/* Desglose de tasas (solo si hay entrada seleccionada y no es gratis) */}
-            {selectedTicket && !(selectedTicket.isFree || selectedTicket.value === 0) && (
-              <Box mb={2}>
-                <Button
-                  size="small"
-                  endIcon={<ExpandMoreIcon sx={{ transform: showBreakdown ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />}
-                  onClick={() => setShowBreakdown((v) => !v)}
-                  sx={{ mt: 1 }}
-                >
-                  Ver desglose de tasas
-                </Button>
-                <Collapse in={showBreakdown}>
-                  <Box display="flex" justifyContent="space-between" mt={1}>
-                    <Typography>Tasas (10%):</Typography>
-                    <Typography>{formatMoneyByCountry(fees, event.location?.country)}</Typography>
-                  </Box>
-                  <Box display="flex" justifyContent="space-between" fontWeight="bold" mt={1}>
-                    <Typography>Total:</Typography>
-                    <Typography>{formatMoneyByCountry(grandTotal, event.location?.country)}</Typography>
-                  </Box>
-                </Collapse>
+                <Box sx={{ height: '1px', backgroundColor: 'rgba(255, 255, 255, 0.05)', my: 1.5 }} />
+                <Box display="flex" justifyContent="space-between" fontWeight="bold" sx={{ pt: 0.5 }}>
+                  <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '1rem' }}>Subtotal:</Typography>
+                  <Typography sx={{ color: 'white', fontWeight: 500, fontSize: '1rem' }}>{formatMoneyByCountry(total, event.location?.country)}</Typography>
+                </Box>
+              </>
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 2, color: 'rgba(113, 113, 122, 1)' }}>
+                <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                  Selecciona un tipo de entrada para continuar
+                </Typography>
               </Box>
             )}
+          </Box>
 
-            {/* Botón de compra siempre visible */}
-            <Box display="grid" gap={1}>
-              <Tooltip title={!canBuy ? 'Selecciona una entrada disponible' : ''}>
-                <span>
-                  <Button
-                    variant="contained"
+          {/* Desglose de tasas (solo si hay entrada seleccionada y no es gratis) */}
+          {selectedTicket && !(selectedTicket.isFree || selectedTicket.value === 0) && (
+            <Box mb={2}>
+              <Button
+                size="small"
+                endIcon={<ExpandMoreIcon sx={{ transform: showBreakdown ? 'rotate(180deg)' : 'none', transition: '0.2s' }} />}
+                onClick={() => setShowBreakdown((v) => !v)}
+                sx={{
+                  mt: 1,
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  color: 'rgba(161, 161, 170, 1)',
+                }}
+              >
+                Ver desglose de tasas
+              </Button>
+              <Collapse in={showBreakdown}>
+                <Box display="flex" justifyContent="space-between" mt={1}>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'rgba(161, 161, 170, 1)' }}>Tasas (10%):</Typography>
+                  <Typography sx={{ fontSize: '0.75rem', color: 'rgba(161, 161, 170, 1)' }}>{formatMoneyByCountry(fees, event.location?.country)}</Typography>
+                </Box>
+                <Box display="flex" justifyContent="space-between" fontWeight="bold" mt={1}>
+                  <Typography sx={{ fontSize: '0.875rem', color: 'white', fontWeight: 500 }}>Total:</Typography>
+                  <Typography sx={{ fontSize: '0.875rem', color: 'white', fontWeight: 500 }}>{formatMoneyByCountry(grandTotal, event.location?.country)}</Typography>
+                </Box>
+              </Collapse>
+            </Box>
+          )}
+
+          {/* Botón de compra siempre visible */}
+          <Box display="grid" gap={1.5}>
+            <Tooltip title={!canBuy ? 'Selecciona una entrada disponible' : ''}>
+              <span>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  onClick={handleCheckout}
+                  startIcon={<CheckCircleIcon sx={{ fontSize: '1rem' }} />}
+                  disabled={!canBuy}
+                  sx={{
+                    py: 1.5,
+                    color: 'white',
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    borderRadius: '8px',
+                    boxShadow: '0 8px 16px rgba(139, 92, 246, 0.2)',
+                    '&:hover': {filter: 'brightness(1.1)',
+                    },
+                    '&:disabled': {
+                      background: 'rgba(63, 63, 70, 1)',
+                      color: 'rgba(113, 113, 122, 1)',
+                    },
+                  }}
+                >
+                  Comprar ahora
+                </Button>
+              </span>
+            </Tooltip>
+
+            <Box display="grid" gridTemplateColumns="1fr 1fr" gap={1.5}>
+              <Button 
+                variant="outlined" 
+                startIcon={<ShareIcon sx={{ fontSize: '0.875rem' }} />} 
+                onClick={handleShare}
+                sx={{
+                  py: 1.25,
+                  px: 2,
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(161, 161, 170, 1)',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'rgba(212, 212, 216, 1)',
+                  },
+                }}
+              >
+                Compartir
+              </Button>
+              <Button 
+                variant="outlined" 
+                startIcon={<CalendarAddIcon sx={{ fontSize: '0.875rem' }} />} 
+                onClick={() => downloadICS(event)}
+                sx={{
+                  py: 1.25,
+                  px: 2,
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'rgba(161, 161, 170, 1)',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  textTransform: 'none',
+                  borderRadius: '8px',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'rgba(212, 212, 216, 1)',
+                  },
+                }}
+              >
+                Agregar al calendario
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+
+        {event.organizer && (
+          <Paper elevation={3} sx={{ p: 3, borderRadius: 2, mt: 3 }}>
+            <Typography variant="h6" gutterBottom>Organizador</Typography>
+            <Box display="flex" alignItems="center">
+              {event.organizer?.logoUrl && (
+                <Box component="img" src={event.organizer.logoUrl} alt={event.organizer.name} sx={{ width: 60, height: 60, borderRadius: 1, objectFit: 'contain', mr: 2 }} />
+              )}
+              <Box>
+                <Typography variant="subtitle1">{event.organizer?.name}</Typography>
+                {event.organizer?.url && (
+                  <Typography
+                    variant="body2"
                     color="primary"
-                    fullWidth
-                    size="large"
-                    onClick={handleCheckout}
-                    startIcon={<CheckCircleIcon />}
-                    disabled={!canBuy}
+                    component="a"
+                    href={event.organizer.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
                   >
-                    Comprar ahora
-                  </Button>
-                </span>
-              </Tooltip>
-
-              <Box display="flex" gap={1}>
-                <Button fullWidth variant="outlined" startIcon={<ShareIcon />} onClick={handleShare}>Compartir</Button>
-                <Button fullWidth variant="outlined" startIcon={<CalendarAddIcon />} onClick={() => downloadICS(event)}>Agregar al calendario</Button>
+                    Ver más eventos
+                  </Typography>
+                )}
               </Box>
             </Box>
           </Paper>
-
-          {event.organizer && (
-            <Paper elevation={3} sx={{ p: 3, borderRadius: 2, mt: 3 }}>
-              <Typography variant="h6" gutterBottom>Organizador</Typography>
-              <Box display="flex" alignItems="center">
-                {event.organizer?.logoUrl && (
-                  <Box component="img" src={event.organizer.logoUrl} alt={event.organizer.name} sx={{ width: 60, height: 60, borderRadius: 1, objectFit: 'contain', mr: 2 }} />
-                )}
-                <Box>
-                  <Typography variant="subtitle1">{event.organizer?.name}</Typography>
-                  {event.organizer?.url && (
-                    <Typography
-                      variant="body2"
-                      color="primary"
-                      component="a"
-                      href={event.organizer.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      Ver más eventos
-                    </Typography>
-                  )}
-                </Box>
-              </Box>
-            </Paper>
-          )}
+        )}
         </Grid>
       </Grid>
     </Container>

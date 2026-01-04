@@ -97,28 +97,27 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             />
           </Box>
 
-          {!isMobile && (
+          {!isMobile && !isEventsActive && (
             <Box sx={{ display: 'flex', ml: 2 }}>
-              <Button component={Link} href="/events" color={isEventsActive ? 'primary' : 'inherit'}>
+              <Button component={Link} href="/events" color="inherit">
                 Eventos
               </Button>
-              {isAuthenticated && hasBackofficeAccess && (
-                <Button
-                  component={Link}
-                  href="/admin/events/new"
-                  variant="contained"
-                  color="primary"
-                  startIcon={<AddCircleOutlineIcon />}
-                  sx={{ ml: 1 }}
-                >
-                  Crear evento
-                </Button>
-              )}
             </Box>
           )}
         </Box>
 
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {!isMobile && isAuthenticated && hasBackofficeAccess && (
+            <Button
+              component={Link}
+              href="/admin/events/new"
+              variant="contained"
+              color="primary"
+              startIcon={<AddCircleOutlineIcon />}
+            >
+              Crear evento
+            </Button>
+          )}
           {/* Botón de menú para sidebar en mobile (solo en backoffice) */}
           {isMobile && isAuthenticated && hasBackofficeAccess && isBackofficePage && onMenuClick && (
             <IconButton 

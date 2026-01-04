@@ -7,7 +7,7 @@ import EventCard from '@/components/events/EventCard';
 import FiltersPanel from '@/components/events/FiltersPanel';
 import AppliedFiltersChips from '@/components/events/AppliedFiltersChips';
 import { EventService } from '@/services/EventService';
-import type { SearchEvent, SearchEventParams } from '@/types/search-event';
+import type { SearchEvent } from '@/types/search-event';
 import { Box, Container, Typography, Pagination } from '@mui/material';
 import Grid from '@mui/material/Grid';
 
@@ -171,9 +171,28 @@ function EventsListInner() {
   }, [searchParams]);
 
   return (
-    <Container sx={{ py: 4 }}>
-      <FiltersPanel facets={facets} activeCount={activeCount} />
-      <AppliedFiltersChips />
+    <Container sx={{ py: 2 }}>
+      <Box sx={{ mb: 3 }}>
+        <FiltersPanel facets={facets} activeCount={activeCount} />
+      </Box>
+      
+      <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 4 }}>
+        <AppliedFiltersChips />
+        {!loading && visible.length > 0 && (
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'rgba(113, 113, 122, 1)',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              ml: 'auto',
+            }}
+          >
+            Mostrando {visible.length} {visible.length === 1 ? 'resultado' : 'resultados'} de {total}{' '}
+            {total === 1 ? 'total' : 'totales'}
+          </Typography>
+        )}
+      </Box>
 
       {error && (
         <Box sx={{ mb: 3 }}>
@@ -195,16 +214,9 @@ function EventsListInner() {
         <Empty title="No se encontraron eventos" description="Ajusta los filtros o limpia la búsqueda." />
       ) : (
         <>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Mostrando {visible.length} {visible.length === 1 ? 'resultado' : 'resultados'} de {total}{' '}
-              {total === 1 ? 'total' : 'totales'}
-            </Typography>
-          </Box>
-
           <Grid container spacing={3}>
             {visible.map((e) => (
-              <Grid key={e.id} size={{ xs: 12, sm: 6, md: 4 }}>
+              <Grid key={e.id} size={{ xs: 12, sm: 6, lg: 4 }}>
                 <EventCard event={e} />
               </Grid>
             ))}
@@ -224,14 +236,34 @@ function EventsListInner() {
 export default function EventsPage() {
   return (
     <LightLayout title="Eventos - TuEntradaYa">
-      <Box sx={{ py: 3 }}>
+      <Box sx={{ pt: 10, pb: 3 }}>
         <Container>
-          <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 2 }}>
-            Explora eventos
-          </Typography>
-          <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
-            Busca por país, ciudad y nombre del evento.
-          </Typography>
+          <Box sx={{ textAlign: 'center', mb: 5 }}>
+            <Typography 
+              variant="h3" 
+              component="h1" 
+              gutterBottom
+              sx={{ 
+                fontSize: { xs: '2rem', md: '3rem' },
+                fontWeight: 600,
+                mb: 2,
+                color: 'white',
+                letterSpacing: '-0.025em',
+              }}
+            >
+              Explora eventos
+            </Typography>
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                fontSize: { xs: '1rem', md: '1.125rem' },
+                color: 'rgba(161, 161, 170, 1)',
+                fontWeight: 500,
+              }}
+            >
+              Busca por país, ciudad y nombre del evento.
+            </Typography>
+          </Box>
         </Container>
 
         <Suspense fallback={<Container><Loading label="Cargando..." /></Container>}>

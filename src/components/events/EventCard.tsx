@@ -4,7 +4,6 @@
 import {
   Card,
   CardContent,
-  CardMedia,
   Typography,
   IconButton,
   Tooltip,
@@ -17,13 +16,11 @@ import {
   DialogContent,
   DialogActions,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   TextField,
   CircularProgress,
 } from '@mui/material';
-import type { ChipProps } from '@mui/material';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -37,18 +34,6 @@ import { EventService } from '@/services/EventService';
 import { CheckoutService } from '@/services/CheckoutService';
 import type { Ticket } from '@/types/Event';
 import { formatCurrency } from '@/utils/format';
-
-function statusColor(status: SearchEvent['status']): ChipProps['color'] {
-  switch (status) {
-    case 'ACTIVE':
-      return 'success';
-    case 'SOLD_OUT':
-      return 'warning';
-    case 'INACTIVE':
-    default:
-      return 'default';
-  }
-}
 
 export default function EventCard({ event }: { event: SearchEvent }) {
   const router = useRouter();
@@ -103,6 +88,26 @@ export default function EventCard({ event }: { event: SearchEvent }) {
     } catch {}
   };
 
+  const handleBuyClick = async () => {
+    setOpenBuy(true);
+    if (tickets.length > 0) {
+      loadPrefs();
+      return;
+    }
+    try {
+      setLoadingTickets(true);
+      const full = await EventService.getEventById(event.id);
+      if (full?.tickets && Array.isArray(full.tickets)) {
+        setTickets(full.tickets.filter((t: Ticket) => t.stock > 0));
+      }
+      loadPrefs();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
   return (
     <Card
       onClick={() => {
@@ -115,118 +120,211 @@ export default function EventCard({ event }: { event: SearchEvent }) {
         flexDirection: 'column',
         position: 'relative',
         cursor: 'pointer',
-        transition: 'transform .2s ease, box-shadow .2s ease, border-color .2s ease',
-        border: '1px solid',
-        borderColor: 'divider',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        transition: 'all 0.3s ease',
         '&:hover': {
+          borderColor: 'rgba(124, 58, 237, 0.5)',
           transform: 'translateY(-2px)',
-          boxShadow: 6,
-          borderColor: 'primary.main',
-        },
-        '&:hover .buyBtn': {
-          transform: 'scale(1.03)',
-          backgroundColor: 'primary.dark',
+          boxShadow: '0 0 20px rgba(124, 58, 237, 0.2)',
+          '& .event-image': {
+            transform: 'scale(1.05)',
+          },
+          '& .event-title': {
+            color: 'rgba(167, 139, 250, 1)',
+          },
         },
       }}
     >
-      <CardMedia 
-        component="img" 
-        height="200" 
-        image={event.bannerUrl || 'https://via.placeholder.com/800x450/6366f1/ffffff?text=Evento'} 
-        alt={event.name} 
-        onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
-          e.currentTarget.src = 'https://via.placeholder.com/800x450/6366f1/ffffff?text=Evento';
-        }}
-        sx={{ 
-          objectFit: 'cover',
-          width: '100%',
-          aspectRatio: '16/9',
-          backgroundColor: 'grey.200'
-        }} 
-      />
+      <Box sx={{ position: 'relative', height: 208, overflow: 'hidden' }}>
+        <Box
+          className="event-image"
+          component="img" 
+          src={event.bannerUrl || 'https://via.placeholder.com/800x450/6366f1/ffffff?text=Evento'} 
+          alt={event.name} 
+          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+            e.currentTarget.src = 'https://via.placeholder.com/800x450/6366f1/ffffff?text=Evento';
+          }}
+          sx={{ 
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: 'transform 0.5s ease',
+          }} 
+        />
+        <Box 
+          sx={{ 
+            position: 'absolute',
+            inset: 0,
+             opacity: 0.6,
+          }}
+        />
+        <Box sx={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 1 }}>
+          <Tooltip title={fav ? 'Quitar de guardados' : 'Guardar'}>
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFav(e);
+              }}
+              aria-label={fav ? 'Quitar de guardados' : 'Guardar'}
+              sx={{
+                padding: '8px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                backdropFilter: 'blur(12px)',
+                color: 'rgba(255, 255, 255, 0.7)',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  color: 'white',
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                },
+              }}
+            >
+              {fav ? <FavoriteIcon sx={{ fontSize: '1rem' }} color="error" /> : <FavoriteBorderIcon sx={{ fontSize: '1rem' }} />}
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
 
-      <CardContent sx={{ flexGrow: 1, pt: 2 }}>
-        <Stack direction="row" spacing={1} sx={{ mb: 1 }} alignItems="center">
-          <Chip size="small" label={category} color="primary" variant="outlined" />
-          <Chip size="small" label={ageLabel} variant="outlined" />
+      <CardContent sx={{ flexGrow: 1, p: 2.5, display: 'flex', flexDirection: 'column' }}>
+        <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap', gap: 0.75 }} alignItems="center">
+          <Chip 
+            size="small" 
+            label={category} 
+            sx={{ 
+              px: 1.25,
+              py: 0.5,
+              borderRadius: '9999px',
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              border: '1px solid rgba(39, 39, 42, 1)',
+              color: 'rgba(196, 181, 253, 1)',
+            }}
+          />
+          <Chip 
+            size="small" 
+            label={ageLabel}
+            sx={{ 
+              px: 1.25,
+              py: 0.5,
+              borderRadius: '9999px',
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              border: '1px solid rgba(63, 63, 70, 1)',
+              color: 'rgba(161, 161, 170, 1)',
+            }}
+          />
           <Chip
             size="small"
             label={event.status === 'ACTIVE' ? 'Activo' : event.status === 'SOLD_OUT' ? 'Agotado' : 'Inactivo'}
-            color={statusColor(event.status)}
+            sx={{ 
+              px: 1.25,
+              py: 0.5,
+              borderRadius: '9999px',
+              fontSize: '0.625rem',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              border: event.status === 'ACTIVE' ? '1px solid rgba(6, 78, 59, 0.3)' : '1px solid rgba(39, 39, 42, 1)',
+              color: event.status === 'ACTIVE' ? 'rgba(52, 211, 153, 1)' : 'rgba(161, 161, 170, 1)',
+              backgroundColor: event.status === 'ACTIVE' ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+            }}
           />
         </Stack>
 
-        <Typography gutterBottom variant="h6" component="h3">
+        <Typography 
+          className="event-title"
+          gutterBottom 
+          variant="h6" 
+          component="h3"
+          sx={{
+            fontSize: '1.125rem',
+            fontWeight: 600,
+            color: 'white',
+            letterSpacing: '-0.025em',
+            lineHeight: 1.4,
+            mb: 2,
+            transition: 'color 0.3s ease',
+          }}
+        >
           {event.name}
         </Typography>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-          <strong>Ubicación:</strong> {event.location}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          <strong>Fecha:</strong> {dateLabel}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          <strong>Hora:</strong> {timeLabel}
-        </Typography>
+        <Box sx={{ space: 'y-2', mb: 2 }}>
+          <Typography variant="body2" sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem', mb: 0.75 }}>
+            <Box component="span" sx={{ color: 'rgba(113, 113, 122, 1)', fontWeight: 500 }}>Ubicación:</Box> {event.location}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem', mb: 0.75 }}>
+            <Box component="span" sx={{ color: 'rgba(113, 113, 122, 1)', fontWeight: 500 }}>Fecha:</Box> {dateLabel}
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'rgba(161, 161, 170, 1)', fontSize: '0.875rem' }}>
+            <Box component="span" sx={{ color: 'rgba(113, 113, 122, 1)', fontWeight: 500 }}>Hora:</Box> {timeLabel}
+          </Typography>
+        </Box>
 
-        {event.price === 0 ? (
-          <Box sx={{ mt: 1.5 }}>
+        <Box sx={{ pt: 2 }}>
+          {event.price === 0 ? (
             <Chip 
               label="GRATIS" 
-              color="success" 
               size="medium"
               sx={{ 
                 fontWeight: 'bold',
                 fontSize: '0.875rem',
-                px: 1
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                color: 'rgba(16, 185, 129, 1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                px: 2,
+                py: 0.5,
               }} 
             />
-          </Box>
-        ) : (
-          <Typography variant="subtitle1" color="primary" sx={{ mt: 1.5, fontWeight: 600 }}>
-            {formatCurrency(event.price, /^[A-Z]{3}$/.test(event.currency) ? event.currency : 'ARS', 'es-AR')}
-          </Typography>
-        )}
+          ) : (
+            <Box>
+              <Typography variant="body2" sx={{ color: 'rgba(113, 113, 122, 1)', fontSize: '0.75rem', mb: 0.5, fontWeight: 500 }}>
+                Desde
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'white', fontSize: '1.25rem' }}>
+                {event.currency
+                  ? new Intl.NumberFormat('es-AR', { 
+                      style: 'currency', 
+                      currency: /^[A-Z]{3}$/.test(event.currency) ? event.currency : 'ARS' 
+                    }).format(event.price)
+                  : `$${event.price.toLocaleString('es-AR')}`}
+              </Typography>
+            </Box>
+          )}
+        </Box>
       </CardContent>
 
-      <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
-        <Tooltip title={fav ? 'Quitar de guardados' : 'Guardar'}>
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFav(e);
-            }}
-            aria-label={fav ? 'Quitar de guardados' : 'Guardar'}
-          >
-            {fav ? <FavoriteIcon color="error" /> : <FavoriteBorderIcon sx={{ color: 'white' }} />}
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      <Box sx={{ p: 2, pt: 0 }}>
+      <Box sx={{ p: 2.5, pt: 0 }}>
         <Button
           className="buyBtn"
           fullWidth
           variant="contained"
           onClick={(e) => {
             e.stopPropagation();
-            setOpenBuy(true);
-            setLoadingTickets(true);
-            loadPrefs();
-            // Usar endpoint público (no requiere auth)
-            EventService.getPublicById(event.id)
-              .then((evt) => {
-                setTickets(evt.tickets || []);
-                if (!selectedTicketId) {
-                  const firstAvailable = (evt.tickets || []).find((t) => t.stock > 0);
-                  if (firstAvailable) setSelectedTicketId(firstAvailable.id);
-                }
-              })
-              .finally(() => setLoadingTickets(false));
+            handleBuyClick();
           }}
-          sx={{ transition: 'transform .2s ease, background-color .2s ease' }}
+          sx={{
+            mt: 2,
+            color: 'white',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            py: 1.5,
+            textTransform: 'none',
+            borderRadius: '8px',
+            boxShadow: '0 4px 14px 0 rgba(124, 58, 237, 0.39)',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              backgroundColor: 'rgba(139, 92, 246, 1)',
+              boxShadow: '0 6px 20px rgba(124, 58, 237, 0.5)',
+            },
+          }}
         >
           Comprar ahora
         </Button>

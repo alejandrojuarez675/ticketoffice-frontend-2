@@ -24,6 +24,7 @@ import {
 import Grid from '@mui/material/Grid';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import CloseIcon from '@mui/icons-material/Close';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { todayRange, weekendRange } from '@/utils/date';
 import { RegionService, type CountryDto, type CityDto } from '@/services/RegionService';
@@ -241,14 +242,53 @@ export default function FiltersPanel({
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
-        <Button variant="contained" startIcon={<FilterAltIcon />} onClick={() => setOpen((v) => !v)}>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1, flexWrap: 'wrap' }}>
+        <Button 
+          variant="contained" 
+          startIcon={<FilterAltIcon />} 
+          onClick={() => setOpen((v) => !v)}
+          sx={{
+            color: 'white',
+            fontWeight: 500,
+            textTransform: 'none',
+            px: 3,
+            py: 1,
+            borderRadius: '8px',
+            boxShadow: '0 4px 14px 0 rgba(124, 58, 237, 0.39)',
+            '&:hover': {
+              backgroundColor: 'rgba(139, 92, 246, 1)',
+              boxShadow: '0 6px 20px rgba(124, 58, 237, 0.5)',
+            },
+          }}
+        >
           Filtros
         </Button>
-        {hasActive && <Chip label={`${activeCount}`} color="primary" variant="filled" />}
         {hasActive && (
-          <Button variant="outlined" onClick={clear}>
-            Eliminar filtros
+          <Chip 
+            label={`${activeCount} activo${activeCount > 1 ? 's' : ''}`} 
+            sx={{
+              backgroundColor: 'rgba(124, 58, 237, 0.1)',
+              color: 'rgba(167, 139, 250, 1)',
+              border: '1px solid rgba(124, 58, 237, 0.3)',
+              fontWeight: 600,
+            }}
+          />
+        )}
+        {hasActive && (
+          <Button 
+            variant="outlined" 
+            onClick={clear}
+            sx={{
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              color: 'rgba(161, 161, 170, 1)',
+              textTransform: 'none',
+              '&:hover': {
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              },
+            }}
+          >
+            Limpiar filtros
           </Button>
         )}
       </Box>
@@ -269,9 +309,12 @@ export default function FiltersPanel({
           <Stack spacing={2}>
             {/* Filtros de Precio - Siempre visible y prominente */}
             <Box>
-              <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                💰 Rango de Precio
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <AttachMoneyIcon sx={{ fontSize: '1.125rem', color: 'rgba(167, 139, 250, 1)' }} />
+                <Typography variant="subtitle2" fontWeight="bold">
+                  Rango de Precio
+                </Typography>
+              </Box>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 6, sm: 6, md: 6 }}>
                   <TextField

@@ -81,7 +81,7 @@ export default function AppliedFiltersChips() {
   if (items.length === 0) return null;
 
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
       {items.map((it) => (
         <Chip key={it.key} label={it.label} onDelete={() => remove(it.key)} />
       ))}

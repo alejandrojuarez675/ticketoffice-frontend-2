@@ -32,7 +32,7 @@ const Hero = styled(Box)(({ theme }) => ({
 }));
 
 const Features = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(8, 4),
+  padding: theme.spacing(12, 4, 0, 4),
   backgroundColor: theme.palette.background.default,
 }));
 
@@ -44,11 +44,25 @@ const FeatureCard = styled(Card)(({ theme }) => ({
   alignItems: 'center',
   textAlign: 'center',
   padding: theme.spacing(4),
-  transition: 'transform 0.3s ease-in-out',
-  '&:hover': {
-    transform: 'translateY(-5px)',
+  position: 'relative',
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '16px',
+  transition: 'all 0.3s ease',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    inset: 0,
+   opacity: 0,
+    transition: 'opacity 0.3s ease',
+    borderRadius: '16px',
   },
-  backgroundColor: theme.palette.background.paper,
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    '&::before': {
+      opacity: 1,
+    },
+  },
 }));
 
 function HomeContent() {
@@ -83,18 +97,27 @@ function HomeContent() {
   const features = [
     {
       title: 'Gestión de Eventos',
-      description: 'Organiza y gestiona todos tus eventos de manera eficiente',
+      description: 'Organiza y gestiona todos tus eventos de manera eficiente con herramientas diseñadas para la productividad.',
       icon: '📅',
+      color: 'rgba(99, 102, 241, 0.1)',
+      borderColor: 'rgba(99, 102, 241, 0.2)',
+      iconColor: 'rgb(129, 140, 248)',
     },
     {
       title: 'Venta de Boletos',
-      description: 'Sistema de venta de boletos en línea',
+      description: 'Sistema integral de venta de boletos en línea con pasarelas de pago seguras y emisión instantánea.',
       icon: '🎟️',
+      color: 'rgba(244, 63, 94, 0.1)',
+      borderColor: 'rgba(244, 63, 94, 0.2)',
+      iconColor: 'rgb(251, 113, 133)',
     },
     {
       title: 'Reportes en Tiempo Real',
-      description: 'Accede a estadísticas y reportes detallados',
+      description: 'Accede a estadísticas detalladas y dashboards analíticos para tomar decisiones basadas en datos.',
       icon: '📊',
+      color: 'rgba(16, 185, 129, 0.1)',
+      borderColor: 'rgba(16, 185, 129, 0.2)',
+      iconColor: 'rgb(52, 211, 153)',
     },
   ];
 
@@ -313,42 +336,82 @@ function HomeContent() {
 
       <Features>
         <Container maxWidth="lg">
-          <Typography 
-            variant="h2" 
-            gutterBottom 
-            align="center" 
-            sx={{ 
-              mb: 6,
-              fontWeight: 600,
-            }}
-          >
-            Características Principales
-          </Typography>
-          <Grid container spacing={4}>
+          <Box sx={{ textAlign: 'center', mb: 8 }}>
+            <Typography 
+              variant="h2" 
+              gutterBottom
+              sx={{ 
+                fontSize: { xs: '2rem', md: '2.5rem' },
+                fontWeight: 600,
+                mb: 2,
+                color: 'white',
+                letterSpacing: '-0.025em',
+              }}
+            >
+              Características Principales
+            </Typography>
+            <Typography 
+              variant="body1"
+              sx={{ 
+                fontSize: { xs: '1rem', md: '1.125rem' },
+                color: 'rgba(161, 161, 170, 1)',
+                maxWidth: '42rem',
+                mx: 'auto',
+                lineHeight: 1.75,
+              }}
+            >
+              Todo lo que necesitas para gestionar tus eventos y ventas en una sola plataforma robusta y escalable.
+            </Typography>
+          </Box>
+          <Grid container spacing={3}>
             {features.map((feature, index) => (
               <Grid size={{ xs: 12, sm: 4 }} key={index}>
                 <FeatureCard>
-                  <Typography 
-                    variant="h2" 
+                  <Box 
                     sx={{ 
-                      fontSize: '3rem',
-                      mb: 2,
-                      lineHeight: 1,
+                      p: 1.5,
+                      mb: 3,
+                      borderRadius: '12px',
+                      color: feature.iconColor,
+                      border: '1px solid',
+                      borderColor: feature.borderColor,
+                      display: 'inline-flex',
+                      position: 'relative',
+                      zIndex: 10,
                     }}
                   >
-                    {feature.icon}
-                  </Typography>
+                    <Typography 
+                      sx={{ 
+                        fontSize: '2rem',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {feature.icon}
+                    </Typography>
+                  </Box>
                   <Typography 
-                    variant="h5" 
+                    variant="h6" 
                     gutterBottom 
                     sx={{ 
-                      fontWeight: 600,
-                      mb: 2,
+                      fontWeight: 500,
+                      mb: 1.5,
+                      color: 'white',
+                      letterSpacing: '-0.025em',
+                      position: 'relative',
+                      zIndex: 10,
                     }}
                   >
                     {feature.title}
                   </Typography>
-                  <Typography variant="body1">
+                  <Typography 
+                    variant="body2"
+                    sx={{ 
+                      color: 'rgba(161, 161, 170, 1)',
+                      lineHeight: 1.625,
+                      position: 'relative',
+                      zIndex: 10,
+                    }}
+                  >
                     {feature.description}
                   </Typography>
                 </FeatureCard>

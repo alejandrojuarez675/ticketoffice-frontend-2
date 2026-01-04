@@ -20,21 +20,20 @@
   }
 }
 
-html, body {
+html,
+body {
   min-height: 100%;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Helvetica", "Arial", sans-serif;
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% 0%, rgba(124, 77, 255, 0.08), transparent 45%),
-    radial-gradient(1000px 500px at 90% 100%, rgba(16, 185, 129, 0.06), transparent 45%),
-    linear-gradient(180deg, #0f1324 0%, #0b0f19 100%);
+
   background-attachment: fixed;
 }
 
@@ -50,12 +49,12 @@ select:-webkit-autofill {
   -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
 }
 
-input[type='number']::-webkit-outer-spin-button,
-input[type='number']::-webkit-inner-spin-button {
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-input[type='number'] {
+input[type="number"] {
   -moz-appearance: textfield;
 }
 
@@ -72,13 +71,17 @@ input[type='number'] {
 /* Ya tenías estas reglas; las mantenemos para más compatibilidad */
 input:-webkit-autofill,
 textarea:-webkit-autofill,
-
 .MuiInputBase-root input:-webkit-autofill,
 .MuiInputBase-root textarea:-webkit-autofill {
   -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
 }
 
 /* Opcional: quitar flechas de number */
-input[type='number']::-webkit-outer-spin-button,
-input[type='number']::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type='number'] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}

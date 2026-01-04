@@ -58,7 +58,6 @@ export default function BackofficeLayout({ children, title = 'Admin - TuEntradaY
               mt: { xs: '56px', sm: '64px' },
               display: 'flex',
               flexDirection: 'column',
-              // Sin margin-left: el contenido se ajusta automáticamente con flexGrow
               overflow: 'hidden',
             }}
           >

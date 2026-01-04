@@ -1,4 +1,4 @@
-import { createTheme, type ThemeOptions, type Components } from '@mui/material/styles';
+import { createTheme, type ThemeOptions } from '@mui/material/styles';
 
 const themeOptions: ThemeOptions = {
   palette: {
@@ -26,7 +26,7 @@ const themeOptions: ThemeOptions = {
     divider: 'rgba(255, 255, 255, 0.12)',
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 700,
       fontSize: '3.5rem',
