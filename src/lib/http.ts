@@ -207,8 +207,21 @@ export async function fetchJson<TResponse, B = unknown>(url: string, opts: Fetch
       // 204 No Content - sin body
       if (res.status === 204) return undefined as unknown as TResponse;
       
+      // 201 Created puede venir sin body - verificar Content-Length
+      const contentLength = res.headers.get('content-length');
+      if (res.status === 201 && (contentLength === '0' || contentLength === null)) {
+        // 201 sin contenido - algunos backends no envían body
+        return undefined as unknown as TResponse;
+      }
+      
       // 201 Created, 200 OK, etc - con body
-      if (isJson) return (await res.json()) as TResponse;
+      if (isJson) {
+        const text = await res.text();
+        if (!text || text.trim() === '') {
+          return undefined as unknown as TResponse;
+        }
+        return JSON.parse(text) as TResponse;
+      }
       return (await res.text()) as unknown as TResponse;
     } catch (err) {
       if (attempt < retries) {

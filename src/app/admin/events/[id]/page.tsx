@@ -36,10 +36,18 @@ import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
 import Link from 'next/link';
 import { formatMoneyByCountry } from '@/utils/format';
+import { isValidId } from '@/utils/validation';
 
 export default function AdminEventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  
+  // Validar ID al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (id && !isValidId(id)) {
+      router.replace('/');
+    }
+  }, [id, router]);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { user, isAuthenticated, isLoading } = useAuth();

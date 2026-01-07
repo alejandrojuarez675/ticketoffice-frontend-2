@@ -1,9 +1,17 @@
 import { Box, Card, CardContent, Container, Typography } from '@mui/material';
 import LightLayout from '@/components/layouts/LightLayout';
 import { TicketService } from '@/services/TicketService';
+import { redirect } from 'next/navigation';
+import { isValidId } from '@/utils/validation';
 
 export default async function TicketDetailPage({ params }: { params: Promise<{ ticketId: string }> }) {
   const { ticketId } = await params;
+  
+  // Validar ticketId - redirigir si es inválido
+  if (!ticketId || !isValidId(ticketId)) {
+    redirect('/');
+  }
+  
   const ticket = await TicketService.getTicketById(ticketId);
 
   return (

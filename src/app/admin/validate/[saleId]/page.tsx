@@ -15,6 +15,7 @@ import {
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { ConfigService } from '@/services/ConfigService';
+import { isValidId } from '@/utils/validation';
 
 export default function SalesValidationPage() {
   return (
@@ -27,6 +28,13 @@ export default function SalesValidationPage() {
 function SalesValidationContent() {
   const { saleId } = useParams<{ saleId: string }>();
   const router = useRouter();
+
+  // Validar saleId al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (saleId && !isValidId(saleId)) {
+      router.replace('/');
+    }
+  }, [saleId, router]);
 
   const [ticketId, setTicketId] = useState('');
   const [openDialog, setOpenDialog] = useState(false);

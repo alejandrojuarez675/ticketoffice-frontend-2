@@ -29,6 +29,8 @@ import EventIcon from '@mui/icons-material/Event';
 import BusinessIcon from '@mui/icons-material/Business';
 import SaveIcon from '@mui/icons-material/Save';
 import { OrganizerService, type OrganizerData } from '@/services/OrganizerService';
+import { sanitizeString, sanitizeUrl } from '@/utils/sanitize';
+import { capitalizeFirstLetter } from '@/utils/format';
 
 export default function SellerProfilePage() {
   const { user, isLoading, isAuthenticated, refresh } = useAuth();
@@ -64,7 +66,12 @@ export default function SellerProfilePage() {
   const handleCreateOrganizer = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!organizerData.name.trim()) {
+    // Sanitizar inputs antes de enviar
+    const sanitizedName = sanitizeString(organizerData.name);
+    const sanitizedWebUrl = sanitizeUrl(organizerData.url) || '';
+    const sanitizedLogoUrl = sanitizeUrl(organizerData.logo.url) || '';
+    
+    if (!sanitizedName) {
       setSnackbar({ open: true, message: 'El nombre del organizador es obligatorio.', severity: 'error' });
       return;
     }
@@ -72,11 +79,11 @@ export default function SellerProfilePage() {
     setSaving(true);
     try {
       await OrganizerService.createOrganizer({
-        name: organizerData.name.trim(),
-        url: organizerData.url.trim() || '',
+        name: sanitizedName,
+        url: sanitizedWebUrl,
         logo: {
-          url: organizerData.logo.url.trim() || '',
-          alt: organizerData.logo.alt.trim() || organizerData.name.trim(),
+          url: sanitizedLogoUrl,
+          alt: sanitizeString(organizerData.logo.alt) || sanitizedName,
         },
       });
       
@@ -148,7 +155,7 @@ export default function SellerProfilePage() {
           <PersonIcon sx={{ fontSize: 40, color: 'primary.main' }} />
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-              ¡Hola, {user.name || user.username}!
+              ¡Hola, {capitalizeFirstLetter(user.name || user.username)}!
             </Typography>
             <Chip 
               label={getRoleLabel(user.role)} 

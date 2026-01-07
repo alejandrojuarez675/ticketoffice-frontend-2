@@ -291,8 +291,39 @@ class AuthService {
   static async checkAvailability(_: { username?: string; email?: string }): Promise<{ usernameAvailable?: boolean; emailAvailable?: boolean }> {
     throw new Error('Función no disponible en el MVP');
   }
-  static async requestPasswordReset(_: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
-  static async resetPassword(_: string, __: string): Promise<void> { throw new Error('Función no disponible en el MVP'); }
+
+  /**
+   * Solicita restablecimiento de contraseña
+   * El backend envía un email con un token para restablecer la contraseña
+   * POST /auth/forgot-password
+   */
+  static async requestPasswordReset(email: string): Promise<void> {
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 300));
+      logger.info('requestPasswordReset mock', { email });
+      return;
+    }
+
+    const url = `${this.BASE_URL}/auth/forgot-password`;
+    await http.post<{ message: string }, { email: string }>(url, { email });
+    logger.info('requestPasswordReset sent', { email });
+  }
+
+  /**
+   * Restablece la contraseña usando el token recibido por email
+   * POST /auth/reset-password-with-token
+   */
+  static async resetPassword(token: string, newPassword: string): Promise<void> {
+    if (ConfigService.isMockedEnabled()) {
+      await new Promise((r) => setTimeout(r, 300));
+      logger.info('resetPassword mock');
+      return;
+    }
+
+    const url = `${this.BASE_URL}/auth/reset-password-with-token`;
+    await http.post<{ message: string }, { token: string; newPassword: string }>(url, { token, newPassword });
+    logger.info('resetPassword success');
+  }
 }
 
 export { AuthService };

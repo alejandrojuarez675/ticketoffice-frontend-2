@@ -79,7 +79,12 @@ export default function BackofficeLayout({ children, title = 'Admin - TuEntradaY
           </Box>
         </Box>
         
-        <Box component="footer">
+        <Box 
+          component="footer" 
+          sx={{ 
+            ml: { md: `${drawerWidth}px` }, // Offset del sidebar en pantallas >= 900px
+          }}
+        >
           <Footer />
         </Box>
       </Box>

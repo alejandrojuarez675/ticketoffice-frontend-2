@@ -217,7 +217,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   </ListItemIcon>
                   <ListItemText>Mi perfil</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={handleSettings} disabled={!hasBackofficeAccess}>
+                <MenuItem onClick={handleSettings} disabled={!hasBackofficeAccess} sx={{ display: 'none' }}>
                   <ListItemIcon>
                     <SettingsIcon fontSize="small" />
                   </ListItemIcon>

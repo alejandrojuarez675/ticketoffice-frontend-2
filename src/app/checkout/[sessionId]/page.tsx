@@ -20,16 +20,30 @@ import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
 // [F1-007] Constantes centralizadas
 import { COUNTRIES } from '@/constants/countries';
-import { DOCUMENT_TYPES } from '@/constants/documents';
 import { sanitizeBuyerData, sanitizeEmail } from '@/utils/sanitize';
+import { useRegion } from '@/contexts/RegionContext';
+import { validatePhone } from '@/utils/phoneValidation';
+import { validateDocument } from '@/utils/documentValidation';
+import { DOCUMENT_TYPES } from '@/constants/documents';
+import { isValidId } from '@/utils/validation';
 
 type SessionMeta = { eventId: string; priceId: string; quantity: number };
 
 function CheckoutContent() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const router = useRouter();
+  
+  // Validar sessionId al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (sessionId && !isValidId(sessionId)) {
+      router.replace('/');
+    }
+  }, [sessionId, router]);
   const searchParams = useSearchParams();
   const status = (searchParams?.get('status') || '').toLowerCase();
+  
+  // Obtener configuración regional del usuario
+  const { countryCode, countryConfig } = useRegion();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,8 +75,10 @@ function CheckoutContent() {
         setEvent(evt as unknown as EventDetail);
 
         const qty = Math.max(1, parsed.quantity || 1);
+        // Usar tipo de documento por defecto según configuración regional
+        const defaultDocType = countryConfig?.documentType?.[0]?.code || 'DNI';
         const initialBuyers = Array(qty).fill(0).map(() => ({
-          name: '', lastName: '', email: '', phone: '', nationality: 'Argentina', documentType: 'DNI', document: ''
+          name: '', lastName: '', email: '', phone: '', nationality: 'Argentina', documentType: defaultDocType, document: ''
         })) as BuyerData[];
         setBuyers(initialBuyers);
       } catch (err) {
@@ -72,7 +88,7 @@ function CheckoutContent() {
         setLoading(false);
       }
     })();
-  }, [sessionId]);
+  }, [sessionId, countryConfig?.documentType]);
 
   const handleBuyerChange = (index: number, field: keyof BuyerData, value: string) => {
     setBuyers((prev) => {
@@ -101,8 +117,14 @@ function CheckoutContent() {
       } else if (!emailRegex.test(buyer.email)) {
         errors[`buyer-${index}-email`] = 'Ingrese un correo electrónico válido';
       }
-      if (!buyer.phone) errors[`buyer-${index}-phone`] = 'El teléfono es requerido';
-      if (!buyer.document) errors[`buyer-${index}-document`] = 'El documento es requerido';
+      // Validar teléfono según país del evento
+      const phoneError = validatePhone(buyer.phone, countryCode || 'OTHER');
+      if (phoneError) errors[`buyer-${index}-phone`] = phoneError;
+      
+      // Validar documento según tipo y configuración del país
+      const docTypeConfig = countryConfig?.documentType?.find(d => d.code === buyer.documentType);
+      const docError = validateDocument(buyer.document, buyer.documentType, docTypeConfig);
+      if (docError) errors[`buyer-${index}-document`] = docError;
     });
 
     setFormErrors(errors);
@@ -291,18 +313,25 @@ function CheckoutContent() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField fullWidth label="Teléfono" variant="outlined" margin="normal" type="tel"
-                      value={buyer.phone} onChange={(e) => handleBuyerChange(index, 'phone', e.target.value)}
-                      error={!!formErrors[`buyer-${index}-phone`]} helperText={formErrors[`buyer-${index}-phone`]} required />
+                      value={buyer.phone} onChange={(e) => handleBuyerChange(index, 'phone', e.target.value.replace(/\D/g, ''))}
+                      error={!!formErrors[`buyer-${index}-phone`]} helperText={formErrors[`buyer-${index}-phone`]} required
+                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} />
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
-                    {/* [F1-007] Tipos de documento centralizados */}
+                    {/* Tipos de documento dinámicos según configuración regional */}
                     <FormControl fullWidth margin="normal" error={!!formErrors[`buyer-${index}-documentType`]}>
                       <InputLabel id={`document-type-${index}-label`}>Tipo de documento</InputLabel>
                       <Select labelId={`document-type-${index}-label`} value={buyer.documentType} label="Tipo de documento"
                         onChange={(e) => handleBuyerChange(index, 'documentType', e.target.value)} required>
-                        {DOCUMENT_TYPES.map((doc) => (
-                          <MenuItem key={doc.value} value={doc.value}>{doc.label}</MenuItem>
-                        ))}
+                        {/* Usar tipos del backend si están disponibles, sino fallback a constantes */}
+                        {(countryConfig?.documentType && countryConfig.documentType.length > 0)
+                          ? countryConfig.documentType.map((doc) => (
+                              <MenuItem key={doc.code} value={doc.code}>{doc.name}</MenuItem>
+                            ))
+                          : DOCUMENT_TYPES.map((doc) => (
+                              <MenuItem key={doc.value} value={doc.value}>{doc.label}</MenuItem>
+                            ))
+                        }
                       </Select>
                       {formErrors[`buyer-${index}-documentType`] && (
                         <FormHelperText>{formErrors[`buyer-${index}-documentType`]}</FormHelperText>
@@ -311,8 +340,9 @@ function CheckoutContent() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField fullWidth label="Número de documento" variant="outlined" margin="normal"
-                      value={buyer.document} onChange={(e) => handleBuyerChange(index, 'document', e.target.value)}
-                      error={!!formErrors[`buyer-${index}-document`]} helperText={formErrors[`buyer-${index}-document`]} required />
+                      value={buyer.document} onChange={(e) => handleBuyerChange(index, 'document', e.target.value.replace(/\D/g, ''))}
+                      error={!!formErrors[`buyer-${index}-document`]} helperText={formErrors[`buyer-${index}-document`]} required
+                      inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }} />
                   </Grid>
                   <Grid size={{ xs: 12 }}>
                     <FormControl fullWidth margin="normal" error={!!formErrors[`buyer-${index}-nationality`]}>

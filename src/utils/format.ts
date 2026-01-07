@@ -49,3 +49,22 @@ export function formatEventDate(date: string | Date, locale: string = 'es-AR') {
   const timeStr = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   return { dateStr, timeStr };
 }
+
+/**
+ * Capitaliza la primera letra de un string.
+ * Si el string empieza con un número, busca la primera letra y la capitaliza.
+ * @param str - El string a capitalizar
+ * @returns El string con la primera letra en mayúscula
+ */
+export function capitalizeFirstLetter(str?: string | null): string {
+  if (!str) return '';
+  
+  // Buscar la primera letra en el string
+  const match = str.match(/[a-záéíóúñA-ZÁÉÍÓÚÑ]/);
+  if (!match || match.index === undefined) {
+    return str; // No hay letras, devolver el original
+  }
+  
+  const idx = match.index;
+  return str.slice(0, idx) + str.charAt(idx).toUpperCase() + str.slice(idx + 1);
+}

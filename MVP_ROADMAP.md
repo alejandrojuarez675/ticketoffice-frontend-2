@@ -1,8 +1,8 @@
 # MVP ROADMAP - Plataforma de Ticketing (Colombia/Argentina)
 
 > **Documento Maestro de Auditoría y Planificación**  
-> Última actualización: 4 Enero 2026  
-> Versión: 1.3 (Sistema de Slugs SEO-Friendly + QR Tickets)
+> Última actualización: 6 Enero 2026  
+> Versión: 1.4 (Actualización completa del estado del proyecto)
 
 ---
 
@@ -14,25 +14,7 @@
 4. [Auditoría de Backend (Swagger/OpenAPI)](#4-auditoría-de-backend-swaggeropenapi)
 5. [Plan de Acción Paso a Paso](#5-plan-de-acción-paso-a-paso)
 6. [Anexos](#6-anexos)
-
----
-
-## 🔄 Cambios Recientes (v1.3)
-
-| Fecha       | Cambio                                                                 | Archivo                   |
-| ----------- | ---------------------------------------------------------------------- | ------------------------- |
-| Ene 4 2026  | **Sistema de Slugs SEO-friendly implementado**                         | `slug.ts` (nuevo)         |
-| Ene 4 2026  | Ruta `/events/[id]` migrada a `/events/[slug]`                         | `/events/[slug]/page.tsx` |
-| Ene 4 2026  | EventCard y FeaturedEvents actualizados para usar slugs                | Componentes eventos       |
-| Ene 4 2026  | Botón "Volver a eventos" agregado en página de detalle                 | `/events/[slug]/page.tsx` |
-| Ene 4 2026  | **QR Codes de tickets en página congrats desde API**                   | `CongratsClient.tsx`      |
-| Ene 4 2026  | Visualización escalable de múltiples tickets con QR codes              | `CongratsClient.tsx`      |
-| Ene 4 2026  | Header no oculta resumen en checkout (sticky top ajustado)             | `checkout/[id]/page.tsx`  |
-| Ene 4 2026  | Ajustado padding de chip "Publicado" en admin events                   | `admin/events/page.tsx`   |
-| Ene 4 2026  | Font-family Inter aplicada globalmente                                 | `theme.ts`, `layout.tsx`  |
-| Dic 29 2025 | Optimizado `RegionContext` para evitar bloqueos en renderizado inicial | `RegionContext.tsx`       |
-| Dic 29 2025 | `RegionSelectorModal` ahora se renderiza condicionalmente              | `RegionContext.tsx`       |
-| Dic 29 2025 | Carga de países y configuración regional ahora es no-bloqueante        | `RegionSelectorModal.tsx` |
+7. [Próximos Pasos](#7-próximos-pasos)
 
 ---
 
@@ -59,13 +41,17 @@
 
 ```
 Frontend:
-├── Next.js 15.4.3 (App Router)
+├── Next.js 15.5.7 (App Router + Turbopack)
 ├── React 19.1.0
 ├── TypeScript 5.5.4
 ├── Material UI 7.2.0
-├── React Hook Form 7.62 + Zod 4.0
+├── MUI X Data Grid 8.9.1
+├── MUI X Date Pickers 8.9.0
+├── React Hook Form 7.62 + Zod 4.0.17
 ├── date-fns 4.1.0
-└── TailwindCSS 3.4 (configurado pero poco usado)
+├── html5-qrcode 2.3.8 (escaneo QR)
+├── react-qr-code 2.0.18 (generación QR)
+└── TailwindCSS 3.4 (configurado, uso limitado)
 
 Backend (según Swagger):
 ├── Spring Boot (Java)
@@ -91,72 +77,163 @@ Backend (según Swagger):
 | DTOs + Mappers separados | Transformación inline en Services  |
 | Capas abstractas         | Código directo y legible           |
 
-#### Estructura de Carpetas Recomendada:
+#### Estructura de Carpetas Actual:
 
 ```
 src/
 ├── app/                       # App Router de Next.js (páginas)
-│   ├── (public)/              # Rutas públicas (home, eventos)
+│   ├── (public)/              # Home page pública
+│   │   └── page.tsx           # Landing page con eventos destacados
 │   ├── admin/                 # Backoffice (seller/admin)
+│   │   ├── coupons/           # Gestión de cupones (deshabilitado)
+│   │   ├── dashboard/         # Dashboard principal
+│   │   ├── events/            # CRUD de eventos
+│   │   │   ├── [id]/          # Detalle, edición, ventas
+│   │   │   ├── new/           # Crear nuevo evento
+│   │   │   └── validate/      # Validación por evento
+│   │   ├── profile/           # Perfil del usuario
+│   │   ├── settings/          # Configuración (deshabilitado)
+│   │   ├── users/             # Gestión usuarios (deshabilitado)
+│   │   └── validate/          # Validación global de entradas
 │   ├── auth/                  # Autenticación
+│   │   ├── forgot/            # Recuperar contraseña
+│   │   ├── login/             # Inicio de sesión
+│   │   ├── register/          # Registro
+│   │   └── reset/             # Restablecer contraseña
 │   ├── checkout/              # Flujo de compra
-│   ├── events/                # Detalle de eventos públicos
+│   │   ├── [sessionId]/       # Formulario de compra
+│   │   └── congrats/          # Página de confirmación
+│   ├── contact/               # Página de contacto
+│   ├── contexts/              # Contextos de la app
+│   ├── events/                # Eventos públicos
+│   │   ├── [id]/              # Detalle por ID
+│   │   ├── [slug]/            # Detalle por slug SEO
+│   │   ├── seller/            # Eventos del vendedor
+│   │   └── page.tsx           # Búsqueda de eventos
+│   ├── privacy/               # Política de privacidad
+│   ├── terms/                 # Términos y condiciones
 │   ├── tickets/               # Visualización de tickets
-│   └── contexts/              # Contextos globales (Auth, Theme)
+│   ├── globals.css            # Estilos globales
+│   ├── layout.tsx             # Layout principal
+│   └── not-found.tsx          # Página 404
 │
 ├── components/                # Componentes React reutilizables
-│   ├── common/                # Componentes genéricos (Loading, Empty, Error)
+│   ├── ThemeProvider/         # Proveedor de tema MUI
+│   ├── auth/                  # Componentes de autenticación
+│   ├── common/                # Componentes genéricos
+│   │   ├── CitySelect.tsx
+│   │   ├── ClientProviders.tsx
+│   │   ├── CountrySelect.tsx
+│   │   ├── Empty.tsx
+│   │   ├── ErrorState.tsx
+│   │   ├── GlobalErrorBoundary.tsx
+│   │   ├── HttpErrorAlert.tsx
+│   │   ├── Loading.tsx
+│   │   ├── LocationPicker.tsx
+│   │   ├── MockModeIndicator.tsx
+│   │   ├── QRScanner.tsx
+│   │   ├── RegionSelectorModal.tsx
+│   │   └── Skeletons.tsx
 │   ├── events/                # Componentes de eventos
-│   ├── forms/                 # Inputs, validaciones
-│   ├── layouts/               # Layouts (LightLayout, BackofficeLayout)
-│   └── navigation/            # Navbar, Sidebar, Footer
+│   │   ├── AppliedFiltersChips.tsx
+│   │   ├── EventCard.tsx
+│   │   ├── EventsSearchBar.tsx
+│   │   ├── FeaturedEvents.tsx
+│   │   ├── FiltersPanel.tsx
+│   │   └── RelatedEvents.tsx
+│   ├── forms/                 # Componentes de formularios
+│   │   ├── PasswordField.tsx
+│   │   ├── PasswordStrengthBar.tsx
+│   │   ├── SnackbarProvider.tsx
+│   │   └── SubmitButton.tsx
+│   ├── layouts/               # Layouts
+│   │   ├── BackofficeBreadcrumbs.tsx
+│   │   ├── BackofficeLayout.tsx
+│   │   ├── EmptyState.tsx
+│   │   ├── LightLayout.tsx
+│   │   ├── SalesCharts.tsx
+│   │   └── SoftAnimatedBackground.tsx
+│   └── navigation/            # Navegación
+│       ├── AdminSidebar.tsx
+│       ├── AdminTopBar.tsx
+│       ├── Footer.tsx
+│       └── Navbar.tsx
 │
 ├── services/                  # 🔑 SERVICIOS (lógica de negocio + API)
-│   ├── AuthService.ts         # Autenticación
-│   ├── EventService.ts        # CRUD eventos
+│   ├── AuthService.ts         # Autenticación completa
 │   ├── CheckoutService.ts     # Flujo de compra
+│   ├── ConfigService.ts       # Configuración y entorno
+│   ├── CouponService.ts       # Cupones (mock)
+│   ├── EventService.ts        # CRUD eventos
+│   ├── MercadoPagoApi.ts      # Integración MercadoPago
+│   ├── OrganizerService.ts    # Datos del organizador
+│   ├── RegionService.ts       # Regionalización
+│   ├── ReportService.ts       # Reportes (mock)
 │   ├── SalesService.ts        # Ventas y validación
-│   ├── TicketService.ts       # Tickets digitales
-│   ├── StatsService.ts        # Estadísticas
+│   ├── StatsService.ts        # Estadísticas (mock)
+│   ├── TicketService.ts       # Tickets digitales (mock)
+│   ├── VendorService.ts       # Vendedores (mock)
 │   └── schemas/               # Validaciones Zod
-│       ├── event.ts
 │       ├── checkout.ts
+│       ├── event.ts
 │       └── sales.ts
 │
 ├── hooks/                     # 🔑 CUSTOM HOOKS (lógica de UI)
 │   ├── useAuth.ts             # Estado de autenticación
-│   ├── useEventSearch.ts      # Búsqueda con debounce
 │   ├── useCheckoutFlow.ts     # Flujo completo de compra
-│   ├── useTicketValidation.ts # Validación de entradas
-│   └── useDebouncedValue.ts   # Utilidad de debounce
+│   ├── useDebouncedValue.ts   # Utilidad de debounce
+│   ├── useEventSearch.ts      # Búsqueda con debounce
+│   ├── useFeatureFlags.tsx    # Flags de características
+│   ├── usePermissions.ts      # Sistema de permisos
+│   ├── useRegionalFormat.ts   # Formateo regional
+│   └── useTicketValidation.ts # Validación de entradas
 │
-├── mocks/                     # 🔑 DATOS SIMULADOS (crítico para MVP)
+├── mocks/                     # 🔑 DATOS SIMULADOS
 │   ├── data/
-│   │   ├── events.ts          # Eventos mock
-│   │   ├── users.ts           # Usuarios mock
 │   │   ├── checkout.ts        # Sesiones mock
-│   │   └── sales.ts           # Ventas mock
+│   │   ├── events.ts          # Eventos mock
+│   │   ├── sales.ts           # Ventas mock
+│   │   └── users.ts           # Usuarios mock
 │   └── index.ts               # Exportaciones centralizadas
 │
 ├── lib/                       # Utilidades de bajo nivel
 │   ├── http.ts                # Cliente HTTP con interceptores
-│   ├── logger.ts              # Logging
+│   ├── logger.ts              # Sistema de logging
 │   └── permissions.ts         # Sistema de permisos
 │
 ├── config/                    # Configuración
-│   ├── featureFlags.ts        # Feature toggles
-│   └── backofficeNav.ts       # Navegación del backoffice
+│   ├── backofficeNav.ts       # Navegación del backoffice
+│   └── featureFlags.ts        # Feature toggles
+│
+├── constants/                 # 🆕 CONSTANTES CENTRALIZADAS
+│   ├── countries.ts           # Lista de países
+│   ├── currencies.ts          # Monedas disponibles
+│   ├── documents.ts           # Tipos de documentos
+│   ├── eventTags.ts           # Tags de eventos
+│   └── index.ts               # Exportación centralizada
+│
+├── contexts/                  # Contextos React
+│   └── RegionContext.tsx      # Contexto de regionalización
+│
+├── theme/                     # Tema de MUI
 │
 ├── types/                     # Tipos TypeScript globales
-│   ├── Event.ts
-│   ├── user.ts
-│   ├── checkout.ts
-│   └── Sales.ts
+│   ├── Event.ts               # Tipos de eventos
+│   ├── Sales.ts               # Tipos de ventas
+│   ├── checkout.ts            # Tipos de checkout
+│   ├── contract.ts            # Tipos de contratos
+│   ├── html5-qrcode.d.ts      # Declaraciones QR
+│   ├── search-event.ts        # Tipos de búsqueda
+│   └── user.ts                # Tipos de usuario
 │
 └── utils/                     # Funciones utilitarias
-    ├── format.ts              # Formateo de moneda, fechas
     ├── date.ts                # Manejo de fechas
-    └── favorites.ts           # LocalStorage helpers
+    ├── eventsFilters.ts       # Filtros de eventos
+    ├── exportExcel.ts         # Exportación a Excel
+    ├── favorites.ts           # LocalStorage helpers
+    ├── format.ts              # Formateo de moneda, fechas
+    ├── password.ts            # Validación de contraseñas
+    └── sanitize.ts            # Sanitización de datos
 ```
 
 #### ¿Por qué esta estructura?
@@ -842,81 +919,74 @@ RegionService.saveRegionalConfig('AR', config);
 
 ### 3.1 Estado de Servicios Frontend vs Requerimientos MVP
 
-| Servicio           | Estado       | Integrado BE             | Mock | Observaciones                                   |
-| ------------------ | ------------ | ------------------------ | ---- | ----------------------------------------------- |
-| `AuthService`      | 🟡 Parcial   | ✅ login/register/me     | ✅   | Falta: forgot/reset password, verifyEmail       |
-| `EventService`     | ✅ Completo  | ✅ Todos                 | ✅   | CRUD + Search funcionando                       |
-| `CheckoutService`  | 🟡 Parcial   | ✅ createSession, buy    | ✅   | Falta: getSession, processPayment (MercadoPago) |
-| `SalesService`     | ✅ Funcional | ✅ listByEvent, validate | ❌   | Endpoint global `list()` no existe en BE        |
-| `TicketService`    | 🔴 Solo Mock | ❌                       | ✅   | No hay endpoint público de tickets en BE        |
-| `StatsService`     | 🔴 Solo Mock | ❌                       | ✅   | No existen endpoints de estadísticas            |
-| `CouponService`    | 🔴 Solo Mock | ❌                       | ✅   | No existen endpoints de cupones                 |
-| `VendorService`    | 🔴 Solo Mock | ❌                       | ✅   | No existen endpoints de vendedores              |
-| `ReportService`    | 🔴 Solo Mock | ❌                       | ✅   | No existen endpoints de reportes                |
-| `ValidatorService` | ✅ Funcional | ✅                       | ❌   | Duplica lógica de SalesService.validate         |
+| Servicio           | Estado       | Integrado BE                 | Mock | Observaciones                                   |
+| ------------------ | ------------ | ---------------------------- | ---- | ----------------------------------------------- |
+| `AuthService`      | 🟡 Parcial   | ✅ login/register/me         | ✅   | Falta: forgot/reset password, verifyEmail       |
+| `EventService`     | ✅ Completo  | ✅ Todos                     | ✅   | CRUD + Search funcionando                       |
+| `CheckoutService`  | 🟡 Parcial   | ✅ createSession, buy        | ✅   | Falta: processPayment (MercadoPago)             |
+| `ConfigService`    | ✅ Completo  | N/A                          | N/A  | Configuración de entorno y mocks                |
+| `RegionService`    | ✅ Completo  | ✅ countries, config         | ✅   | Regionalización completa                        |
+| `SalesService`     | ✅ Funcional | ✅ listByEvent, validateSale | ✅   | Validación unificada (eliminó ValidatorService) |
+| `OrganizerService` | 🟡 Parcial   | ✅ getOrganizer              | ❌   | Datos del organizador actual                    |
+| `MercadoPagoApi`   | 🔴 Pendiente | ❌                           | ✅   | Requiere endpoints BE de MercadoPago            |
+| `TicketService`    | 🔴 Solo Mock | ❌                           | ✅   | No hay endpoint público de tickets en BE        |
+| `StatsService`     | 🔴 Solo Mock | ❌                           | ✅   | No existen endpoints de estadísticas            |
+| `CouponService`    | 🔴 Solo Mock | ❌                           | ✅   | No existen endpoints de cupones                 |
+| `VendorService`    | 🔴 Solo Mock | ❌                           | ✅   | No existen endpoints de vendedores              |
+| `ReportService`    | 🔴 Solo Mock | ❌                           | ✅   | No existen endpoints de reportes                |
 
 ### 3.2 Bugs y Problemas Identificados
 
 #### 3.2.1 Bugs Críticos
 
-| ID      | Archivo                            | Descripción                                        | Impacto                                  |
-| ------- | ---------------------------------- | -------------------------------------------------- | ---------------------------------------- |
-| BUG-001 | `CheckoutService.ts:63-65`         | `processPayment()` lanza error siempre             | 🔴 Bloqueante - No se puede pagar        |
-| BUG-002 | `checkout/[sessionId]/page.tsx:91` | Regex de email incorrecto (`\\S` en lugar de `\S`) | 🟡 Validación falla                      |
-| BUG-003 | `MercadoPagoApi.ts:40`             | Llama a `processPayment` que no funciona           | 🔴 Bloqueante                            |
-| BUG-004 | `AuthService.ts:268-273`           | Stubs lanzan error para features no-MVP            | 🟡 UX confusa si usuario intenta usarlos |
+| ID      | Archivo             | Descripción                                       | Impacto                               |
+| ------- | ------------------- | ------------------------------------------------- | ------------------------------------- |
+| BUG-001 | `MercadoPagoApi.ts` | Integración MercadoPago pendiente de endpoints BE | 🔴 Bloqueante - Pagos no funcionan    |
+| BUG-002 | `AuthService.ts`    | forgot/reset password sin endpoints BE            | 🟡 Recuperación de cuenta no funciona |
+| BUG-003 | `TicketService.ts`  | Solo mock, no hay endpoint público de tickets     | 🟡 No se pueden ver tickets comprados |
 
 #### 3.2.2 Deuda Técnica
 
-| ID       | Tipo           | Ubicación                             | Descripción                                                      |
-| -------- | -------------- | ------------------------------------- | ---------------------------------------------------------------- |
-| DEBT-001 | Duplicación    | `ValidatorService` vs `SalesService`  | Misma lógica de validación duplicada                             |
-| DEBT-002 | Hardcoding     | `checkout/[sessionId]/page.tsx:22-27` | Lista de países hardcodeada                                      |
-| DEBT-003 | Type Safety    | `EventService.ts:63-66`               | `unknown` en lugar de tipos específicos                          |
-| DEBT-004 | Mock Data      | Múltiples servicios                   | Datos mock mezclados con lógica real                             |
-| DEBT-005 | Feature Flags  | `featureFlags.ts`                     | 5 de 9 features deshabilitadas                                   |
-| DEBT-006 | Inconsistencia | API vs Frontend                       | Fechas: array vs ISO string                                      |
-| DEBT-007 | Storage        | `checkout/[sessionId]/page.tsx:54-55` | Session meta en localStorage (no persistente entre dispositivos) |
+| ID       | Tipo          | Ubicación                | Descripción                                                |
+| -------- | ------------- | ------------------------ | ---------------------------------------------------------- |
+| DEBT-001 | ✅ Resuelto   | `ValidatorService`       | Eliminado - lógica unificada en SalesService               |
+| DEBT-002 | ✅ Resuelto   | `constants/countries.ts` | Países centralizados en constantes                         |
+| DEBT-003 | Type Safety   | `EventService.ts`        | Normalización robusta con helpers tipo-safe                |
+| DEBT-004 | Mock Data     | Múltiples servicios      | Datos mock separados en `/mocks/data/`                     |
+| DEBT-005 | Feature Flags | `featureFlags.ts`        | 4 de 9 features deshabilitadas                             |
+| DEBT-006 | ✅ Resuelto   | `EventService.ts`        | Función `dateArrayToIso()` normaliza fechas                |
+| DEBT-007 | Storage       | Checkout flow            | Session meta en localStorage (diseño intencional para MVP) |
 
-#### 3.2.3 Componentes con Datos Hardcodeados
+#### 3.2.3 Datos Hardcodeados y Constantes
 
 ```typescript
-// ❌ src/app/(public)/page.tsx - Features hardcodeadas
-const features = [
-  { title: 'Gestión de Eventos', description: '...', icon: '📅' },
-  { title: 'Venta de Boletos', description: '...', icon: '🎟️' },
-  { title: 'Reportes en Tiempo Real', description: '...', icon: '📊' },
-];
+// ✅ RESUELTO: Constantes centralizadas en src/constants/
+import { COUNTRIES, DOCUMENT_TYPES, CURRENCIES } from "@/constants";
 
-// ❌ src/app/checkout/[sessionId]/page.tsx - Países hardcodeados
-const COUNTRIES = [
-  'Argentina', 'Bolivia', 'Brasil', ...
-];
+// ✅ RESUELTO: Mocks separados en src/mocks/data/
+import { mockGetEvents, mockSearchEvents } from "@/mocks";
 
-// ❌ src/services/AuthService.ts - Usuarios mock
-const MOCK_USERS: User[] = [
-  { id: 1, username: 'admin', password: 'Admin123', ... },
-  ...
-];
+// 🟡 PENDIENTE: Features de landing page en src/app/(public)/page.tsx
+// Considerar mover a constantes o CMS en el futuro
 ```
 
 ### 3.3 Análisis de Feature Flags
 
 ```typescript
-// src/config/featureFlags.ts - Estado actual
+// src/config/featureFlags.ts - Estado actual (6 Enero 2026)
 export const FEATURES: FeatureFlags = {
-  // MVP ON ✅
-  DASHBOARD: true,
-  EVENTS: true,
-  VALIDATE: true,
-  TICKETS: true,
+  // MVP ON ✅ - Funcionalidades activas
+  DASHBOARD: true, // Dashboard del backoffice
+  EVENTS: true, // CRUD de eventos
+  VALIDATE: true, // Validación de entradas
+  TICKETS: true, // Vista de tickets y QR
+  PROFILE: true, // Perfil del usuario (redirige después del registro)
 
-  // MVP OFF ❌ (ocultas, necesitan trabajo)
-  PROFILE: true, // Habilitado - redirige aquí después del registro
-  REPORTS: false, // Falta: Endpoints de estadísticas
-  USERS: false, // Falta: Endpoints de vendedores
+  // MVP OFF ❌ - Requieren desarrollo adicional
+  REPORTS: false, // Falta: Endpoints de estadísticas en BE
+  USERS: false, // Falta: Endpoints de gestión de vendedores
   SETTINGS: false, // Falta: Configuración de cuenta
-  COUPONS: false, // Falta: Endpoints de cupones
+  COUPONS: false, // Falta: Endpoints de cupones en BE
 };
 ```
 
@@ -961,633 +1031,26 @@ export const FEATURES: FeatureFlags = {
 
 ---
 
-## 4. Auditoría de Backend (Documentación Postman - Actualizada)
+## 7. Próximos Pasos
 
-### 4.1 Endpoints Existentes vs Implementación Frontend
+> 📋 **Sección reservada para planificación de próximas iteraciones**
+>
+> Esta sección será completada con las tareas priorizadas para las próximas sprints.
 
-> **Base URL de Producción**: `https://yscqvjs2zg.us-east-1.awsapprunner.com`
+### 7.1 Prioridad Alta (Crítico para MVP)
 
-| Endpoint                                    | Método | Frontend                            | Estado                   |
-| ------------------------------------------- | ------ | ----------------------------------- | ------------------------ |
-| `/auth/login`                               | POST   | `AuthService.login()`               | ✅ Integrado             |
-| `/auth/signup`                              | POST   | `AuthService.register()`            | ✅ Integrado             |
-| `/api/v1/users/me`                          | GET    | `AuthService.me()`                  | ✅ Integrado (corregido) |
-| `/api/v1/users`                             | GET    | No usado                            | ⚪ Admin only            |
-| `/api/v1/events`                            | GET    | `EventService.getEvents()`          | ✅ Integrado             |
-| `/api/v1/events`                            | POST   | `EventService.createEvent()`        | ✅ Integrado             |
-| `/api/v1/events/{id}`                       | GET    | `EventService.getEventById()`       | ✅ Integrado             |
-| `/api/v1/events/{id}`                       | PUT    | `EventService.updateEvent()`        | ✅ Integrado             |
-| `/api/v1/events/{id}`                       | DELETE | `EventService.deleteEvent()`        | ✅ Integrado             |
-| `/api/public/v1/event/search`               | GET    | `EventService.searchEvents()`       | ✅ Integrado             |
-| `/api/public/v1/event/{id}`                 | GET    | `EventService.getPublicById()`      | ✅ Integrado             |
-| `/api/public/v1/event/{id}/recommendations` | GET    | `EventService.getRecommendations()` | ✅ Integrado             |
-| `/api/public/v1/checkout/session`           | POST   | `CheckoutService.createSession()`   | ✅ Integrado             |
-| `/api/public/v1/checkout/session/{id}/buy`  | POST   | `CheckoutService.buy()`             | ✅ Integrado             |
-| `/ping`                                     | GET    | No usado                            | ⚪ Health check          |
+<!-- TODO: Agregar tareas críticas aquí -->
 
-### 4.1.1 Formato de Request/Response del Backend
+### 7.2 Prioridad Media (Mejoras importantes)
 
-**Login** (`POST /auth/login`):
+<!-- TODO: Agregar mejoras importantes aquí -->
 
-```json
-// Request
-{ "username": "string", "password": "string" }
-// Response
-{ "token": "eyJ...", "expiresIn": 864000000 }
-```
+### 7.3 Prioridad Baja (Nice to have)
 
-**Signup** (`POST /auth/signup`):
+<!-- TODO: Agregar mejoras opcionales aquí -->
 
-```json
-// Request
-{ "username": "string", "password": "string", "email": "string" }
-// Response
-{ "token": "eyJ...", "expiresIn": 864000000 }
-```
+### 7.4 Backlog Técnico
 
-**Create Event** (`POST /api/v1/events`):
-
-```json
-{
-  "title": "Concierto de La Joaqui",
-  "date": "2042-01-01T20:00:00",
-  "location": {
-    "name": "Huracan",
-    "address": "Manuel Belgrano",
-    "city": "Buenos Aires",
-    "country": "Argentina"
-  },
-  "image": {
-    "url": "https://...",
-    "alt": "Descripción de imagen"
-  },
-  "tickets": [
-    {
-      "value": 100,
-      "currency": "$",
-      "type": "General",
-      "isFree": false,
-      "stock": 100
-    }
-  ],
-  "description": "Descripción del evento...",
-  "additionalInfo": ["Info adicional 1", "Info adicional 2"]
-}
-```
-
-**Create Checkout Session** (`POST /api/public/v1/checkout/session`):
-
-```json
-// Request
-{ "eventId": "uuid", "priceId": "ticketId", "quantity": 1 }
-// Response
-{ "sessionId": "uuid__uuid__qty__timestamp" }
-```
-
-**Buy** (`POST /api/public/v1/checkout/session/{sessionId}/buy`):
-
-```json
-// Request
-{
-  "mainEmail": "email@example.com",
-  "buyer": [
-    {
-      "name": "John",
-      "lastName": "Doe",
-      "email": "email@example.com",
-      "phone": "+573012345678",
-      "nationality": "Colombia",
-      "documentType": "CC",
-      "document": "123456789"
-    }
-  ]
-}
-```
-
-### 4.2 🔴 Endpoints Faltantes en Backend (Críticos para MVP)
-
-Estos endpoints **NO EXISTEN** en el Swagger pero son **NECESARIOS** para el MVP:
-
-#### 4.2.1 Autenticación y Usuarios
-
-```yaml
-# Recuperación de contraseña
-POST /auth/forgot-password
-  Request: { email: string }
-  Response: { message: string }
-
-POST /auth/reset-password
-  Request: { token: string, newPassword: string }
-  Response: { success: boolean }
-
-# Verificación de email (opcional para MVP)
-POST /auth/verify-email
-  Request: { token: string }
-  Response: { success: boolean }
-
-# Verificar disponibilidad (UX mejorada en registro)
-GET /auth/check-availability
-  Query: { username?: string, email?: string }
-  Response: { usernameAvailable?: boolean, emailAvailable?: boolean }
-```
-
-#### 4.2.2 Pagos (MercadoPago)
-
-```yaml
-# Crear preferencia de pago
-POST /api/public/v1/checkout/session/{sessionId}/process-payment
-  Request: { returnUrls: { success, failure, pending } }
-  Response: {
-    success: boolean,
-    redirectUrl: string,  # init_point de MercadoPago
-    preferenceId: string
-  }
-
-# Webhook de MercadoPago
-POST /api/webhooks/mercadopago
-  Request: (MercadoPago IPN payload)
-  Response: { received: true }
-
-# Consultar estado de pago
-GET /api/public/v1/checkout/session/{sessionId}/payment-status
-  Response: {
-    status: 'pending' | 'approved' | 'rejected' | 'cancelled',
-    paymentId?: string
-  }
-```
-
-#### 4.2.3 Tickets Digitales
-
-```yaml
-# Obtener ticket por ID (público, para QR)
-GET /api/public/v1/tickets/{ticketId}
-  Response: {
-    id: string,
-    eventId: string,
-    eventName: string,
-    eventDate: string,
-    buyerName: string,
-    buyerEmail: string,
-    ticketType: string,
-    qrCode: string,  # Base64 o URL del QR
-    isValid: boolean,
-    validatedAt?: string
-  }
-
-# Obtener tickets por sesión/orden
-GET /api/public/v1/checkout/session/{sessionId}/tickets
-  Response: { tickets: Ticket[] }
-
-# Reenviar tickets por email
-POST /api/public/v1/checkout/session/{sessionId}/resend-tickets
-  Request: { email: string }
-  Response: { success: boolean }
-```
-
-#### 4.2.4 Estadísticas y Reportes
-
-```yaml
-# Estadísticas del organizador
-GET /api/v1/stats/seller
-  Response: {
-    totalEvents: number,
-    activeEvents: number,
-    ticketsSold: number,
-    totalRevenue: number,
-    revenueByEvent: { eventId, name, sold, revenue }[],
-    salesTrend: { date, count, amount }[]
-  }
-
-# Estadísticas globales (admin)
-GET /api/v1/stats/global
-  Response: {
-    totalEvents: number,
-    totalOrganizers: number,
-    totalTicketsSold: number,
-    totalRevenue: number,
-    topEvents: { eventId, name, ticketsSold }[]
-  }
-
-# Reporte de ventas con filtros
-GET /api/v1/reports/sales
-  Query: { from?, to?, eventId?, status?, page, pageSize }
-  Response: {
-    items: SaleReport[],
-    total: number,
-    page: number,
-    totalPages: number
-  }
-
-# Exportar reporte (CSV/Excel)
-GET /api/v1/reports/sales/export
-  Query: { from?, to?, eventId?, format: 'csv' | 'xlsx' }
-  Response: Binary file
-```
-
-#### 4.2.5 Gestión de Vendedores (Admin)
-
-```yaml
-# Listar vendedores
-GET /api/v1/vendors
-  Response: { vendors: Vendor[] }
-
-# Invitar vendedor
-POST /api/v1/vendors/invite
-  Request: { name: string, email: string }
-  Response: { vendor: Vendor }
-
-# Activar/Desactivar vendedor
-PATCH /api/v1/vendors/{id}/status
-  Request: { active: boolean }
-  Response: { success: boolean }
-```
-
-#### 4.2.6 Cupones de Descuento
-
-```yaml
-# Listar cupones de un evento
-GET /api/v1/events/{eventId}/coupons
-  Response: { coupons: Coupon[] }
-
-# Crear cupón
-POST /api/v1/events/{eventId}/coupons
-  Request: { code, type, value, maxUses?, expiresAt? }
-  Response: { coupon: Coupon }
-
-# Validar cupón (público, en checkout)
-POST /api/public/v1/checkout/validate-coupon
-  Request: { eventId: string, code: string }
-  Response: {
-    valid: boolean,
-    discount?: { type, value },
-    message?: string
-  }
-```
-
-#### 4.2.7 Finanzas (Retiro de Dinero)
-
-```yaml
-# Obtener balance del organizador
-GET /api/v1/finance/balance
-  Response: {
-    available: number,
-    pending: number,
-    currency: string
-  }
-
-# Solicitar retiro
-POST /api/v1/finance/withdrawal
-  Request: { amount: number, bankAccount: BankAccount }
-  Response: {
-    withdrawalId: string,
-    status: 'pending' | 'processing'
-  }
-
-# Historial de retiros
-GET /api/v1/finance/withdrawals
-  Response: { withdrawals: Withdrawal[] }
-```
-
-### 4.3 🟡 Mejoras de Datos en Endpoints Existentes
-
-#### 4.3.1 `/auth/signup` - Datos Adicionales
-
-```yaml
-# Actual
-Request: { username, password, email }
-
-# Sugerido para MVP completo
-Request: {
-  username: string,
-  password: string,
-  email: string,
-  firstName?: string,      # FE ya lo recolecta pero BE no lo recibe
-  lastName?: string,       # FE ya lo recolecta pero BE no lo recibe
-  phone?: string,          # Útil para notificaciones
-  role?: 'USER' | 'SELLER' # Para distinguir compradores de organizadores
-}
-```
-
-#### 4.3.2 `EventCrudRequest` - Campos de Auditoría
-
-```yaml
-# Actual
-{ title, date, location, image, tickets, description, additionalInfo }
-
-# Sugerido
-{
-  ...existing,
-  location: {
-    name: string,
-    address: string,
-    city: string,
-    country: string,
-    latitude?: number,      # ✅ IMPLEMENTADO EN FE - Coordenada para mapa
-    longitude?: number      # ✅ IMPLEMENTADO EN FE - Coordenada para mapa
-  },
-  minAge?: number,         # Edad mínima (para mostrar en búsqueda)
-  category?: string,       # Categoría del evento
-  tags?: string[],         # Tags para búsqueda
-  maxTicketsPerUser?: number,  # Límite por compra
-  salesStartDate?: string, # Cuándo inicia la venta
-  salesEndDate?: string,   # Cuándo termina la venta
-  isPublic?: boolean       # Visible en búsquedas
-}
-```
-
-#### 4.3.3 `SaleLightDTO` - Datos para Validación
-
-```yaml
-# Actual
-{ id, firstName, lastName, email, ticketType, price, validated }
-
-# Sugerido
-{
-  ...existing,
-  purchaseDate: string,    # Fecha de compra
-  paymentStatus: string,   # Estado del pago
-  ticketCode: string,      # Código único para QR
-  validatedAt?: string,    # Cuándo se validó
-  validatedBy?: string     # Quién validó
-}
-```
-
-#### 4.3.4 `SearchResponse` - Más Información
-
-```yaml
-# Actual
-{ events, hasEventsInYourCity, totalPages, currentPage, pageSize }
-
-# Sugerido
-{
-  ...existing,
-  filters: {
-    countries: string[],   # Países disponibles
-    cities: string[],      # Ciudades con eventos
-    categories: string[],  # Categorías disponibles
-    priceRange: { min, max }
-  },
-  featuredEvents?: Event[] # Eventos destacados para el país
-}
-```
-
-### 4.4 Matriz de Dependencias BE-FE
-
-```
-Funcionalidad FE              →  Endpoint BE Requerido
-─────────────────────────────────────────────────────────
-Forgot Password               →  POST /auth/forgot-password ❌
-Reset Password                →  POST /auth/reset-password ❌
-MercadoPago Checkout          →  POST /checkout/process-payment ❌
-Ver mis tickets               →  GET /tickets/{id} ❌
-Reenviar tickets              →  POST /resend-tickets ❌
-Dashboard métricas            →  GET /stats/seller ❌
-Reportes de ventas            →  GET /reports/sales ❌
-Exportar Excel                →  GET /reports/sales/export ❌
-Gestionar vendedores          →  GET/POST /vendors ❌
-Crear cupones                 →  POST /coupons ❌
-Validar cupón en checkout     →  POST /validate-coupon ❌
-Ver balance/ganancias         →  GET /finance/balance ❌
-Solicitar retiro              →  POST /finance/withdrawal ❌
-```
+<!-- TODO: Agregar deuda técnica a resolver aquí -->
 
 ---
-
-## 5. Plan de Acción Paso a Paso
-
-### 5.1 Priorización de Tareas
-
-```
-P0 - Bloqueantes (sin esto no hay MVP)
-P1 - Críticas (funcionalidad core)
-P2 - Importantes (mejora significativa)
-P3 - Deseables (nice to have)
-```
-
-### 5.2 Fase 1: Mocks Robustos + Estabilización (Semana 1-2)
-
-> 🎯 **OBJETIVO**: El frontend funciona al 100% con datos simulados. No dependemos del backend.
-
-#### P0 - Críticos (Sin esto no avanzamos)
-
-| ID     | Tarea                                                     | Tipo     | Esfuerzo | Dependencia BE |
-| ------ | --------------------------------------------------------- | -------- | -------- | -------------- |
-| F1-001 | **Implementar GlobalErrorBoundary**                       | Nueva    | 4h       | ❌ No          |
-| F1-002 | **Robustecer sistema de mocks** (todos los services)      | Refactor | 1d       | ❌ No          |
-| F1-003 | **Simular flujo completo de pago** (sin MercadoPago real) | Nueva    | 1d       | ❌ No          |
-| F1-004 | **Arreglar regex de validación email** en checkout        | Bug Fix  | 1h       | ❌ No          |
-| F1-005 | **Agregar MockModeIndicator** en desarrollo               | Nueva    | 2h       | ❌ No          |
-
-#### P1 - Importantes
-
-| ID     | Tarea                                              | Tipo     | Esfuerzo | Estado               |
-| ------ | -------------------------------------------------- | -------- | -------- | -------------------- |
-| F1-006 | Eliminar duplicación ValidatorService/SalesService | Refactor | 2h       | ✅ COMPLETADO        |
-| F1-007 | Mover constantes hardcodeadas a config             | Refactor | 4h       | ✅ COMPLETADO        |
-| F1-008 | Mejorar manejo de errores HTTP (HttpError → UI)    | Refactor | 4h       | ✅ COMPLETADO        |
-| F1-009 | Mock de tickets digitales (visualización)          | Nueva    | 4h       | ⏭️ Omitido (usar BE) |
-| F1-010 | Mock de estadísticas del dashboard                 | Nueva    | 4h       | ⏭️ Omitido (usar BE) |
-
-### 5.3 Fase 2: Mejoras de UX y Hooks (Semana 3-4)
-
-> 🎯 **OBJETIVO**: UI pulida, custom hooks para lógica compleja, mejor experiencia de usuario.
-
-| ID     | Tarea                                                     | Tipo  | Esfuerzo | Estado        |
-| ------ | --------------------------------------------------------- | ----- | -------- | ------------- |
-| F2-001 | Crear hook `useCheckoutFlow` (encapsula todo el checkout) | Nueva | 1d       | ✅ COMPLETADO |
-| F2-002 | Crear hook `useEventSearch` con debounce                  | Nueva | 4h       | ✅ COMPLETADO |
-| F2-003 | Crear hook `useTicketValidation` para QR/manual           | Nueva | 4h       | ✅ COMPLETADO |
-| F2-004 | Mejorar loading states con Skeletons                      | UX    | 1d       | ✅ COMPLETADO |
-| F2-005 | Implementar notificaciones toast globales (Snackbar)      | UX    | 4h       | ✅ Ya existía |
-| F2-006 | Responsive: mejorar mobile en checkout y backoffice       | UX    | 1d       | ⏭️ Omitido    |
-| F2-007 | Agregar animaciones de transición entre páginas           | UX    | 4h       | ⏭️ Omitido    |
-
-### 5.4 Fase 3: Funcionalidades Seller con Mocks (Semana 5-6)
-
-> 🎯 **OBJETIVO**: Backoffice del organizador 100% funcional (con datos simulados si BE no está listo).
-
-| ID     | Tarea                                                     | Tipo  | Esfuerzo | Estado              |
-| ------ | --------------------------------------------------------- | ----- | -------- | ------------------- |
-| F3-001 | Dashboard con métricas (mock o real según disponibilidad) | Nueva | 2d       | ⏭️ Omitido (futura) |
-| F3-002 | Gráficos de ventas (SalesCharts) con datos mock           | Nueva | 2d       | ⏭️ Omitido (futura) |
-| F3-003 | **Implementar escáner QR web** (html5-qrcode)             | Nueva | 2d       | 🔄 PENDIENTE        |
-| F3-004 | Exportar lista de asistentes a Excel (frontend)           | Nueva | 1d       | ✅ COMPLETADO       |
-| F3-005 | Habilitar PROFILE                                         | Nueva | 1d       | 🔄 EN PROGRESO      |
-| F3-006 | Crear flujo de organizador (POST /organizer o mock)       | Nueva | 1d       | ⏭️ Omitido (futura) |
-
-### 5.5 Fase 4: Integraciones Reales con Backend (Semana 7-8)
-
-> 🎯 **OBJETIVO**: Conectar con APIs reales del backend. **Solo cuando los endpoints existan.**
-
-| ID     | Tarea                                              | Tipo        | Esfuerzo | Dependencia BE      |
-| ------ | -------------------------------------------------- | ----------- | -------- | ------------------- |
-| F4-001 | **Integración real MercadoPago** (process-payment) | Integración | 2d       | ✅ **Sí - CRÍTICO** |
-| F4-002 | **Webhook handler** de MercadoPago                 | Integración | 1d       | ✅ **Sí**           |
-| F4-003 | **Tickets reales** (GET /tickets/{id})             | Integración | 1d       | ✅ **Sí**           |
-| F4-004 | **Estadísticas reales** (GET /stats/seller)        | Integración | 1d       | ✅ **Sí**           |
-| F4-005 | **Reportes reales** (GET /reports/sales)           | Integración | 1d       | ✅ **Sí**           |
-| F4-006 | Reenviar tickets por email                         | Integración | 4h       | ✅ **Sí**           |
-
-### 5.6 Fase 5: Admin + Polish (Semana 9-10)
-
-> 🎯 **OBJETIVO**: Completar funcionalidades admin y pulir la aplicación.
-
-| ID     | Tarea                                   | Tipo  | Esfuerzo | Dependencia BE        |
-| ------ | --------------------------------------- | ----- | -------- | --------------------- |
-| F5-001 | Habilitar gestión de vendedores (USERS) | Nueva | 2d       | 🟡 Si endpoint existe |
-| F5-002 | Crear página de SETTINGS                | Nueva | 1d       | 🟡 Opcional           |
-| F5-003 | Implementar forgot/reset password       | Nueva | 1d       | ✅ Sí                 |
-| F5-004 | Landing page de captación organizadores | Nueva | 2d       | ❌ No                 |
-| F5-005 | SEO y meta tags dinámicos               | SEO   | 1d       | ❌ No                 |
-| F5-006 | PWA básico (manifest + service worker)  | Nueva | 1d       | ❌ No                 |
-| F5-007 | Implementar cupones en checkout         | Nueva | 1d       | 🟡 Si endpoint existe |
-
-### 5.7 Cronograma Visual
-
-```
-Semana 1-2: ████████ Fase 1 - Mocks Robustos + Estabilización
-Semana 3-4: ████████ Fase 2 - UX + Custom Hooks
-Semana 5-6: ████████ Fase 3 - Features Seller (con mocks)
-Semana 7-8: ████████ Fase 4 - Integraciones Reales (BE)
-Semana 9-10: ████████ Fase 5 - Admin + Polish
-
-Hitos:
-├─ S2: ✓ Frontend funciona 100% con mocks (sin depender de BE)
-├─ S4: ✓ UX pulida, hooks reutilizables
-├─ S6: ✓ Dashboard Seller completo (mock o real)
-├─ S8: ✓ MercadoPago + Tickets reales funcionando
-└─ S10: ✓ MVP listo para producción
-```
-
-### 5.8 Flujo de Trabajo: Mock → Real
-
-```
-                    ┌─────────────────────────────────────────┐
-                    │         DESARROLLO PARALELO             │
-                    └─────────────────────────────────────────┘
-                                       │
-        ┌──────────────────────────────┼──────────────────────────────┐
-        │                              │                              │
-        ▼                              ▼                              ▼
-┌───────────────┐            ┌───────────────┐            ┌───────────────┐
-│   FRONTEND    │            │   BACKEND     │            │   TESTING     │
-│  (con mocks)  │            │  (endpoints)  │            │  (E2E later)  │
-└───────┬───────┘            └───────┬───────┘            └───────────────┘
-        │                            │
-        │  Semana 1-6                │  Semana 1-8
-        │  ───────────               │  ───────────
-        │  • UI completa             │  • Implementar endpoints
-        │  • Flujos simulados        │  • MercadoPago integration
-        │  • Error handling          │  • Tickets + Stats
-        │                            │
-        └────────────┬───────────────┘
-                     │
-                     ▼ Semana 7-8
-            ┌───────────────┐
-            │  INTEGRACIÓN  │
-            │  Mock → API   │
-            └───────────────┘
-                     │
-                     ▼
-            ┌───────────────┐
-            │   MVP LISTO   │
-            └───────────────┘
-```
-
-### 5.9 Requisitos para el Equipo de Backend
-
-> 📌 **IMPORTANTE**: El frontend NO está bloqueado. Trabajamos con mocks hasta que los endpoints existan.
-
-#### Timeline Recomendado para Backend:
-
-| Semana  | Prioridad  | Endpoints Necesarios                           |
-| ------- | ---------- | ---------------------------------------------- |
-| **1-4** | 🔴 Crítico | `POST /checkout/process-payment` (MercadoPago) |
-| **1-4** | 🔴 Crítico | `POST /webhooks/mercadopago`                   |
-| **3-5** | 🟡 Alto    | `GET /tickets/{ticketId}`                      |
-| **3-5** | 🟡 Alto    | `GET /checkout/session/{id}/tickets`           |
-| **5-6** | 🟡 Alto    | `GET /stats/seller`                            |
-| **5-6** | 🟢 Medio   | `GET /stats/global`                            |
-| **6-7** | 🟢 Medio   | `GET /reports/sales` + export                  |
-| **7-8** | 🟢 Medio   | CRUD vendedores, cupones                       |
-| **8+**  | ⚪ Bajo    | Finanzas, retiros, emails                      |
-
-#### Comunicación Frontend ↔ Backend:
-
-```
-Cuando el BE termine un endpoint:
-1. Notificar al equipo FE
-2. FE cambia: ConfigService.isMockedEnabled() → false para ese servicio
-3. Testear integración
-4. Si funciona → merge
-5. Si falla → revertir a mock, reportar bug
-```
-
----
-
-## 6. Anexos
-
-### 6.1 Checklist de Lanzamiento MVP
-
-#### Infraestructura (Obligatorio antes de cualquier deploy)
-
-- [ ] ✅ **GlobalErrorBoundary** implementado y funcionando
-- [ ] ✅ **MockModeIndicator** visible solo en desarrollo
-- [ ] ✅ Sistema de mocks robusto para todos los servicios
-- [ ] ✅ Error handling HTTP → UI amigable
-
-#### Flujo de Compra
-
-- [ ] Checkout con MercadoPago funciona end-to-end (o simulado)
-- [ ] Tickets se generan y pueden visualizarse
-- [ ] Tickets se pueden reenviar por email
-- [ ] Manejo de entradas gratuitas
-- [ ] Manejo de entradas de pago
-
-#### Backoffice Organizador
-
-- [ ] Organizador puede crear/editar eventos
-- [ ] Organizador puede ver ventas de sus eventos
-- [ ] Organizador puede validar entradas (manual y QR)
-- [ ] Dashboard muestra métricas (mock o reales)
-
-#### General
-
-- [ ] Admin puede ver todos los eventos
-- [ ] Sistema soporta CO y AR
-- [ ] Loading states en toda la app
-- [ ] Mobile responsive
-- [ ] Sin errores en consola (producción)
-
-### 6.2 Métricas de Éxito
-
-| Métrica                   | Target MVP    | Cómo medir |
-| ------------------------- | ------------- | ---------- |
-| Tiempo de checkout        | < 3 min       | Analytics  |
-| Tasa de abandono checkout | < 40%         | Funnel     |
-| Errores en producción     | < 1% requests | Logs       |
-| Tiempo de carga home      | < 2s          | Lighthouse |
-| Core Web Vitals           | Todos verdes  | Lighthouse |
-
-### 6.3 Riesgos Identificados
-
-| Riesgo                  | Probabilidad | Impacto | Mitigación                             |
-| ----------------------- | ------------ | ------- | -------------------------------------- |
-| Retraso endpoints BE    | Alta         | Alto    | Comunicación constante, mocks robustos |
-| Integración MercadoPago | Media        | Alto    | Ambiente sandbox, testing exhaustivo   |
-| Problemas de escala     | Baja         | Medio   | Lazy loading, paginación               |
-| Seguridad tokens        | Media        | Alto    | Refresh tokens, HTTPS only             |
-
-### 6.4 Contactos y Recursos
-
-- **Repo Frontend**: `https://github.com/alejandrojuarez675/ticketoffice-frontend-2`
-- **Repo Backend**: `https://github.com/alejandrojuarez675/ticketoffice-backend`
-- **MercadoPago Docs**: `https://www.mercadopago.com.ar/developers/`
-
----
-
-> **Próximos pasos**: Una vez aprobado este roadmap, comenzar con la Fase 1 (Estabilización). El primer ticket debería ser la integración con MercadoPago (F1-001) ya que es el bloqueante principal.
-
----
-
-_Documento generado como parte de la auditoría técnica del proyecto TicketOffice._

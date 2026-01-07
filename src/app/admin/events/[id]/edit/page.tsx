@@ -45,6 +45,7 @@ import { sanitizeString, sanitizeUrl } from '@/utils/sanitize';
 import { EVENT_TAGS } from '@/constants/eventTags';
 import Autocomplete from '@mui/material/Autocomplete';
 import Chip from '@mui/material/Chip';
+import { isValidId } from '@/utils/validation';
 
 type EventStatus = 'DRAFT' | 'ACTIVE' | 'CANCELLED';
 
@@ -78,6 +79,13 @@ export default function EditEventPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const isSeller = user?.role === 'seller';
   const hasBackoffice = !!user && (user.role === 'admin' || user.role === 'seller');
+
+  // Validar ID al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (id && !isValidId(id)) {
+      router.replace('/');
+    }
+  }, [id, router]);
 
   const [originalEvent, setOriginalEvent] = useState<EventDetail | null>(null);
   const [formData, setFormData] = useState<EventDetail | null>(null);

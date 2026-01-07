@@ -15,6 +15,7 @@ import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import AddIcon from '@mui/icons-material/Add';
 import ListIcon from '@mui/icons-material/List';
 import CelebrationIcon from '@mui/icons-material/Celebration';
+import { capitalizeFirstLetter } from '@/utils/format';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function AdminDashboard() {
     <BackofficeLayout title="Métricas de Eventos">
       <Box>
         <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold' }}>
-          ¡Hola, {user?.name || user?.username}! 👋
+          ¡Hola, {capitalizeFirstLetter(user?.name || user?.username)}! 👋
         </Typography>
 
         {/* Métricas */}

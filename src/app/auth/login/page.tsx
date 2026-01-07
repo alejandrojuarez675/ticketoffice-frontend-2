@@ -6,6 +6,7 @@ import LightLayout from '@/components/layouts/LightLayout';
 import { Box, Button, Container, Divider, TextField, Typography, Alert, Checkbox, FormControlLabel, Paper, CircularProgress } from '@mui/material';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { sanitizeString } from '@/utils/sanitize';
 
 // This component is wrapped in Suspense as a workaround for the useSearchParams()
 // https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
@@ -48,13 +49,24 @@ function LoginForm() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!username || !password) {
+    
+    // Sanitizar inputs antes de enviar
+    const sanitizedUsername = sanitizeString(username).trim();
+    
+    if (!sanitizedUsername || !password) {
       setError('Completa usuario y contraseña');
       return;
     }
+    
+    // Validar longitud mínima
+    if (sanitizedUsername.length < 3) {
+      setError('El usuario debe tener al menos 3 caracteres');
+      return;
+    }
+    
     try {
       setLoading(true);
-      await login({ username, password, remember });
+      await login({ username: sanitizedUsername, password, remember });
       // Redirigir usando router.push para mejor UX
       router.push(next);
     } catch (error) {

@@ -13,11 +13,39 @@ import {
   Grid,
   Alert,
   Divider,
+  CircularProgress,
+  Link as MuiLink,
 } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
-import PhoneIcon from '@mui/icons-material/Phone';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SendIcon from '@mui/icons-material/Send';
+import { sanitizeString, sanitizeEmail } from '@/utils/sanitize';
+import { ContactService } from '@/services/ContactService';
+import { FAQJsonLd } from '@/components/seo';
+
+// Preguntas frecuentes para SEO
+const FAQ_ITEMS = [
+  {
+    question: '¿Cómo compro una entrada?',
+    answer: 'Busca el evento que te interesa, selecciona la cantidad de entradas y completa el proceso de compra. Recibirás tus entradas por correo electrónico.',
+  },
+  {
+    question: '¿Puedo devolver una entrada?',
+    answer: 'Las devoluciones solo están disponibles si el evento es cancelado por el organizador. Consulta nuestros términos y condiciones para más información.',
+  },
+  {
+    question: '¿Cómo puedo vender entradas para mi evento?',
+    answer: 'Regístrate como vendedor en nuestra plataforma y podrás crear y gestionar tus eventos fácilmente.',
+  },
+  {
+    question: '¿Es seguro comprar en TuEntradaYa?',
+    answer: 'Sí, utilizamos encriptación SSL y proveedores de pago certificados para garantizar la seguridad de tus transacciones.',
+  },
+];
+
+// Números de WhatsApp (solo dígitos para el link)
+const WHATSAPP_COLOMBIA = '573145429669';
+const WHATSAPP_ARGENTINA = '5493436210450';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -27,6 +55,8 @@ export default function ContactPage() {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -35,19 +65,48 @@ export default function ContactPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implementar envío de formulario al backend
-    console.log('Form data:', formData);
-    setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
+    setError(null);
+    
+    // Sanitizar todos los inputs antes de procesar
+    const sanitizedData = {
+      name: sanitizeString(formData.name),
+      email: sanitizeEmail(formData.email),
+      subject: sanitizeString(formData.subject),
+      message: sanitizeString(formData.message),
+    };
+    
+    // Validar email
+    if (!sanitizedData.email) {
+      setError('Por favor, ingresa un correo electrónico válido.');
+      return;
+    }
+    
+    // Validar campos requeridos
+    if (!sanitizedData.name || !sanitizedData.subject || !sanitizedData.message) {
+      setError('Por favor, completa todos los campos.');
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      await ContactService.submitContactForm(sanitizedData);
+      setSubmitted(true);
       setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 5000);
+    } catch (err) {
+      console.error('Error enviando formulario:', err);
+      setError('Hubo un error al enviar tu mensaje. Por favor, inténtalo de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <LightLayout title="Contacto - TuEntradaYa">
+      {/* SEO: FAQ Schema.org JSON-LD */}
+      <FAQJsonLd items={FAQ_ITEMS} />
+      
       <Container maxWidth="lg" sx={{ py: 6 }}>
         <Typography variant="h3" component="h1" gutterBottom align="center">
           Contáctanos
@@ -68,6 +127,12 @@ export default function ContactPage() {
               {submitted && (
                 <Alert severity="success" sx={{ mb: 3 }}>
                   ¡Gracias por contactarnos! Responderemos a tu mensaje lo antes posible.
+                </Alert>
+              )}
+
+              {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                  {error}
                 </Alert>
               )}
 
@@ -115,11 +180,12 @@ export default function ContactPage() {
                   type="submit"
                   variant="contained"
                   size="large"
-                  endIcon={<SendIcon />}
+                  endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
                   fullWidth
+                  disabled={isSubmitting}
                   sx={{ mt: 3 }}
                 >
-                  Enviar mensaje
+                  {isSubmitting ? 'Enviando...' : 'Enviar mensaje'}
                 </Button>
               </Box>
             </Paper>
@@ -150,36 +216,37 @@ export default function ContactPage() {
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <PhoneIcon sx={{ mr: 2, mt: 0.5, color: 'primary.main' }} />
+                  <WhatsAppIcon sx={{ mr: 2, mt: 0.5, color: '#25D366' }} />
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Teléfono
+                      WhatsApp
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Colombia: +57 (1) 234-5678
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Argentina: +54 (11) 1234-5678
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                  <LocationOnIcon sx={{ mr: 2, mt: 0.5, color: 'primary.main' }} />
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                      Oficinas
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" paragraph>
-                      <strong>Colombia:</strong><br />
-                      Calle 123 #45-67<br />
-                      Bogotá, Colombia
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      <strong>Argentina:</strong><br />
-                      Av. Corrientes 1234<br />
-                      Buenos Aires, Argentina
-                    </Typography>
+                    <MuiLink
+                      href={`https://wa.me/${WHATSAPP_COLOMBIA}?text=Hola,%20tengo%20una%20consulta`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        display: 'block', 
+                        color: 'text.secondary',
+                        textDecoration: 'none',
+                        '&:hover': { color: '#25D366', textDecoration: 'underline' }
+                      }}
+                    >
+                      🇨🇴 Colombia: +57 314 542 9669
+                    </MuiLink>
+                    <MuiLink
+                      href={`https://wa.me/${WHATSAPP_ARGENTINA}?text=Hola,%20tengo%20una%20consulta`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        display: 'block', 
+                        color: 'text.secondary',
+                        textDecoration: 'none',
+                        '&:hover': { color: '#25D366', textDecoration: 'underline' }
+                      }}
+                    >
+                      🇦🇷 Argentina: +54 9 3436 21-0450
+                    </MuiLink>
                   </Box>
                 </Box>
               </Box>

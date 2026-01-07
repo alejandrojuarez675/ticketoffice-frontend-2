@@ -33,6 +33,7 @@ import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
 import { SalesService } from '@/services/SalesService';
 import { logger } from '@/lib/logger';
+import { isValidId } from '@/utils/validation';
 
 type Row = {
   id: string;
@@ -56,6 +57,13 @@ function EventSalesPageInner() {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Validar ID al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (id && !isValidId(id)) {
+      router.replace('/');
+    }
+  }, [id, router]);
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);

@@ -48,6 +48,7 @@ import type { EventDetail } from '@/types/Event';
 import type { SaleLightDTO } from '@/services/schemas/sales';
 import dynamic from 'next/dynamic';
 import { useTheme, useMediaQuery } from '@mui/material';
+import { isValidId } from '@/utils/validation';
 
 // Importar QRScanner dinámicamente para evitar SSR
 const QRScanner = dynamic(() => import('@/components/common/QRScanner'), { ssr: false });
@@ -58,6 +59,13 @@ export default function EventTicketValidationPage() {
   const { id: eventId } = useParams<{ id: string }>();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Validar ID al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (eventId && !isValidId(eventId)) {
+      router.replace('/');
+    }
+  }, [eventId, router]);
 
   const [saleId, setSaleId] = useState(searchParams.get('saleId') || '');
   const [loading, setLoading] = useState(false);

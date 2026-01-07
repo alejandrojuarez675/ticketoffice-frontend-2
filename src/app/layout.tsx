@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 import { ClientProviders } from '@/components/common/ClientProviders';
 import { Inter, Geist, Geist_Mono } from 'next/font/google';
+import { OrganizationJsonLd } from '@/components/seo';
 
 export const metadata: Metadata = {
   title: 'TuEntradaYa - Compra de entradas online',
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <OrganizationJsonLd />
         <ClientProviders>
           {children}
         </ClientProviders>

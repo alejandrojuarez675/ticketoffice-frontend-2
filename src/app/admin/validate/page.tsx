@@ -54,6 +54,7 @@ import { EventService } from '@/services/EventService';
 import type { EventDetail } from '@/types/Event';
 import { SalesService } from '@/services/SalesService';
 import { ConfigService } from '@/services/ConfigService';
+import { sanitizeString } from '@/utils/sanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -202,7 +203,9 @@ function EventTicketValidationContent() {
   }, []);
 
   const handleValidateWithId = async (idToValidate: string) => {
-    if (!idToValidate.trim()) return;
+    // Sanitizar el ID antes de validar
+    const sanitizedId = sanitizeString(idToValidate).trim();
+    if (!sanitizedId) return;
 
     try {
       setIsSubmitting(true);
@@ -213,7 +216,7 @@ function EventTicketValidationContent() {
         await new Promise(resolve => setTimeout(resolve, 500)); // Simular latencia
         
         const mockResult: ValidationResult = {
-          id: idToValidate,
+          id: sanitizedId,
           success: true,
           message: 'Entrada validada correctamente',
           ticketType: 'VIP',
@@ -236,10 +239,10 @@ function EventTicketValidationContent() {
       }
 
       // Llamada real al backend
-      await SalesService.validate(idToValidate);
+      await SalesService.validate(sanitizedId);
       
       const result: ValidationResult = {
-        id: idToValidate,
+        id: sanitizedId,
         success: true,
         message: 'Entrada validada correctamente',
         validatedAt: new Date().toISOString(),
@@ -260,7 +263,7 @@ function EventTicketValidationContent() {
       const isAlreadyValidated = errorMessage.toLowerCase().includes('already') || errorMessage.toLowerCase().includes('ya validada');
       
       const result: ValidationResult = {
-        id: idToValidate,
+        id: sanitizedId,
         success: false,
         message: isAlreadyValidated ? 'Esta entrada ya fue validada anteriormente' : 'Error al validar la entrada',
         validatedAt: new Date().toISOString(),
@@ -429,7 +432,7 @@ function EventTicketValidationContent() {
                     <TextField
                       fullWidth
                       variant="outlined"
-                      label="ID de la Venta (sale-id)"
+                      label="ID de la Venta"
                       value={ticketId}
                       onChange={(e) => setTicketId(e.target.value)}
                       placeholder="Ingrese el ID o escanee el código QR"
@@ -492,8 +495,7 @@ function EventTicketValidationContent() {
               {/* Instrucciones */}
               <Alert severity="info" sx={{ mt: 3 }}>
                 <Typography variant="body2">
-                  <strong>Formato del QR:</strong> El código QR contiene una URL con el parámetro <code>sale-id</code>. 
-                  El sistema lo extrae automáticamente al escanear.
+                  El código QR contiene una URL que el sistema identifica automáticamente al escanear y valida la entrada.
                 </Typography>
               </Alert>
             </CardContent>

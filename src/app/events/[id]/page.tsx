@@ -20,6 +20,10 @@ import Loading from '@/components/common/Loading';
 import ErrorState from '@/components/common/ErrorState';
 import Empty from '@/components/common/Empty';
 import { formatMoneyByCountry } from '@/utils/format';
+import { EventJsonLd, BreadcrumbJsonLd } from '@/components/seo';
+import { isValidId } from '@/utils/validation';
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tuentradaya.com';
 
 function toICSDate(d: Date) {
   return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
@@ -53,6 +57,13 @@ function EventDetailContent() {
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
+
+  // Validar ID al inicio - redirigir si es inválido
+  useEffect(() => {
+    if (id && !isValidId(id)) {
+      router.replace('/');
+    }
+  }, [id, router]);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -158,6 +169,14 @@ function EventDetailContent() {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* SEO: Schema.org JSON-LD */}
+      <EventJsonLd event={event} />
+      <BreadcrumbJsonLd items={[
+        { name: 'Inicio', url: BASE_URL },
+        { name: 'Eventos', url: `${BASE_URL}/events` },
+        { name: event.title, url: `${BASE_URL}/events/${event.id}` },
+      ]} />
+
       <Button
         startIcon={<ArrowBackIcon />}
         onClick={() => router.push('/events')}

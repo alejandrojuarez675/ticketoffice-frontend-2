@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthService } from '@/services/AuthService';
+import { sanitizeEmail } from '@/utils/sanitize';
 
 const Schema = z.object({ email: z.string().email('Email inválido') });
 type Data = z.infer<typeof Schema>;
@@ -31,7 +32,17 @@ export default function ForgotPage() {
 
   const onSubmit = async (data: Data) => {
     try {
-      await AuthService.requestPasswordReset(data.email);
+      // Sanitizar email antes de enviar
+      const sanitizedEmail = sanitizeEmail(data.email);
+      if (!sanitizedEmail) {
+        showSnack({
+          message: 'Por favor, ingresa un correo electrónico válido.',
+          severity: 'error',
+        });
+        return;
+      }
+      
+      await AuthService.requestPasswordReset(sanitizedEmail);
       setSent(true);
       showSnack({
         message: 'Si el correo existe, te enviamos un enlace para restablecer la contraseña.',
